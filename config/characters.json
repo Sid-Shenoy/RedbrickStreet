@@ -6,7 +6,7 @@
         "gender": "M",
         "accentLanguage": "Canadian",
         "age": 38,
-        "career": "DevOps engineer",
+        "career": "Accessibility engineer",
         "religion": "Catholic",
         "family": {
             "spouse": 2,
@@ -21,20 +21,20 @@
             "particular"
         ],
         "interests": [
-            "home repair",
-            "hockey",
-            "espresso"
+            "stargazing",
+            "wood carving",
+            "kite building"
         ],
         "about": [
-            "I keep a notes app full of dumb little checklists and then act surprised when it saves me.",
-            "If something in the house is rattling, I will hear it from three rooms away and it will haunt me until I fix it.",
-            "I'm not big on talking in groups, but I'll talk your ear off if you ask me about tools or why I think most gadgets are overdesigned.",
-            "I get weirdly calm in small emergencies and weirdly stressed by tiny messes, which is not a personality flaw at all (it is).",
-            "I want the street to feel normal and boring, in the best way—kids safe, porches lit, nobody doing anything that turns into a story."
+            "I got into accessibility work because it feels like the most practical kind of empathy: make things usable, then make them better.",
+            "I keep a cheap pair of binoculars by the back door and I step outside at night like I'm checking on the street, but I'm really checking on the sky.",
+            "I like small crafts that require patience, like carving a spoon or sanding a piece until it finally feels right in your hand.",
+            "I don't talk a lot in groups, but if you ask me a specific question, you'll get a real answer and probably a quiet joke attached to it.",
+            "I want the street to feel steady and normal, like the kind of place where problems stay small because people notice each other."
         ],
         "socialMedia": {
             "handle": "dorian_w78",
-            "bio": "fixing small stuff, breaking bigger stuff 🧰☕ | mostly lurking | TO",
+            "bio": "accessibility work • small crafts • stars when the street is quiet • TO",
             "followers": 436,
             "following": 372
         }
@@ -130,25 +130,25 @@
             "children": []
         },
         "personalityTraits": [
-            "sharp",
-            "stubborn",
-            "dryly-funny"
+            "meticulous",
+            "self-possessed",
+            "witty"
         ],
         "interests": [
-            "drawing",
-            "music",
-            "video editing"
+            "geocaching",
+            "stop-motion animation",
+            "urban sketching"
         ],
         "about": [
-            "I don't talk a ton in big groups because half the time I'm watching who's trying too hard.",
-            "If I start a drawing, I'll get obsessed with one tiny detail and then suddenly it's midnight.",
-            "People think I'm being rude when I'm quiet, but sometimes I just don't feel like performing a personality.",
-            "I like my brother, I just don't like him in my room touching my stuff with his snack hands.",
-            "I'm nicer than I look—I just warm up once I know you."
+            "I like hobbies where there is a clear result at the end, like finding a cache or finishing a tiny stop-motion scene.",
+            "If I get obsessed with a detail, I will redo it ten times and then act like I never cared.",
+            "I keep a little notebook of places I want to explore, and I rate them by how good the light is.",
+            "I can be quiet for a while, but it is usually because I am watching and collecting ideas.",
+            "I am nicer than I look at first; I just do not like being forced to talk on demand."
         ],
         "socialMedia": {
             "handle": "wino.na12",
-            "bio": "art brain ✍️ + loud headphones | occasionally funny",
+            "bio": "tiny scenes + treasure hunts • geocache brain • gr 7",
             "followers": 173,
             "following": 219
         }
@@ -160,7 +160,7 @@
         "gender": "M",
         "accentLanguage": "MiddleEastern",
         "age": 53,
-        "career": "Facilities maintenance technician",
+        "career": "Antique bookbinder",
         "religion": "Muslim",
         "family": {
             "spouse": -1,
@@ -172,20 +172,20 @@
             "soft-hearted"
         ],
         "interests": [
-            "tea",
-            "walking",
-            "fixing old things"
+            "bookbinding repairs",
+            "calligraphy practice",
+            "chess at cafes"
         ],
         "about": [
-            "I don't say much when I first meet people because I'd rather listen and figure out what kind of day they're having.",
-            "If something is crooked, I'll straighten it without thinking—frames, chairs, even your story if it's not adding up.",
-            "I like quiet evenings where the kettle is doing its job and nobody is rushing me about anything.",
-            "People assume I'm stern, but honestly I just hate wasting words on nothing.",
-            "If a neighbor needs a practical hand, I'll help—then I'll go back inside like it never happened."
+            "I like work where you can hold the result in your hands, so I fix old books the way some people fix furniture.",
+            "If a spine is cracked or a page is loose, I can usually tell exactly where it started just by how it feels when you open it.",
+            "I practice calligraphy when I need my thoughts to slow down and behave, and I keep most of it to myself like a private hobby.",
+            "I am not loud, but I am present; I notice what people need before they say it, and I try to help without making it a whole scene.",
+            "I like conversations with a point, like chess games that end with a laugh and not a lecture."
         ],
         "socialMedia": {
             "handle": "samer.d_71",
-            "bio": "tea first. tools second. everything else later.",
+            "bio": "book repair + quiet crafts • calligraphy practice • chess games, no drama",
             "followers": 319,
             "following": 164
         }
@@ -236,7 +236,7 @@
         "gender": "F",
         "accentLanguage": "Chinese",
         "age": 45,
-        "career": "Pharmacy assistant",
+        "career": "Public library circulation supervisor",
         "religion": "None",
         "family": {
             "spouse": 6,
@@ -246,24 +246,24 @@
         },
         "personalityTraits": [
             "practical",
-            "soft-hearted",
-            "wry"
+            "observant",
+            "even-tempered"
         ],
         "interests": [
-            "karaoke at home",
-            "baking buns",
-            "bargain-hunting"
+            "tai chi in the park",
+            "repairing clothes",
+            "audio dramas"
         ],
         "about": [
-            "I keep a running list in my head of what's low in the house, and it's annoying that I'm almost always right.",
-            "I'll act calm while I'm worrying, then suddenly clean one weird corner like it's an emergency.",
-            "I'm friendly, but I'm not the type who wants to be everyone's best friend by next week.",
-            "I like little comforts—warm light, soup that tastes like childhood, music low enough to think.",
-            "If my daughter is quiet for too long, I notice before I even know I'm noticing."
+            "I can find a missing book faster than I can find my own phone, which is embarrassing but useful.",
+            "I like small, steady habits that make a day feel less noisy, like opening the window for five minutes even in winter.",
+            "If a sweater rips, I stitch it right away because loose threads make my brain itch.",
+            "I do not need to be the loudest person in a room; I just need the plan to make sense.",
+            "When I am tired, I put on an audio drama and let my hands do something simple, and it feels like my mind unclenches."
         ],
         "socialMedia": {
-            "handle": "yuxin.zhou7",
-            "bio": "Toronto | soups, songs, small wins",
+            "handle": "yuxin.tang45",
+            "bio": "library desk days • tai chi mornings • mending clothes like therapy",
             "followers": 719,
             "following": 476
         }
@@ -283,24 +283,24 @@
         },
         "personalityTraits": [
             "ambitious",
-            "straightforward",
-            "guarded"
+            "direct",
+            "private"
         ],
         "interests": [
-            "video editing",
-            "K-pop dance practice",
-            "badminton"
+            "speedcubing",
+            "robotics kits",
+            "stationery collecting"
         ],
         "about": [
-            "I'm not shy—I just don't do fake-smiles when I don't mean them.",
-            "If I'm quiet, it usually means I'm thinking about what I should've said three minutes ago.",
-            "I like editing videos because I can control the story—real life is messy and the cuts don't happen when you want them.",
-            "I get really intense about school for no reason, then suddenly can't focus and end up reorganizing my playlist instead.",
-            "I want more freedom, but I also want someone to notice when I'm not okay without making it a big scene."
+            "I like skills that you can practice alone and measure, like getting faster at a cube or making a tiny robot actually work.",
+            "At home I switch between English and Mandarin without thinking, and I forget which one I started the sentence in.",
+            "If I am quiet, it usually means I am planning the next move and I do not want anyone in my head yet.",
+            "I hate fake-smiling, but I am not rude on purpose; I just like being honest and then moving on.",
+            "I want more freedom, but I also like knowing my parents will notice if I am stressed before I admit it."
         ],
         "socialMedia": {
             "handle": "xx_tang14",
-            "bio": "edits + music + trying my best (most days)",
+            "bio": "cubes • tiny robots • neat pens • sometimes funny (quietly)",
             "followers": 407,
             "following": 533
         }
@@ -326,20 +326,20 @@
             "principled"
         ],
         "interests": [
-            "soccer highlights",
-            "weekend grilling",
-            "podcasts about history"
+            "beekeeping",
+            "map puzzles",
+            "soccer coaching drills"
         ],
         "about": [
-            "I spend my whole day around noise, so when I get home I crave quiet like a reset button.",
-            "I'm not the type to pour my feelings out, but I remember what people say when it matters.",
-            "Some days I'm patient; other days I'm tired and my face shows it even when I try to be polite.",
-            "I like routines because they make life feel less slippery, especially when the world is doing too much.",
-            "If I'm in a good mood, I'll joke more than people expect—dry jokes, not the loud kind."
+            "I like jobs where you learn a city by heart, and driving a route long enough turns streets into a kind of memory.",
+            "I keep a small hive setup and I talk about bees like they are tiny coworkers with strong opinions.",
+            "I love map puzzles because they make my brain feel clean, like there is always a solution if you look long enough.",
+            "With my kid, I do soccer drills that are simple and fair, because I think fairness is something you practice, not something you claim.",
+            "I do not chase attention, but if I promised something, I will do it, even if it is inconvenient."
         ],
         "socialMedia": {
             "handle": "ar_tesfaye91",
-            "bio": "buses • family • football on weekends",
+            "bio": "bus routes + backyard bees • family first • football drills on weekends",
             "followers": 352,
             "following": 214
         }
@@ -436,23 +436,23 @@
         "personalityTraits": [
             "observant",
             "ambitious",
-            "quietly witty"
+            "level-headed"
         ],
         "interests": [
-            "digital illustration",
-            "playlist curating",
-            "late-night cafe studying"
+            "debate club",
+            "henna practice",
+            "volunteer tutoring"
         ],
         "about": [
-            "I don't talk much in groups because I like knowing where the conversation is going before I jump in.",
-            "I pretend I'm chill about deadlines, but my brain is already panicking three days in advance.",
-            "I love working on something creative for hours and then suddenly hating it for ten minutes before liking it again.",
-            "I notice tone really fast, which is useful and also extremely annoying.",
-            "If I'm comfortable around you, I get a lot funnier and a lot more opinionated."
+            "I do not love small talk, but give me a topic with rules and I will argue it calmly for an hour.",
+            "I practice henna the way some people practice handwriting: slow, precise, and weirdly relaxing.",
+            "My family group chat is loud, dramatic, and somehow useful, so I check it more than I admit.",
+            "I like tutoring because it makes my brain feel organized, even when my own life is not.",
+            "If I trust you, I get way funnier and way more honest, and then I act surprised when people notice."
         ],
         "socialMedia": {
             "handle": "yam1.c23",
-            "bio": "student brain 📚 | playlists for every mood | art in progress always",
+            "bio": "debate kid • mehndi practice • tutoring hours • trying to stay calm (mostly)",
             "followers": 612,
             "following": 487
         }
@@ -577,7 +577,7 @@
         "gender": "F",
         "accentLanguage": "SouthAsian",
         "age": 40,
-        "career": "Project coordinator",
+        "career": "UX researcher",
         "religion": "Hindu",
         "family": {
             "spouse": 15,
@@ -591,20 +591,20 @@
             "restless"
         ],
         "interests": [
-            "cooking experiments",
-            "fitness classes",
-            "trying new cafés"
+            "dragon boat paddling",
+            "terrarium building",
+            "documentary binges"
         ],
         "about": [
-            "I swear I'm calm, and then one small delay turns me into a person who reorganizes the entire day out of spite.",
-            "I can be charming in public and impatient in my head at the exact same time.",
-            "If I'm cooking, I'm either fully in the zone or aggressively offended by one wrong spice measurement.",
-            "I say I don't care what people think, but I absolutely replay conversations in the shower like a sport.",
-            "I'm happiest when I'm busy for a good reason and not just busy because someone else can't plan."
+            "If I sign up for one more \"fun challenge\" this month, please remind me I already did that.",
+            "I love figuring out why people click what they click, which means I accidentally analyze vending machines for no reason.",
+            "Team workouts with a timer make my brain behave, so I keep choosing them like it is a life hack.",
+            "I build tiny terrariums when I need quiet, and I take it personally when a plant refuses to thrive.",
+            "I can be impatient in my head, but I work hard to keep my words clean and kind because everyone is already juggling enough."
         ],
         "socialMedia": {
             "handle": "lav_mohal88",
-            "bio": "Toronto. good food, loud laugh, and a calendar I pretend I don't live by.",
+            "bio": "researching screens by day • dragon boat sweat by night • terrariums on weekends",
             "followers": 1098,
             "following": 736
         }
@@ -653,7 +653,7 @@
         "gender": "F",
         "accentLanguage": "Chinese",
         "age": 26,
-        "career": "Barista",
+        "career": "Bike shop mechanic apprentice",
         "religion": "None",
         "family": {
             "spouse": -1,
@@ -665,20 +665,20 @@
             "inconsistent"
         ],
         "interests": [
-            "late-night walks",
-            "playlists",
-            "watching people"
+            "night cycling",
+            "zine swaps",
+            "urban moth spotting"
         ],
         "about": [
-            "I'm friendly until I'm not, and half the time it's because my social battery lied to me.",
-            "I collect little routines like they're charms—same drink, same route, same song—until one day I hate them and switch everything.",
-            "I notice awkward silences so fast it feels like a superpower I didn't ask for.",
-            "Sometimes I want to be the mysterious girl in a movie, and sometimes I just want noodles and nobody talking to me.",
-            "If you catch me outside at 1 a.m., I'm probably just clearing my head—my brain finally gets quiet then."
+            "I like fixing bikes because the problem is usually honest: something is loose, something is worn, and you can actually solve it.",
+            "I go out late when the street is quiet and the air feels like it has room to think.",
+            "I make tiny zines for fun, mostly bad jokes and sketches, and I leave them in free libraries like secret gifts.",
+            "I get obsessed with one song for a week and then never listen again, which is rude to the song but true.",
+            "If I seem distant, it is usually because I am recharging, not because I am judging you."
         ],
         "socialMedia": {
             "handle": "jas.luo26",
-            "bio": "coffee hands / loud headphones / accidentally funny",
+            "bio": "grease hands • late rides • small zines • quiet jokes",
             "followers": 603,
             "following": 337
         }
@@ -1302,7 +1302,7 @@
         "gender": "F",
         "accentLanguage": "Canadian",
         "age": 42,
-        "career": "Office manager",
+        "career": "Greenhouse operations manager",
         "religion": "Agnostic",
         "family": {
             "spouse": 34,
@@ -1316,20 +1316,20 @@
             "quietly anxious"
         ],
         "interests": [
-            "budgeting",
-            "rom-com rewatching",
-            "stationery"
+            "handmade soap making",
+            "cloud photography",
+            "propagating houseplants"
         ],
         "about": [
-            "I look calm because I practice looking calm--my brain is usually doing a dozen tabs at once.",
-            "I keep lists for everything, and then I still forget one important thing and get mad at myself.",
-            "I'm nice by default, but I hate feeling taken for granted, and I can feel it fast.",
-            "I'll overthink a conversation on the drive home and then act normal like nothing happened.",
-            "When things feel out of control, I reorganize one drawer and tell myself it's productive."
+            "I can talk a wilting plant back to life, but I still get stage fright when I have to introduce myself in a circle.",
+            "Working in a greenhouse taught me patience: you cannot argue a seed into growing faster.",
+            "I like small practical gifts, like a cutting in a jar, because it feels like handing someone future.",
+            "If I say no, it is not personal; it is me protecting my time so I do not burn out and become unpleasant.",
+            "My favorite reset is an evening walk where I take photos of clouds and then delete half of them without telling anyone."
         ],
         "socialMedia": {
             "handle": "eira.harg",
-            "bio": "mom stuff + admin life + trying to remember water bottles",
+            "bio": "greenhouse life • soap batches • cloud photos i will never post",
             "followers": 908,
             "following": 621
         }
@@ -1348,25 +1348,25 @@
             "children": []
         },
         "personalityTraits": [
-            "sharp-tongued",
+            "intense",
             "easily-embarrassed",
-            "intense"
+            "earnest"
         ],
         "interests": [
-            "music",
-            "thrifting",
-            "online drama"
+            "science-fair builds",
+            "roller skating",
+            "origami"
         ],
         "about": [
-            "I can be nice for exactly one minute and then my face betrays me.",
-            "If something feels cringe, I have to say it out loud or I'll die.",
-            "I get weirdly competitive about tiny things, like who remembers lyrics faster or who noticed something first.",
-            "I act like I don't care, but if someone's mad at me I replay it in my head like fifteen times.",
-            "I'm trying to be cooler, but my brain keeps volunteering me for emotions."
+            "If I get excited about a project, I go from zero to fully committed in one day and then I forget to eat lunch.",
+            "I talk a big game, but if someone compliments me unexpectedly I short-circuit and make it weird.",
+            "I like building things because the rules are clear: if it fails, you can fix it without guessing what it meant.",
+            "I get competitive about tiny improvements, like shaving one second off a lap or making one cleaner fold.",
+            "I am not trying to be mean when I say something fast; my mouth sometimes shows up before my filter does."
         ],
         "socialMedia": {
             "handle": "opalspams_13",
-            "bio": "if you can hear this you're too close • 🎧 • chips are a food group",
+            "bio": "paper cranes + skate wheels • science-fair brain • gr 8",
             "followers": 486,
             "following": 612
         }
@@ -1559,7 +1559,7 @@
         ],
         "socialMedia": {
             "handle": "hrn.kpr92",
-            "bio": "chai first ☕️ | accidentally mom-ing everyone | Toronto | kitchen experiments",
+            "bio": "accidentally mom-ing everyone | Toronto | kitchen experiments",
             "followers": 1412,
             "following": 719
         }
@@ -1885,24 +1885,24 @@
         },
         "personalityTraits": [
             "confident",
-            "sarcastic",
-            "inconsistent"
+            "blunt",
+            "loyal"
         ],
         "interests": [
-            "gym playlists",
-            "thrifting",
-            "iced coffee runs"
+            "kickboxing classes",
+            "nail art",
+            "reselling old clothes"
         ],
         "about": [
-            "I act like I don't care, but I'll rewrite a text three times and still hate how it sounds.",
-            "I'm good at handling things when it's serious, and unbelievably lazy about things that are boring.",
-            "If I'm being sarcastic, it usually means I like you—unfortunately that's my love language.",
-            "I'm saving money and also spending money, so yes, I'm stressed about it all the time.",
-            "I want freedom, but I also want people to stop watching me like I'm about to make a headline."
+            "I can handle real problems fast, but I will procrastinate a boring task like it is a sport.",
+            "I like kickboxing because it shuts my brain up for an hour and I feel normal afterward.",
+            "If a nail set turns out perfect, my whole mood improves, which is inconvenient but true.",
+            "I am saving money on purpose now, which means I keep doing math in my head while pretending I am relaxed.",
+            "I want freedom, but I also want people to treat me like I am capable instead of waiting for me to mess up."
         ],
         "socialMedia": {
             "handle": "nicolettec17",
-            "bio": "school / shifts / caffeine. don't ask me to be up early ☕️",
+            "bio": "shifts + kickboxing • nail sets on friends • saving up, not explaining why",
             "followers": 2247,
             "following": 1041
         }
@@ -1921,25 +1921,25 @@
             "children": []
         },
         "personalityTraits": [
-            "competitive",
             "wisecracking",
-            "touchy"
+            "competitive",
+            "soft-hearted"
         ],
         "interests": [
             "pickup basketball",
-            "speedrunning",
-            "sneaker drops"
+            "card tricks",
+            "yo-yo practice"
         ],
         "about": [
-            "I act like I don't care, but I definitely care—like, unfortunately a lot.",
-            "If someone's laughing and I'm not in on the joke, I'll replay it in my head for hours and pretend it was funny.",
-            "I'm good at getting under people's skin and then acting shocked when they get mad, which is... a skill, I guess.",
-            "I'll say \"whatever\" and then go practice the same thing ten times until I'm better than you.",
-            "I'm trying to be chill, but my face snitches on me every single time."
+            "I joke a lot, and sometimes it comes out sharper than I meant, so I am trying to get better at catching myself.",
+            "If I lose, I will pretend I do not care and then practice later until I stop being mad about it.",
+            "Card tricks are fun because you can make people laugh without having to talk too much.",
+            "I act chill, but I notice everything, which is annoying because I cannot un-notice it.",
+            "If someone is fair with me, I am easy to be around, and I will defend them without making it a big speech."
         ],
         "socialMedia": {
             "handle": "g1deon_c",
-            "bio": "if i'm quiet i'm plotting 🏀🎮",
+            "bio": "basketball after school • learning tricks (cards + yo-yo) • jokes are defense",
             "followers": 536,
             "following": 621
         }
@@ -2041,20 +2041,20 @@
             "easily flustered"
         ],
         "interests": [
-            "baking",
-            "K-dramas",
-            "thrifting"
+            "paper-cut crafts",
+            "riding TTC routes",
+            "K-drama recaps"
         ],
         "about": [
-            "I like things to be in their places, but my life is not as tidy as my kitchen looks.",
-            "When I'm stressed I talk faster and start cleaning like I'm trying to erase the feeling.",
-            "I'm the type to bring food to someone and only later realize I forgot to ask what actually happened.",
-            "I can be very patient all day with kids at work and then lose my patience instantly with my own phone doing something dumb.",
-            "If you catch me on the right day, I'll chat for an hour-if you catch me on the wrong day, I'll smile and disappear."
+            "At work I can handle twenty small humans at once, but one confusing phone setting can make me feel brand-new to earth.",
+            "I collect silly sound effects for kids, and then I catch myself doing them in the grocery store.",
+            "I like making paper-cut decorations because one careful hour turns into something you can hang up and feel proud of.",
+            "On my days off I pick a random TTC route and ride it to the end just to see what the neighborhood looks like.",
+            "If you come over, I will try to send you home with a tiny paper craft, because I cannot help myself."
         ],
         "socialMedia": {
             "handle": "siyu.gao_",
-            "bio": "tiny humans all day • oven on at night 🍞",
+            "bio": "ECE days • paper-cuts + night buses • K-drama breaks",
             "followers": 1244,
             "following": 672
         }
@@ -2191,20 +2191,20 @@
             "opinionated"
         ],
         "interests": [
-            "podcasts",
-            "long walks",
-            "crosswords"
+            "neighbourhood history walks",
+            "volunteering at school events",
+            "weird cookbook collecting"
         ],
         "about": [
-            "I make lists like it's a hobby, then feel personally offended when life ignores them.",
-            "I'm nice, but I'm also the person who will rewrite your email in my head while smiling at you.",
-            "I pretend I'm low-maintenance and then get weirdly particular about grocery brands.",
-            "If I'm quiet in a group, it's not shyness-it's me collecting material.",
-            "My \"relaxing\" is walking with a podcast and thinking about three other things I should be doing."
+            "I like plans that have a clear start and end time, and I get irritated when people treat time like it is imaginary.",
+            "I collect odd cookbooks because they feel like little time capsules, and I love reading the introductions like they are gossip.",
+            "I volunteer for school stuff more than I should, then complain privately and still show up early.",
+            "When I am stressed, I go for a long walk with no destination and let my brain sort itself out.",
+            "I am nice, but I will ask the one practical question that everyone else is avoiding."
         ],
         "socialMedia": {
             "handle": "astrid.rdmnd",
-            "bio": "calendar loyalist • iced coffee year-round • Toronto",
+            "bio": "project mgmt brain • history walks • collecting cookbooks nobody asked for",
             "followers": 927,
             "following": 419
         }
@@ -2337,24 +2337,24 @@
         },
         "personalityTraits": [
             "warm",
-            "dramatic",
-            "impulsive"
+            "quick-laughing",
+            "resilient"
         ],
         "interests": [
-            "Afrobeats",
-            "trying new recipes",
-            "gossiping with friends"
+            "stained glass basics",
+            "open-mic nights",
+            "trail skating"
         ],
         "about": [
-            "I can go from laughing to annoyed in thirty seconds, and then I'm fine again like nothing happened.",
-            "If there's music on, I'm nicer—this is science, not opinion.",
-            "I say I'm \"not hungry\" and then I'm eating straight from the pot five minutes later.",
-            "Sometimes I talk too much when I'm excited and then later I'm like… why did I tell that story.",
-            "I love people, but I love peace too, so I'm constantly negotiating with myself."
+            "My job taught me how to stay calm when things are real, and it also taught me how much kindness matters in small moments.",
+            "I started learning stained glass because it is patient work, and I like hobbies where you can see the effort turn into something bright.",
+            "I love open-mic nights because cheering for strangers feels like the easiest kind of community.",
+            "If I have a heavy week, I go skating on a trail and let the motion shake my thoughts loose.",
+            "I laugh easily, but I take people seriously, and I am good at showing up when someone needs a steady hand."
         ],
         "socialMedia": {
             "handle": "laurel.mutombo",
-            "bio": "food always • music on • if you come by, you're eating something",
+            "bio": "PSW shifts • stained-glass beginner • loud cheers at open mics • trail skates",
             "followers": 1219,
             "following": 711
         }
@@ -2375,25 +2375,25 @@
             ]
         },
         "personalityTraits": [
-            "messy-optimistic",
-            "charming",
-            "overcommitted"
+            "playful",
+            "resourceful",
+            "curious"
         ],
         "interests": [
-            "pub trivia",
-            "pickup basketball",
-            "trying new gadgets"
+            "micro-documentaries",
+            "retro camcorders",
+            "storyboarding"
         ],
         "about": [
-            "I say yes too fast and then spend the next week negotiating with my own calendar.",
-            "My apartment has a chair that's basically a clothing mountain, and I keep insisting it's a \"system.\"",
-            "I can talk my way into plans and then immediately regret how many humans I've agreed to see in one weekend.",
-            "When I'm stressed I buy a little treat, like it's a valid coping strategy, and honestly… it kind of is.",
-            "I'm great in a small crisis, but ask me to reply to a text thread from three days ago and I suddenly forget how thumbs work."
+            "I like filming regular life because the best moments are usually quiet ones people forget they even had.",
+            "I collect old camcorders and I swear each one has a different personality, which is probably not true but feels true.",
+            "Before I shoot anything, I sketch little storyboards like I'm planning a heist, and then I still improvise on the day.",
+            "I am the type to ask one more question because I can tell there is a better story hiding underneath the first answer.",
+            "If you invite me to something, I might bring a tiny clip I made about the street and act like it is no big deal."
         ],
         "socialMedia": {
             "handle": "dashh97",
-            "bio": "if i said \"on my way\" i'm probably looking for my keys | coffee addict | i film stuff sometimes",
+            "bio": "tiny docs • retro cameras • storyboards everywhere • making ordinary look cinematic",
             "followers": 1046,
             "following": 1189
         }
@@ -2456,20 +2456,20 @@
             "self-conscious"
         ],
         "interests": [
-            "video editing",
-            "playlist curating",
-            "thrifting"
+            "school newspaper",
+            "rock climbing",
+            "embroidering patches"
         ],
         "about": [
-            "I pretend I don't care about trends, then I save a ridiculous number of outfit screenshots anyway.",
-            "If I'm quiet, it's usually because I'm editing something or thinking about what I should have said earlier.",
-            "I'm way funnier with people I trust, and way more silent with everyone else.",
-            "I like being useful without being the center of attention—setting up, cleaning up, helping quietly.",
-            "I want more freedom, but I also like knowing my parents are nearby when the day feels too loud."
+            "I like being useful in a quiet way, like fixing a headline, rewriting a sentence, or making something look cleaner.",
+            "Climbing is the only thing that makes my brain fully focus, because if you drift, you slip.",
+            "I pretend I am chill about attention, but if someone points at me in a group I immediately forget how to stand.",
+            "I make little embroidered patches when I am nervous, because keeping my hands busy makes me calmer.",
+            "I do better with people who do not pressure me to be loud, because then I actually get funny."
         ],
         "socialMedia": {
             "handle": "mel.barker16",
-            "bio": "16 • edits + playlists • thrift finds • trying not to overthink everything",
+            "bio": "newspaper layouts • climbing holds • sewing tiny patches to stay sane",
             "followers": 892,
             "following": 611
         }
@@ -2573,20 +2573,20 @@
             "funny"
         ],
         "interests": [
-            "digital illustration",
-            "K-pop dance practice",
-            "playlist-making"
+            "bhangra practice",
+            "mock trial club",
+            "screen-printing posters"
         ],
         "about": [
-            "I notice vibes fast, and sometimes I wish I could turn that off like a setting.",
-            "If I'm quiet, I'm usually thinking, not upset—though I do get annoyed when people assume things.",
-            "I can spend an hour perfecting one tiny detail and then act like it was no big deal.",
-            "Music fixes my mood better than any advice does.",
-            "I'm nicer than I look; I just do not like performing friendliness."
+            "I pick up on moods fast, and I wish people understood that noticing something is not the same as judging it.",
+            "If I commit to something, I commit hard; I just hate when people try to rush me before I feel ready.",
+            "I like mock trial because there are rules and arguments have to make sense, not just be loud.",
+            "My favorite creative thing is making something physical, like a print you can hold, not something that disappears in a feed.",
+            "I act like I do not care what anyone thinks, but I absolutely care about fairness and I will say it out loud."
         ],
         "socialMedia": {
-            "handle": "mira_beatz44",
-            "bio": "art brain • headphones on • i have opinions",
+            "handle": "isha_beatz64",
+            "bio": "mock trial + print ink • bhangra nights • opinions included",
             "followers": 413,
             "following": 529
         }
