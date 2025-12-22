@@ -1,0 +1,2783 @@
+[
+    {
+        "id": 1,
+        "firstName": "Dorian",
+        "lastName": "Whitlock",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 38,
+        "career": "DevOps engineer",
+        "religion": "Catholic",
+        "family": {
+            "spouse": 2,
+            "children": [
+                3,
+                4
+            ]
+        },
+        "personalityTraits": [
+            "measured",
+            "wry",
+            "particular"
+        ],
+        "interests": [
+            "home repair",
+            "hockey",
+            "espresso"
+        ],
+        "about": [
+            "I keep a notes app full of dumb little checklists and then act surprised when it saves me.",
+            "If something in the house is rattling, I will hear it from three rooms away and it will haunt me until I fix it.",
+            "I'm not big on talking in groups, but I'll talk your ear off if you ask me about tools or why I think most gadgets are overdesigned.",
+            "I get weirdly calm in small emergencies and weirdly stressed by tiny messes, which is not a personality flaw at all (it is).",
+            "I want the street to feel normal and boring, in the best way—kids safe, porches lit, nobody doing anything that turns into a story."
+        ],
+        "socialMedia": {
+            "handle": "dorian_w78",
+            "bio": "fixing small stuff, breaking bigger stuff 🧰☕ | mostly lurking | TO",
+            "followers": 436,
+            "following": 372
+        }
+    },
+    {
+        "id": 2,
+        "firstName": "Marisol",
+        "lastName": "Whitlock",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 39,
+        "career": "Medical receptionist",
+        "religion": "Catholic",
+        "family": {
+            "spouse": 1,
+            "children": [
+                3,
+                4
+            ]
+        },
+        "personalityTraits": [
+            "bubbly",
+            "opinionated",
+            "efficient"
+        ],
+        "interests": [
+            "cooking",
+            "community events",
+            "pop playlists"
+        ],
+        "about": [
+            "I run on calendar alerts, iced coffee, and the quiet satisfaction of being right about timing.",
+            "I'll chat with anyone in line, but I definitely notice when the merge gets chaotic.",
+            "My love language is feeding people, and yes, I get offended if you don't take leftovers.",
+            "I'm the mom who signs forms the same day and then forgets where her own keys are.",
+            "I'm friendly, but I'm not neutral—if something's off, my face will tell on me before my mouth does."
+        ],
+        "socialMedia": {
+            "handle": "mari.sol_86",
+            "bio": "momming + cooking + accidental event planning ✨🍲",
+            "followers": 891,
+            "following": 547
+        }
+    },
+    {
+        "id": 3,
+        "firstName": "Callum",
+        "lastName": "Whitlock",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 11,
+        "career": "Student",
+        "religion": "Catholic",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "hyperverbal",
+            "competitive",
+            "easily-distracted"
+        ],
+        "interests": [
+            "video games",
+            "street hockey",
+            "building kits"
+        ],
+        "about": [
+            "I can be quiet for like five minutes and then I remember something and I have to say it immediately.",
+            "If there's a competition, I'm not even trying to win… except I totally am.",
+            "I'll build something awesome and then immediately take it apart to see if I can make it better (sometimes I cannot).",
+            "Grown-ups think I'm \"a lot\" and yeah, okay, but also I'm fun, so.",
+            "I'm always hungry and it's not my fault snacks are basically a hobby."
+        ],
+        "socialMedia": {
+            "handle": "callumw11_",
+            "bio": "games 🎮 hockey 🏒 snacks (mom reads this 🙄)",
+            "followers": 104,
+            "following": 158
+        }
+    },
+    {
+        "id": 4,
+        "firstName": "Winona",
+        "lastName": "Whitlock",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 12,
+        "career": "Student",
+        "religion": "Catholic",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "sharp",
+            "stubborn",
+            "dryly-funny"
+        ],
+        "interests": [
+            "drawing",
+            "music",
+            "video editing"
+        ],
+        "about": [
+            "I don't talk a ton in big groups because half the time I'm watching who's trying too hard.",
+            "If I start a drawing, I'll get obsessed with one tiny detail and then suddenly it's midnight.",
+            "People think I'm being rude when I'm quiet, but sometimes I just don't feel like performing a personality.",
+            "I like my brother, I just don't like him in my room touching my stuff with his snack hands.",
+            "I'm nicer than I look—I just warm up once I know you."
+        ],
+        "socialMedia": {
+            "handle": "wino.na12",
+            "bio": "art brain ✍️ + loud headphones | occasionally funny",
+            "followers": 173,
+            "following": 219
+        }
+    },
+    {
+        "id": 5,
+        "firstName": "Samer",
+        "lastName": "Darwish",
+        "gender": "M",
+        "accentLanguage": "MiddleEastern",
+        "age": 53,
+        "career": "Facilities maintenance technician",
+        "religion": "Muslim",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "reserved",
+            "meticulous",
+            "soft-hearted"
+        ],
+        "interests": [
+            "tea",
+            "walking",
+            "fixing old things"
+        ],
+        "about": [
+            "I don't say much when I first meet people because I'd rather listen and figure out what kind of day they're having.",
+            "If something is crooked, I'll straighten it without thinking—frames, chairs, even your story if it's not adding up.",
+            "I like quiet evenings where the kettle is doing its job and nobody is rushing me about anything.",
+            "People assume I'm stern, but honestly I just hate wasting words on nothing.",
+            "If a neighbor needs a practical hand, I'll help—then I'll go back inside like it never happened."
+        ],
+        "socialMedia": {
+            "handle": "samer.d_71",
+            "bio": "tea first. tools second. everything else later.",
+            "followers": 319,
+            "following": 164
+        }
+    },
+    {
+        "id": 6,
+        "firstName": "Zhitao",
+        "lastName": "Tang",
+        "gender": "M",
+        "accentLanguage": "Chinese",
+        "age": 46,
+        "career": "Industrial maintenance technician",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": 7,
+            "children": [
+                8
+            ]
+        },
+        "personalityTraits": [
+            "disciplined",
+            "measured",
+            "quietly funny"
+        ],
+        "interests": [
+            "home cooking",
+            "early-morning walks",
+            "fixing appliances"
+        ],
+        "about": [
+            "I'm usually awake before the rest of the house, and I treat that quiet like it's medicine.",
+            "I'll re-do a job three times if it's slightly off, then pretend I didn't care that much.",
+            "I don't talk a lot in groups, but one-on-one I can go on forever about small systems—knives, rice, laundry routines, whatever works.",
+            "When I'm stressed, I cook the same dish I've made a hundred times and judge myself if it doesn't taste exactly right.",
+            "People think I'm serious, but I just don't waste words until I'm sure they'll land."
+        ],
+        "socialMedia": {
+            "handle": "ztang_1979",
+            "bio": "Maintenance guy. Rice eater. Walking off my thoughts.",
+            "followers": 286,
+            "following": 193
+        }
+    },
+    {
+        "id": 7,
+        "firstName": "Yuxin",
+        "lastName": "Tang",
+        "gender": "F",
+        "accentLanguage": "Chinese",
+        "age": 45,
+        "career": "Pharmacy assistant",
+        "religion": "None",
+        "family": {
+            "spouse": 6,
+            "children": [
+                8
+            ]
+        },
+        "personalityTraits": [
+            "practical",
+            "soft-hearted",
+            "wry"
+        ],
+        "interests": [
+            "karaoke at home",
+            "baking buns",
+            "bargain-hunting"
+        ],
+        "about": [
+            "I keep a running list in my head of what's low in the house, and it's annoying that I'm almost always right.",
+            "I'll act calm while I'm worrying, then suddenly clean one weird corner like it's an emergency.",
+            "I'm friendly, but I'm not the type who wants to be everyone's best friend by next week.",
+            "I like little comforts—warm light, soup that tastes like childhood, music low enough to think.",
+            "If my daughter is quiet for too long, I notice before I even know I'm noticing."
+        ],
+        "socialMedia": {
+            "handle": "yuxin.zhou7",
+            "bio": "Toronto | soups, songs, small wins",
+            "followers": 719,
+            "following": 476
+        }
+    },
+    {
+        "id": 8,
+        "firstName": "Xuanxuan",
+        "lastName": "Tang",
+        "gender": "F",
+        "accentLanguage": "Chinese",
+        "age": 14,
+        "career": "Student",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "ambitious",
+            "straightforward",
+            "guarded"
+        ],
+        "interests": [
+            "video editing",
+            "K-pop dance practice",
+            "badminton"
+        ],
+        "about": [
+            "I'm not shy—I just don't do fake-smiles when I don't mean them.",
+            "If I'm quiet, it usually means I'm thinking about what I should've said three minutes ago.",
+            "I like editing videos because I can control the story—real life is messy and the cuts don't happen when you want them.",
+            "I get really intense about school for no reason, then suddenly can't focus and end up reorganizing my playlist instead.",
+            "I want more freedom, but I also want someone to notice when I'm not okay without making it a big scene."
+        ],
+        "socialMedia": {
+            "handle": "xx_tang14",
+            "bio": "edits + music + trying my best (most days)",
+            "followers": 407,
+            "following": 533
+        }
+    },
+    {
+        "id": 9,
+        "firstName": "Abdulrazak",
+        "lastName": "Tesfaye",
+        "gender": "M",
+        "accentLanguage": "African",
+        "age": 41,
+        "career": "City bus operator",
+        "religion": "Muslim",
+        "family": {
+            "spouse": 10,
+            "children": [
+                11
+            ]
+        },
+        "personalityTraits": [
+            "steady",
+            "reserved",
+            "principled"
+        ],
+        "interests": [
+            "soccer highlights",
+            "weekend grilling",
+            "podcasts about history"
+        ],
+        "about": [
+            "I spend my whole day around noise, so when I get home I crave quiet like a reset button.",
+            "I'm not the type to pour my feelings out, but I remember what people say when it matters.",
+            "Some days I'm patient; other days I'm tired and my face shows it even when I try to be polite.",
+            "I like routines because they make life feel less slippery, especially when the world is doing too much.",
+            "If I'm in a good mood, I'll joke more than people expect—dry jokes, not the loud kind."
+        ],
+        "socialMedia": {
+            "handle": "ar_tesfaye91",
+            "bio": "buses • family • football on weekends",
+            "followers": 352,
+            "following": 214
+        }
+    },
+    {
+        "id": 10,
+        "firstName": "Imani",
+        "lastName": "Tesfaye",
+        "gender": "F",
+        "accentLanguage": "African",
+        "age": 44,
+        "career": "After-school program worker",
+        "religion": "Christian",
+        "family": {
+            "spouse": 9,
+            "children": [
+                11
+            ]
+        },
+        "personalityTraits": [
+            "high-spirited",
+            "straightforward",
+            "tender"
+        ],
+        "interests": [
+            "choir nights",
+            "sewing fixes",
+            "community volunteering"
+        ],
+        "about": [
+            "I can get a room moving in ten seconds: a joke, a clap, a song, and suddenly everyone's awake.",
+            "I work with kids all day, so my patience is strong, but my nonsense tolerance is not.",
+            "If something rips or breaks, I will quietly fix it and then act like it was always fine.",
+            "On Sundays I like the feeling of a full room singing together, even if my voice is a little too loud.",
+            "I don't do hints. If something matters, I say it kindly and clearly so nobody has to guess."
+        ],
+        "socialMedia": {
+            "handle": "imani.teejay",
+            "bio": "after-school chaos wrangler • choir nights • community first",
+            "followers": 958,
+            "following": 561
+        }
+    },
+    {
+        "id": 11,
+        "firstName": "Moses",
+        "lastName": "Tesfaye",
+        "gender": "M",
+        "accentLanguage": "African",
+        "age": 10,
+        "career": "Student",
+        "religion": "Orthodox",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "playful",
+            "dramatic",
+            "impulsive"
+        ],
+        "interests": [
+            "soccer",
+            "comic books",
+            "prank videos"
+        ],
+        "about": [
+            "I talk like I'm on a game show when I'm excited, and yes, it annoys people.",
+            "If there's a rule, my first thought is: okay but what if I do it faster?",
+            "I'm brave until it's nighttime, then I suddenly remember I like company.",
+            "I can turn literally anything into a competition, even brushing my teeth.",
+            "Sometimes I swear I'm telling the truth and then I realize I mixed two stories together."
+        ],
+        "socialMedia": {
+            "handle": "momo_tesfaye10",
+            "bio": "10. jokes, goals, snacks. ⚽️😂 (run by my mom bc obviously)",
+            "followers": 82,
+            "following": 101
+        }
+    },
+    {
+        "id": 12,
+        "firstName": "Yamini",
+        "lastName": "Chawla",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 18,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "observant",
+            "ambitious",
+            "quietly witty"
+        ],
+        "interests": [
+            "digital illustration",
+            "playlist curating",
+            "late-night cafe studying"
+        ],
+        "about": [
+            "I don't talk much in groups because I like knowing where the conversation is going before I jump in.",
+            "I pretend I'm chill about deadlines, but my brain is already panicking three days in advance.",
+            "I love working on something creative for hours and then suddenly hating it for ten minutes before liking it again.",
+            "I notice tone really fast, which is useful and also extremely annoying.",
+            "If I'm comfortable around you, I get a lot funnier and a lot more opinionated."
+        ],
+        "socialMedia": {
+            "handle": "yam1.c23",
+            "bio": "student brain 📚 | playlists for every mood | art in progress always",
+            "followers": 612,
+            "following": 487
+        }
+    },
+    {
+        "id": 13,
+        "firstName": "Miles",
+        "lastName": "Gagnon",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 34,
+        "career": "Mover",
+        "religion": "None",
+        "family": {
+            "spouse": 14,
+            "children": []
+        },
+        "personalityTraits": [
+            "gregarious",
+            "spontaneous",
+            "good-natured"
+        ],
+        "interests": [
+            "garage-sale restorations",
+            "rec-league dodgeball",
+            "bad stand-up nights"
+        ],
+        "about": [
+            "I'll talk to anyone like we already have history, and then realize halfway through I never asked their name.",
+            "I love jobs where you can point at a finished result and feel like you did something real.",
+            "I get obsessed with random projects—like fixing an old radio or repainting a chair—and I'm learning to actually finish them.",
+            "I try to be on time, and when I'm not, I'll own it and make it right.",
+            "I'm happiest when the place feels lively in a good way—friends over, music on, nobody taking life too seriously."
+        ],
+        "socialMedia": {
+            "handle": "milesg_93",
+            "bio": "Toronto | moving heavy stuff + chasing lighter plans | thrift rescues | accidentally social",
+            "followers": 563,
+            "following": 611
+        }
+    },
+    {
+        "id": 14,
+        "firstName": "Moira",
+        "lastName": "Gagnon",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 43,
+        "career": "Insurance Adjuster",
+        "religion": "None",
+        "family": {
+            "spouse": 13,
+            "children": []
+        },
+        "personalityTraits": [
+            "unflappable",
+            "precise",
+            "fair-minded"
+        ],
+        "interests": [
+            "puzzle hunts",
+            "canoe camping",
+            "public-transit trivia"
+        ],
+        "about": [
+            "I can listen to a dramatic story and still ask the one boring question that actually matters.",
+            "I love problem-solving with real constraints: limited time, limited money, and someone already stressed out.",
+            "I keep a little folder of weird receipts and warranty cards, not because I'm paranoid, but because I like winning later.",
+            "My ideal weekend is a long paddle, a simple meal, and exactly zero surprise phone calls.",
+            "I do not do vague plans. If we say 7, I mean 7."
+        ],
+        "socialMedia": {
+            "handle": "moira.g",
+            "bio": "claims work + puzzle hunts 🧩 | canoe weekends | will ask the boring question",
+            "followers": 417,
+            "following": 261
+        }
+    },
+    {
+        "id": 15,
+        "firstName": "Keshav",
+        "lastName": "Mohal",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 46,
+        "career": "Accountant",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 16,
+            "children": [
+                17
+            ]
+        },
+        "personalityTraits": [
+            "methodical",
+            "status-conscious",
+            "patient"
+        ],
+        "interests": [
+            "cricket highlights",
+            "gardening",
+            "classic movies"
+        ],
+        "about": [
+            "I don't enjoy surprises, but my family keeps trying to prove I can 'learn to love them.'",
+            "I think a lot of problems come from people refusing to do the boring parts properly.",
+            "I like routines because they make the day feel lighter—less thinking, more doing.",
+            "I pretend I don't care what the neighbors think, but I definitely notice things.",
+            "If I'm quiet, it's usually because I'm calculating the best way to handle something without making it a scene."
+        ],
+        "socialMedia": {
+            "handle": "keshavm_77",
+            "bio": "work, home, repeat. chai helps. 🫖🏏",
+            "followers": 259,
+            "following": 183
+        }
+    },
+    {
+        "id": 16,
+        "firstName": "Lavanya",
+        "lastName": "Mohal",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 40,
+        "career": "Project coordinator",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 15,
+            "children": [
+                17
+            ]
+        },
+        "personalityTraits": [
+            "driven",
+            "quick-witted",
+            "restless"
+        ],
+        "interests": [
+            "cooking experiments",
+            "fitness classes",
+            "trying new cafés"
+        ],
+        "about": [
+            "I swear I'm calm, and then one small delay turns me into a person who reorganizes the entire day out of spite.",
+            "I can be charming in public and impatient in my head at the exact same time.",
+            "If I'm cooking, I'm either fully in the zone or aggressively offended by one wrong spice measurement.",
+            "I say I don't care what people think, but I absolutely replay conversations in the shower like a sport.",
+            "I'm happiest when I'm busy for a good reason and not just busy because someone else can't plan."
+        ],
+        "socialMedia": {
+            "handle": "lav_mohal88",
+            "bio": "Toronto. good food, loud laugh, and a calendar I pretend I don't live by.",
+            "followers": 1098,
+            "following": 736
+        }
+    },
+    {
+        "id": 17,
+        "firstName": "Navdeep",
+        "lastName": "Mohal",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 9,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "energetic",
+            "sensitive",
+            "attention-seeking"
+        ],
+        "interests": [
+            "video games",
+            "soccer",
+            "making up pranks"
+        ],
+        "about": [
+            "If I'm quiet, it's because I'm planning something or I'm in trouble and trying to look innocent.",
+            "I love being funny, but sometimes people don't laugh and then I feel weird for like… ten minutes.",
+            "I can run really fast and I will prove it even if nobody asked.",
+            "I get mad fast, but I also forget fast, except when my brother wins and then I remember forever.",
+            "My mom says I talk like I'm on double speed, which is rude because my brain is just fast."
+        ],
+        "socialMedia": {
+            "handle": "navdeep_09x",
+            "bio": "9. games + running. mom checks. 😒",
+            "followers": 58,
+            "following": 92
+        }
+    },
+    {
+        "id": 18,
+        "firstName": "Jasmine",
+        "lastName": "Luo",
+        "gender": "F",
+        "accentLanguage": "Chinese",
+        "age": 26,
+        "career": "Barista",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "independent",
+            "wry",
+            "inconsistent"
+        ],
+        "interests": [
+            "late-night walks",
+            "playlists",
+            "watching people"
+        ],
+        "about": [
+            "I'm friendly until I'm not, and half the time it's because my social battery lied to me.",
+            "I collect little routines like they're charms—same drink, same route, same song—until one day I hate them and switch everything.",
+            "I notice awkward silences so fast it feels like a superpower I didn't ask for.",
+            "Sometimes I want to be the mysterious girl in a movie, and sometimes I just want noodles and nobody talking to me.",
+            "If you catch me outside at 1 a.m., I'm probably just clearing my head—my brain finally gets quiet then."
+        ],
+        "socialMedia": {
+            "handle": "jas.luo26",
+            "bio": "coffee hands / loud headphones / accidentally funny",
+            "followers": 603,
+            "following": 337
+        }
+    },
+    {
+        "id": 19,
+        "firstName": "Jasper",
+        "lastName": "Luo",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 47,
+        "career": "Event staff",
+        "religion": "None",
+        "family": {
+            "spouse": 20,
+            "children": [
+                18
+            ]
+        },
+        "personalityTraits": [
+            "easygoing",
+            "resourceful",
+            "conflict-avoidant"
+        ],
+        "interests": [
+            "aquarium keeping",
+            "bike tinkering",
+            "pickup basketball"
+        ],
+        "about": [
+            "I'm good at fixing problems quietly before anyone notices there was a problem at all.",
+            "Crowds don't stress me out—people arguing does, so I'll do almost anything to keep things smooth.",
+            "I'm the guy who shows up early for the shift and then disappears from the group chat like it's a haunted house.",
+            "I act laid-back, but I'm constantly doing little calculations in my head about timing, money, and whether I forgot something obvious.",
+            "If you need help moving a couch or troubleshooting something weird, I'm there—just don't ask me to 'talk it out' on the spot."
+        ],
+        "socialMedia": {
+            "handle": "jasperd_29",
+            "bio": "events + odd jobs | tanks, tires, and hoops | low drama, high effort",
+            "followers": 502,
+            "following": 489
+        }
+    },
+    {
+        "id": 20,
+        "firstName": "Celeste",
+        "lastName": "Luo",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 31,
+        "career": "Restaurant server",
+        "religion": "Christian",
+        "family": {
+            "spouse": 19,
+            "children": []
+        },
+        "personalityTraits": [
+            "outgoing",
+            "improvisational",
+            "approval-seeking"
+        ],
+        "interests": [
+            "pottery classes",
+            "hosting themed dinners",
+            "dance workouts"
+        ],
+        "about": [
+            "I can make friends in a hallway, which is useful at work and slightly dangerous everywhere else.",
+            "If I'm hosting, I'm in my element—music on, snacks out, and me pretending I'm not monitoring everyone's vibe like a hawk.",
+            "I say yes too quickly and then spend the next day reminding myself I did, in fact, choose this.",
+            "I'm brave in public and mushy in private, and I hate that people can sometimes tell.",
+            "I want everyone to feel included, even when I'm the one who needs a minute."
+        ],
+        "socialMedia": {
+            "handle": "celeste.dunlop",
+            "bio": "serving tables + spinning clay | if you came over, you ate | loud laugh, soft heart",
+            "followers": 1547,
+            "following": 906
+        }
+    },
+    {
+        "id": 21,
+        "firstName": "Chisom",
+        "lastName": "Adebayo",
+        "gender": "M",
+        "accentLanguage": "African",
+        "age": 28,
+        "career": "Account Executive",
+        "religion": "Christian",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "charismatic",
+            "restless",
+            "driven"
+        ],
+        "interests": [
+            "pickup soccer",
+            "watch collecting",
+            "hosting game nights"
+        ],
+        "about": [
+            "I like walking into a room looking sharp because it makes my brain feel sharp too.",
+            "I'm good at talking to strangers, and I genuinely enjoy it, but I still need a quiet hour after a busy night.",
+            "I keep a tiny watch box like it's a museum, and yes, I have opinions about straps.",
+            "When I'm excited, I start planning a whole event in my head: who should come, what music, what snacks, the entire vibe.",
+            "I call my mom after big wins and big losses, because she keeps me humble without even trying."
+        ],
+        "socialMedia": {
+            "handle": "chisom28",
+            "bio": "Toronto • sales brain • Sunday service + weekday hustle • game night host",
+            "followers": 2317,
+            "following": 846
+        }
+    },
+    {
+        "id": 22,
+        "firstName": "Yilin",
+        "lastName": "Zhou",
+        "gender": "F",
+        "accentLanguage": "Chinese",
+        "age": 45,
+        "career": "Dental Hygienist",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "particular",
+            "dry-witted",
+            "quietly generous"
+        ],
+        "interests": [
+            "mystery novels",
+            "mahjong nights",
+            "baking buns"
+        ],
+        "about": [
+            "I like my mornings the same way every day, and yes, I will notice if my mug is in the wrong cupboard.",
+            "People assume I'm serious because I don't chatter, but mostly I'm just thinking about three things at once.",
+            "I can be picky about small details and then somehow forget an appointment like I'm new to being an adult.",
+            "If I bring food to something, it's not a grand gesture - it's just what you do so nobody leaves hungry.",
+            "I laugh the hardest at jokes I pretend not to hear."
+        ],
+        "socialMedia": {
+            "handle": "yilin_zhou",
+            "bio": "tea refills + mystery plots • Toronto • sending food home with you is non-negotiable",
+            "followers": 438,
+            "following": 219
+        }
+    },
+    {
+        "id": 23,
+        "firstName": "Rhys",
+        "lastName": "Levesque",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 42,
+        "career": "Electrician",
+        "religion": "None",
+        "family": {
+            "spouse": 24,
+            "children": [
+                25,
+                26
+            ]
+        },
+        "personalityTraits": [
+            "good-natured",
+            "hands-on",
+            "stubborn"
+        ],
+        "interests": [
+            "home renos",
+            "fishing trips",
+            "hockey highlights"
+        ],
+        "about": [
+            "I say I'm going to \"just tighten one screw\" and then an hour disappears and the whole shelf is rebuilt.",
+            "I'm the guy who brings the right tool, and somehow still ends up borrowing a pencil from someone.",
+            "I act easygoing, but I get irrationally competitive about board games and I will argue the rules.",
+            "I like people, I just hit a limit and then I'm suddenly staring at the barbecue like it's very important.",
+            "If I'm quiet, I'm not mad - I'm doing math in my head and losing the battle."
+        ],
+        "socialMedia": {
+            "handle": "rhyslvsq",
+            "bio": "mostly here for the kids' chaos + weekend projects 🔧🏒",
+            "followers": 561,
+            "following": 402
+        }
+    },
+    {
+        "id": 24,
+        "firstName": "Cecily",
+        "lastName": "Levesque",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 42,
+        "career": "Event Coordinator",
+        "religion": "Christian",
+        "family": {
+            "spouse": 23,
+            "children": [
+                25,
+                26
+            ]
+        },
+        "personalityTraits": [
+            "social",
+            "type-A",
+            "people-pleasing"
+        ],
+        "interests": [
+            "neighbourhood groups",
+            "Pinterest crafts",
+            "playlist-making"
+        ],
+        "about": [
+            "I love having people over, but I also spend the entire time making sure everyone has a drink like it's my job.",
+            "I'll say \"no worries\" and then replay a conversation later to make sure nobody felt left out.",
+            "My calendar is colour-coded, and I still manage to double-book myself because I get optimistic about time.",
+            "I'm the first to volunteer and the last to admit I'm tired, which is... not my best quality.",
+            "If the house is a mess, my brain starts acting up like it's personally offended."
+        ],
+        "socialMedia": {
+            "handle": "cecilyc_42",
+            "bio": "coffee + carpools + \"one quick errand\" (lies) ☕️",
+            "followers": 1298,
+            "following": 711
+        }
+    },
+    {
+        "id": 25,
+        "firstName": "Romy",
+        "lastName": "Levesque",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 6,
+        "career": "Student",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "bubbly",
+            "dramatic",
+            "clingy"
+        ],
+        "interests": [
+            "stickers",
+            "sparkly slime",
+            "cartoon songs"
+        ],
+        "about": [
+            "If you say my name I will answer even if I'm not supposed to be listening.",
+            "I like snacks that crunch, and I can hear a chip bag from very far away.",
+            "Sometimes I cry and then I forget why and then I'm fine again, so it's confusing for everyone.",
+            "I don't like the dark hallway, so I walk very fast like a superhero going to a mission.",
+            "I make drawings for people and I decide if they get glitter based on their vibe."
+        ],
+        "socialMedia": {
+            "handle": "romy_lvsq",
+            "bio": "6 🌟 stickers + crafts + big opinions (run by parents)",
+            "followers": 67,
+            "following": 41
+        }
+    },
+    {
+        "id": 26,
+        "firstName": "Carys",
+        "lastName": "Levesque",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 12,
+        "career": "Student",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "deadpan",
+            "over-responsible",
+            "quietly anxious"
+        ],
+        "interests": [
+            "mystery books",
+            "playlist-making",
+            "craft kits"
+        ],
+        "about": [
+            "Everyone thinks I'm calm, but it's mostly because I rehearse what I'm going to say in my head.",
+            "I can be helpful and a little grumpy inside at the exact same time, which is honestly my worst talent.",
+            "If Romy touches my stuff after I asked her not to, I have to take a breath before I say something I'll regret.",
+            "I like being good at things because it means adults stop explaining them at me.",
+            "Sometimes I pretend I don't care just so nobody makes it a whole thing."
+        ],
+        "socialMedia": {
+            "handle": "carys_lvsq12",
+            "bio": "gr 7. i make playlists for moods i don't admit i have. romy stole my markers again.",
+            "followers": 193,
+            "following": 281
+        }
+    },
+    {
+        "id": 27,
+        "firstName": "Omkar",
+        "lastName": "Bhattacharya",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 38,
+        "career": "Risk Analyst",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 28,
+            "children": [
+                29
+            ]
+        },
+        "personalityTraits": [
+            "methodical",
+            "conflict-avoidant",
+            "dry-witted"
+        ],
+        "interests": [
+            "chess puzzles",
+            "home espresso",
+            "sci-fi paperbacks"
+        ],
+        "about": [
+            "I like problems with clean inputs and clean outputs, which is not how people work, unfortunately.",
+            "When I'm stressed I start \"optimizing\" random things like the fridge layout or the Wi-Fi settings.",
+            "I'm good in meetings and terrible at small talk after meetings--my brain just clocks out.",
+            "I act chill, but I remember exactly who was late and who pretended not to notice.",
+            "Most of my best ideas show up when I'm doing something boring on purpose, like washing dishes."
+        ],
+        "socialMedia": {
+            "handle": "omkar_b77",
+            "bio": "spreadsheets, strong coffee, and pretending i'll start running again this week.",
+            "followers": 344,
+            "following": 219
+        }
+    },
+    {
+        "id": 28,
+        "firstName": "Aditi",
+        "lastName": "Bhattacharya",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 34,
+        "career": "Dental Hygienist",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 27,
+            "children": [
+                29
+            ]
+        },
+        "personalityTraits": [
+            "chatty",
+            "impatient",
+            "soft-hearted"
+        ],
+        "interests": [
+            "pressure-cooker experiments",
+            "Bollywood throwbacks",
+            "thrift-store browsing"
+        ],
+        "about": [
+            "I talk fast when I'm annoyed and even faster when I'm trying not to be annoyed.",
+            "I'm the person who will volunteer for something and then be mad at myself the entire time.",
+            "I keep a mental list of who actually helps and who just says \"let me know if you need anything.\"",
+            "I love hosting, but only if people show up on time and don't \"help\" by making a bigger mess.",
+            "Some days I want applause for doing everything; other days I want everyone to leave me alone so I can reset."
+        ],
+        "socialMedia": {
+            "handle": "aditi.bhatt34",
+            "bio": "mom brain + work brain = no brain. chai fixes most things. 🇮🇳→TO",
+            "followers": 1019,
+            "following": 577
+        }
+    },
+    {
+        "id": 29,
+        "firstName": "Gurpreet",
+        "lastName": "Bhattacharya",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 7,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "chaotic",
+            "affectionate",
+            "stubborn"
+        ],
+        "interests": [
+            "soccer",
+            "Minecraft",
+            "sour candy"
+        ],
+        "about": [
+            "If you tell me to walk, I will run, because running is more fun and also faster.",
+            "I say \"why\" a lot because sometimes grown-ups make rules that don't make sense.",
+            "I can be mad and happy in the same minute, like a light switch.",
+            "I like winning races but I also like when people cheer even if I lose a little bit.",
+            "When I'm scared I don't say I'm scared--I just get extra loud."
+        ],
+        "socialMedia": {
+            "handle": "gupi_runs7",
+            "bio": "fast runner. minecraft builder. if my mom posts this i'm deleting the app 😤",
+            "followers": 47,
+            "following": 36
+        }
+    },
+    {
+        "id": 30,
+        "firstName": "Donovan",
+        "lastName": "Smith",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 40,
+        "career": "Sales Representative",
+        "religion": "Christian",
+        "family": {
+            "spouse": 31,
+            "children": [
+                32
+            ]
+        },
+        "personalityTraits": [
+            "charming",
+            "image-conscious",
+            "inconsistent"
+        ],
+        "interests": [
+            "pickup basketball",
+            "new restaurants",
+            "classic rock playlists"
+        ],
+        "about": [
+            "I can make a conversation happen anywhere--lineups, elevators, random sidewalks--sometimes even when I shouldn't.",
+            "I hate feeling boxed in, which is funny because I'm the one who overcommits and then complains about being busy.",
+            "If I say I'll \"start early,\" that means I'll think about it all day and then do it at the last minute.",
+            "I'm good at keeping things light, but I notice when people stop laughing and start judging.",
+            "I'm not proud of it, but I absolutely replay arguments later and win them in my head."
+        ],
+        "socialMedia": {
+            "handle": "donovan_s40",
+            "bio": "Toronto. long walks. will talk to your dog before i talk to you.",
+            "followers": 703,
+            "following": 566
+        }
+    },
+    {
+        "id": 31,
+        "firstName": "Maren",
+        "lastName": "Smith",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 39,
+        "career": "Audiology assistant",
+        "religion": "Christian",
+        "family": {
+            "spouse": 30,
+            "children": [
+                32
+            ]
+        },
+        "personalityTraits": [
+            "measured",
+            "quietly funny",
+            "hard-to-impress"
+        ],
+        "interests": [
+            "needle felting",
+            "film photography",
+            "lakefront walks"
+        ],
+        "about": [
+            "I can recognize half the neighborhood by footsteps and door sounds, which makes me sound creepy, but it's just pattern brain.",
+            "I like conversations that have a point, and I like jokes that sneak up on you even more.",
+            "I rotate tiny hobbies like seasons: one month it's felting, the next it's shooting a roll of film and acting like I'm a serious artist.",
+            "If you ask me a direct question, you'll get a direct answer; if you ask me how I'm feeling, I will stall like it's an exam.",
+            "My best reset is a long walk by the water when it's cold enough that the path is basically empty."
+        ],
+        "socialMedia": {
+            "handle": "maren_smith93",
+            "bio": "hearing clinic days • film rolls + felt animals • lakefront laps",
+            "followers": 503,
+            "following": 336
+        }
+    },
+    {
+        "id": 32,
+        "firstName": "Kellan",
+        "lastName": "Smith",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 7,
+        "career": "Student",
+        "religion": "Christian",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "restless",
+            "competitive",
+            "dramatic"
+        ],
+        "interests": [
+            "parkour videos",
+            "toy cars",
+            "bug hunting"
+        ],
+        "about": [
+            "I can sit still, I just don't want to, because sitting still is boring.",
+            "I like building things and then wrecking them to see what happens.",
+            "If you tell me I can't do something, my brain hears \"do it right now\".",
+            "Sometimes I get mad and I don't even know why, so I stomp and then I forget.",
+            "I always want one more try, even when everybody says it's time to go."
+        ],
+        "socialMedia": {
+            "handle": "kellan_sm1th",
+            "bio": "7 ⚡️ cars + jumps + jokes (mom posts sometimes)",
+            "followers": 41,
+            "following": 27
+        }
+    },
+    {
+        "id": 33,
+        "firstName": "Haneen",
+        "lastName": "Smith",
+        "gender": "F",
+        "accentLanguage": "MiddleEastern",
+        "age": 60,
+        "career": "Catering assistant",
+        "religion": "Muslim",
+        "family": {
+            "spouse": -1,
+            "children": [
+                30
+            ]
+        },
+        "personalityTraits": [
+            "hospitality-driven",
+            "direct",
+            "protective"
+        ],
+        "interests": [
+            "spice blends",
+            "soap operas",
+            "voice notes"
+        ],
+        "about": [
+            "If my kitchen is messy, my head feels messy, so I clean a little and then I can breathe again.",
+            "I love feeding people, but I also love clear boundaries: say what you need and I'll say what I can do.",
+            "I keep my circle small on purpose; when I trust you, I'm all in.",
+            "I send voice notes because typing feels like doing homework.",
+            "I'm warm by default, and direct when something needs to be handled."
+        ],
+        "socialMedia": {
+            "handle": "haneen.smith44",
+            "bio": "tea on, something in the oven • Toronto • ✨",
+            "followers": 1047,
+            "following": 462
+        }
+    },
+    {
+        "id": 34,
+        "firstName": "Bennett",
+        "lastName": "Hargreaves",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 47,
+        "career": "Facilities supervisor",
+        "religion": "Agnostic",
+        "family": {
+            "spouse": 35,
+            "children": [
+                36
+            ]
+        },
+        "personalityTraits": [
+            "pragmatic",
+            "deadpan",
+            "patient"
+        ],
+        "interests": [
+            "ham radio",
+            "repair-cafe volunteering",
+            "model rail layouts"
+        ],
+        "about": [
+            "I like systems that behave: wiring, schedules, doors that latch the first time.",
+            "I have a talent for finding the one tool nobody packed and then looking smug about it for thirty seconds.",
+            "My sense of humor is quiet, which means half the time people think I'm serious and I just let it happen.",
+            "I like hobbies with tiny progress you can actually measure, like tuning a radio or lining up track perfectly.",
+            "If a neighbor needs a hand, I'll help and then immediately vanish before it becomes a whole social event."
+        ],
+        "socialMedia": {
+            "handle": "bennett_h_77",
+            "bio": "facilities brain | ham radio + tiny repairs | building little worlds (trains)",
+            "followers": 289,
+            "following": 173
+        }
+    },
+    {
+        "id": 35,
+        "firstName": "Eira",
+        "lastName": "Hargreaves",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 42,
+        "career": "Office manager",
+        "religion": "Agnostic",
+        "family": {
+            "spouse": 34,
+            "children": [
+                36
+            ]
+        },
+        "personalityTraits": [
+            "people-savvy",
+            "firm",
+            "quietly anxious"
+        ],
+        "interests": [
+            "budgeting",
+            "rom-com rewatching",
+            "stationery"
+        ],
+        "about": [
+            "I look calm because I practice looking calm--my brain is usually doing a dozen tabs at once.",
+            "I keep lists for everything, and then I still forget one important thing and get mad at myself.",
+            "I'm nice by default, but I hate feeling taken for granted, and I can feel it fast.",
+            "I'll overthink a conversation on the drive home and then act normal like nothing happened.",
+            "When things feel out of control, I reorganize one drawer and tell myself it's productive."
+        ],
+        "socialMedia": {
+            "handle": "eira.harg",
+            "bio": "mom stuff + admin life + trying to remember water bottles",
+            "followers": 908,
+            "following": 621
+        }
+    },
+    {
+        "id": 36,
+        "firstName": "Opal",
+        "lastName": "Hargreaves",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 13,
+        "career": "Student",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "sharp-tongued",
+            "easily-embarrassed",
+            "intense"
+        ],
+        "interests": [
+            "music",
+            "thrifting",
+            "online drama"
+        ],
+        "about": [
+            "I can be nice for exactly one minute and then my face betrays me.",
+            "If something feels cringe, I have to say it out loud or I'll die.",
+            "I get weirdly competitive about tiny things, like who remembers lyrics faster or who noticed something first.",
+            "I act like I don't care, but if someone's mad at me I replay it in my head like fifteen times.",
+            "I'm trying to be cooler, but my brain keeps volunteering me for emotions."
+        ],
+        "socialMedia": {
+            "handle": "opalspams_13",
+            "bio": "if you can hear this you're too close • 🎧 • chips are a food group",
+            "followers": 486,
+            "following": 612
+        }
+    },
+    {
+        "id": 37,
+        "firstName": "Nouran",
+        "lastName": "Haddad",
+        "gender": "F",
+        "accentLanguage": "MiddleEastern",
+        "age": 79,
+        "career": "Retired",
+        "religion": "Muslim",
+        "family": {
+            "spouse": -1,
+            "children": [
+                38
+            ]
+        },
+        "personalityTraits": [
+            "direct",
+            "sentimental",
+            "cautious"
+        ],
+        "interests": [
+            "gardening",
+            "soap operas",
+            "cooking"
+        ],
+        "about": [
+            "People think I'm harsh-no, I'm just direct and I don't like wasting words.",
+            "I keep a bag of plastic bags like it's treasure, and yes, I'll send some home with you if you need them.",
+            "Some mornings I wake up calm, other mornings I wake up ready to talk back to the news on TV (from my kitchen, where it can't argue back).",
+            "I notice when something feels off before it becomes a problem; call it experience, call it nerves.",
+            "If I like you, I'll feed you until you're comfortable and then pack leftovers like it's tradition."
+        ],
+        "socialMedia": {
+            "handle": "nouran.h79",
+            "bio": "عَافية • tea first • don't call after 9",
+            "followers": 214,
+            "following": 71
+        }
+    },
+    {
+        "id": 38,
+        "firstName": "Yuechen",
+        "lastName": "Haddad",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 31,
+        "career": "Systems Analyst",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "analytical",
+            "dryly funny",
+            "restless"
+        ],
+        "interests": [
+            "bouldering",
+            "board game design",
+            "language exchange meetups"
+        ],
+        "about": [
+            "I like problems that you can actually test, so I accidentally turn real life into experiments sometimes.",
+            "If I learn a new skill, I go hard for two weeks and then I either keep it forever or never touch it again.",
+            "I got into bouldering because it's the one place my brain can't argue with me mid-move.",
+            "I enjoy language meetups because the rules are simple: try, mess up, laugh, repeat.",
+            "I have a dry sense of humor that lands best one-on-one, like a joke you catch five seconds late."
+        ],
+        "socialMedia": {
+            "handle": "yuechen_s",
+            "bio": "systems + climbing • designing games i swear i'll finish • language meetups",
+            "followers": 412,
+            "following": 318
+        }
+    },
+    {
+        "id": 39,
+        "firstName": "Colette",
+        "lastName": "Sutherland",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 58,
+        "career": "Community Centre Coordinator",
+        "religion": "Catholic",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "chatty",
+            "curious",
+            "soft-hearted"
+        ],
+        "interests": [
+            "baking",
+            "podcasts",
+            "neighbourhood gossip"
+        ],
+        "about": [
+            "I tell myself I'm 'just being friendly' but I absolutely want all the details.",
+            "I keep emergency snacks in my purse like I'm preparing for a small apocalypse.",
+            "If I don't have a plan for the day, I float around and somehow end up doing five errands I didn't mean to do.",
+            "I laugh loud and I cry at commercials, and I'm not interested in pretending otherwise.",
+            "I've survived enough to know that most people are doing their best, even when it looks messy."
+        ],
+        "socialMedia": {
+            "handle": "col_suth",
+            "bio": "baking again • coffee refill #2 • say hi if you see me",
+            "followers": 1322,
+            "following": 918
+        }
+    },
+    {
+        "id": 40,
+        "firstName": "Yashvardhan",
+        "lastName": "Kapoor",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 37,
+        "career": "Project Manager",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 41,
+            "children": [
+                42,
+                43
+            ]
+        },
+        "personalityTraits": [
+            "driven",
+            "stubborn",
+            "secretly sensitive"
+        ],
+        "interests": [
+            "weight training",
+            "cricket",
+            "meal prep"
+        ],
+        "about": [
+            "I pretend I'm low-maintenance, but if my routine gets messed up I'm irritated for hours.",
+            "I'll say 'it's fine' and then reorganize the entire kitchen like that fixes my mood.",
+            "I want to be the calm one, but I also get ridiculously heated about sports highlights and parking.",
+            "I'm good at motivating other people and absolutely terrible at resting myself.",
+            "If I'm quiet, it's not some deep thing-I'm usually just running tomorrow through my head."
+        ],
+        "socialMedia": {
+            "handle": "yvk_37",
+            "bio": "gym before excuses • cricket reels • trying to sleep earlier (failing)",
+            "followers": 744,
+            "following": 401
+        }
+    },
+    {
+        "id": 41,
+        "firstName": "Harini",
+        "lastName": "Kapoor",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 32,
+        "career": "Dental Receptionist",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 40,
+            "children": [
+                42,
+                43
+            ]
+        },
+        "personalityTraits": [
+            "warm",
+            "sharp",
+            "overcommitted"
+        ],
+        "interests": [
+            "trying new recipes",
+            "Bollywood throwbacks",
+            "deal-hunting on weekends"
+        ],
+        "about": [
+            "I keep telling myself I'll stop saying yes to everything, and then I volunteer for something new like it's a reflex.",
+            "I'm nice until I'm tired, and then my face forgets how to pretend-especially in long lines or pointless meetings.",
+            "Most of my life is calendars, school emails, and 'what's for dinner' decisions that somehow feel personal.",
+            "I love my family, but I also fantasize about a silent hotel room where nobody asks me where their socks are.",
+            "If you text me after 10pm, I'll read it, smile, and reply in the morning."
+        ],
+        "socialMedia": {
+            "handle": "hrn.kpr92",
+            "bio": "chai first ☕️ | accidentally mom-ing everyone | Toronto | kitchen experiments",
+            "followers": 1412,
+            "following": 719
+        }
+    },
+    {
+        "id": 42,
+        "firstName": "Ritvik",
+        "lastName": "Kapoor",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 12,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "competitive",
+            "literal",
+            "sensitive"
+        ],
+        "interests": [
+            "FIFA",
+            "chess puzzles",
+            "basketball highlights"
+        ],
+        "about": [
+            "I hate when people act like I'm upset for no reason-there's always a reason, it's just not their business.",
+            "I'm good at remembering exact scores, exact words, and exactly who started it, which apparently makes me 'dramatic.'",
+            "Sometimes I pretend I don't care, but then I replay it later and it's annoying how much I care.",
+            "I like strategy games because they make sense; people don't always make sense and then they blame you for noticing.",
+            "If you're fair with me, I'm easy to be around-if you're not, I'll remember it."
+        ],
+        "socialMedia": {
+            "handle": "rvk_2013",
+            "bio": "12 | games + ball | if it's unfair I'm saying something",
+            "followers": 201,
+            "following": 233
+        }
+    },
+    {
+        "id": 43,
+        "firstName": "Tanmay",
+        "lastName": "Kapoor",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 7,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "sweet",
+            "fearless",
+            "dramatic"
+        ],
+        "interests": [
+            "superhero cartoons",
+            "Lego builds",
+            "racing everyone"
+        ],
+        "about": [
+            "I like being where people are because that's where the fun is, and also because I don't want to miss anything.",
+            "If I think of a game, everyone has to play it the way I imagined it or it feels wrong in my head.",
+            "Sometimes I say I'm not scared and then I suddenly need a light on, but that's not the same thing.",
+            "I get excited and talk fast and then I forget why I was in trouble in the first place.",
+            "If you laugh at my joke, you're my favorite person for the whole day."
+        ],
+        "socialMedia": {
+            "handle": "tanmay7x",
+            "bio": "superhero mode 🦸🏽‍♂️ | snack tester | (managed by mom)",
+            "followers": 57,
+            "following": 46
+        }
+    },
+    {
+        "id": 44,
+        "firstName": "Beau",
+        "lastName": "MacDougall",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 64,
+        "career": "Retired TTC mechanic",
+        "religion": "Catholic",
+        "family": {
+            "spouse": -1,
+            "children": [
+                46
+            ]
+        },
+        "personalityTraits": [
+            "straightforward",
+            "reliable",
+            "soft-hearted"
+        ],
+        "interests": [
+            "crosswords",
+            "hockey radio",
+            "bird-feeding"
+        ],
+        "about": [
+            "People think I'm mad when I'm quiet, but half the time I'm just thinking about whether I turned the stove off.",
+            "I hate waste—food, time, money, conversation—so I keep things short and I fix things before they turn into a whole situation.",
+            "I'll complain about noise and then catch myself smiling when I hear kids laughing outside, which is irritatingly sentimental of me.",
+            "I'm not a \"group chat\" person, but I'll still show up with a toolbox if my kid calls and something's stuck.",
+            "If my coffee's hot and my driveway's clear, I'm basically in a good mood, even if I refuse to admit it."
+        ],
+        "socialMedia": {
+            "handle": "bmacdoug47",
+            "bio": "retired | coffee + crosswords | leaf-blower hater (respectfully)",
+            "followers": 236,
+            "following": 119
+        }
+    },
+    {
+        "id": 45,
+        "firstName": "Razak",
+        "lastName": "MacDougall",
+        "gender": "M",
+        "accentLanguage": "African",
+        "age": 56,
+        "career": "Night shift security guard",
+        "religion": "Christian",
+        "family": {
+            "spouse": 46,
+            "children": []
+        },
+        "personalityTraits": [
+            "patient",
+            "stubborn",
+            "sentimental"
+        ],
+        "interests": [
+            "gardening",
+            "dominoes",
+            "Premier League"
+        ],
+        "about": [
+            "I move slowly on purpose—rushing makes people sloppy, and sloppy is how small problems become big ones.",
+            "I act like I don't care about little things, but I absolutely care about little things, like how the mugs are stacked and whether the front step is swept.",
+            "I like talking with my wife in the kitchen while something's cooking and the radio is doing its background noise job.",
+            "Some days I'm quiet because I'm tired, and some days I'm quiet because I'm listening and deciding if something is worth saying.",
+            "I pretend I'm not sentimental, but I keep old photos, old tools, and old stories like they're still useful."
+        ],
+        "socialMedia": {
+            "handle": "razak_c",
+            "bio": "night shift brain 🌙 | tomatoes in summer | 🇰🇪→TO | tea always",
+            "followers": 336,
+            "following": 214
+        }
+    },
+    {
+        "id": 46,
+        "firstName": "Lola",
+        "lastName": "MacDougall",
+        "gender": "F",
+        "accentLanguage": "African",
+        "age": 46,
+        "career": "Mobile hair stylist",
+        "religion": "Muslim",
+        "family": {
+            "spouse": 45,
+            "children": []
+        },
+        "personalityTraits": [
+            "warm",
+            "direct",
+            "restless"
+        ],
+        "interests": [
+            "hair braiding",
+            "street markets",
+            "scrapbook journaling"
+        ],
+        "about": [
+            "My hands are never still: if I'm not braiding, I'm packing a kit, answering messages, or fixing one small thing at home.",
+            "I love a good before-and-after: hair, a jacket hem, a living room corner—anything that goes from tired to sharp.",
+            "I can chat with a stranger like we're cousins, but I still need quiet time after a long day or I get cranky for no reason.",
+            "I keep voice notes for everything because typing feels slow and I always have product on my hands.",
+            "On weekends I'm either at a market, trading tips with friends, or taking a long walk to clear my head."
+        ],
+        "socialMedia": {
+            "handle": "lolac_2468",
+            "bio": "mobile stylist • braid patterns + big laughs • booking by DM",
+            "followers": 1486,
+            "following": 702
+        }
+    },
+    {
+        "id": 47,
+        "firstName": "Ronan",
+        "lastName": "Caldwell",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 42,
+        "career": "Electrician",
+        "religion": "Catholic",
+        "family": {
+            "spouse": 48,
+            "children": [
+                49,
+                50,
+                51
+            ]
+        },
+        "personalityTraits": [
+            "reserved",
+            "stubborn",
+            "wry"
+        ],
+        "interests": [
+            "garage projects",
+            "sports radio",
+            "quiet early walks"
+        ],
+        "about": [
+            "I don't do the whole \"talk about your feelings\" thing very smoothly, so I'll fix something instead and hope that counts.",
+            "My version of relaxing is doing a small job that should take ten minutes and turning it into an hour because I refuse to do it halfway.",
+            "I'm good in a crisis and mediocre at parties—make of that what you will.",
+            "I can come off cold, but mostly I'm just tired and trying to keep the day moving without extra nonsense.",
+            "I hate being asked last-minute favors, yet somehow I'm always the guy who says yes and then complains privately."
+        ],
+        "socialMedia": {
+            "handle": "rcald42",
+            "bio": "coffee. work boots. repeat. 🛠️",
+            "followers": 416,
+            "following": 243
+        }
+    },
+    {
+        "id": 48,
+        "firstName": "Niamh",
+        "lastName": "Caldwell",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 46,
+        "career": "Payroll clerk",
+        "religion": "Catholic",
+        "family": {
+            "spouse": 47,
+            "children": [
+                49,
+                50,
+                51
+            ]
+        },
+        "personalityTraits": [
+            "anxious",
+            "capable",
+            "chatty"
+        ],
+        "interests": [
+            "genealogy research",
+            "ice rink volunteering",
+            "budget meal planning"
+        ],
+        "about": [
+            "I can make a complicated form behave, which is not a talent anyone applauds, but it keeps my life standing up.",
+            "If I get nervous, I talk more, then I replay what I said later like I'm reviewing game footage.",
+            "I got into genealogy because it makes the world feel less random when you can trace a story backward.",
+            "I volunteer at the rink because I like being useful in a way that's simple: show up, help, go home.",
+            "I'm not glamorous, but I'm reliable, and in a family that counts as a superpower."
+        ],
+        "socialMedia": {
+            "handle": "niamhc_",
+            "bio": "payroll days • rink volunteer • family historian in progress",
+            "followers": 1098,
+            "following": 553
+        }
+    },
+    {
+        "id": 49,
+        "firstName": "Mireille",
+        "lastName": "Caldwell",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 13,
+        "career": "Student",
+        "religion": "Catholic",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "guarded",
+            "dramatic",
+            "perceptive"
+        ],
+        "interests": [
+            "video editing",
+            "sketching faces",
+            "music deep-dives"
+        ],
+        "about": [
+            "I can be quiet for hours and then suddenly say one thing that makes everyone look at me like I've been secretly taking notes.",
+            "I hate being put on the spot, so I plan conversations in my head and then don't use the script anyway.",
+            "Sometimes I act like I don't care because it's easier than admitting I care too much.",
+            "I'm picky about people, but once you're in, I'll defend you like it's my job.",
+            "If I'm annoyed, I'll pretend I'm not and then make an entire playlist about it."
+        ],
+        "socialMedia": {
+            "handle": "mireille.cut",
+            "bio": "edits + doodles + headphones on",
+            "followers": 381,
+            "following": 506
+        }
+    },
+    {
+        "id": 50,
+        "firstName": "Nicolette",
+        "lastName": "Caldwell",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 17,
+        "career": "Retail Associate",
+        "religion": "Catholic",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "confident",
+            "sarcastic",
+            "inconsistent"
+        ],
+        "interests": [
+            "gym playlists",
+            "thrifting",
+            "iced coffee runs"
+        ],
+        "about": [
+            "I act like I don't care, but I'll rewrite a text three times and still hate how it sounds.",
+            "I'm good at handling things when it's serious, and unbelievably lazy about things that are boring.",
+            "If I'm being sarcastic, it usually means I like you—unfortunately that's my love language.",
+            "I'm saving money and also spending money, so yes, I'm stressed about it all the time.",
+            "I want freedom, but I also want people to stop watching me like I'm about to make a headline."
+        ],
+        "socialMedia": {
+            "handle": "nicolettec17",
+            "bio": "school / shifts / caffeine. don't ask me to be up early ☕️",
+            "followers": 2247,
+            "following": 1041
+        }
+    },
+    {
+        "id": 51,
+        "firstName": "Gideon",
+        "lastName": "Caldwell",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 14,
+        "career": "student",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "competitive",
+            "wisecracking",
+            "touchy"
+        ],
+        "interests": [
+            "pickup basketball",
+            "speedrunning",
+            "sneaker drops"
+        ],
+        "about": [
+            "I act like I don't care, but I definitely care—like, unfortunately a lot.",
+            "If someone's laughing and I'm not in on the joke, I'll replay it in my head for hours and pretend it was funny.",
+            "I'm good at getting under people's skin and then acting shocked when they get mad, which is... a skill, I guess.",
+            "I'll say \"whatever\" and then go practice the same thing ten times until I'm better than you.",
+            "I'm trying to be chill, but my face snitches on me every single time."
+        ],
+        "socialMedia": {
+            "handle": "g1deon_c",
+            "bio": "if i'm quiet i'm plotting 🏀🎮",
+            "followers": 536,
+            "following": 621
+        }
+    },
+    {
+        "id": 52,
+        "firstName": "Imogen",
+        "lastName": "Beaudoin",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 33,
+        "career": "Archives technician",
+        "religion": "Atheist",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "self-sufficient",
+            "dry-humored",
+            "steady"
+        ],
+        "interests": [
+            "paper conservation",
+            "old map browsing",
+            "miniature model kits"
+        ],
+        "about": [
+            "I work with boxes of old records, so I get irrationally happy when a label is straight and legible.",
+            "I keep a tiny ruler and a roll of tape in my bag and I don't even remember when that became normal.",
+            "I like hobbies with small pieces because they force my brain to slow down and behave.",
+            "When I'm stressed, I fix one tiny object properly and pretend the world is made of manageable problems.",
+            "I do best with one-on-one conversations where people actually finish a thought."
+        ],
+        "socialMedia": {
+            "handle": "imogenb_91",
+            "bio": "archives + tiny repairs • model kits in progress • will notice your crooked frame",
+            "followers": 816,
+            "following": 297
+        }
+    },
+    {
+        "id": 53,
+        "firstName": "Haitao",
+        "lastName": "Gao",
+        "gender": "M",
+        "accentLanguage": "Chinese",
+        "age": 36,
+        "career": "Warehouse Team Lead",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": 54,
+            "children": [
+                55
+            ]
+        },
+        "personalityTraits": [
+            "practical",
+            "patient",
+            "quietly stubborn"
+        ],
+        "interests": [
+            "badminton",
+            "cooking noodle soups",
+            "bargain hunting"
+        ],
+        "about": [
+            "I don't talk much unless there's a point, and people always assume I'm upset-most of the time I'm just thinking.",
+            "I can spend twenty minutes comparing prices and feel proud, then turn around and buy something dumb because it looked useful.",
+            "If something breaks in the house, I want to fix it immediately, even if it's late and my wife gives me that look.",
+            "I'm not good at big emotional conversations on the spot-later, I'll think of the perfect sentence in the shower.",
+            "I like days that run smoothly, but I also like small surprises, as long as they don't involve paperwork."
+        ],
+        "socialMedia": {
+            "handle": "ht.gao36",
+            "bio": "👨‍👩‍👧 | noodles & bad knees | Toronto",
+            "followers": 311,
+            "following": 198
+        }
+    },
+    {
+        "id": 54,
+        "firstName": "Siyu",
+        "lastName": "Gao",
+        "gender": "F",
+        "accentLanguage": "Chinese",
+        "age": 38,
+        "career": "Early Childhood Educator",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": 53,
+            "children": [
+                55
+            ]
+        },
+        "personalityTraits": [
+            "warm",
+            "organized",
+            "easily flustered"
+        ],
+        "interests": [
+            "baking",
+            "K-dramas",
+            "thrifting"
+        ],
+        "about": [
+            "I like things to be in their places, but my life is not as tidy as my kitchen looks.",
+            "When I'm stressed I talk faster and start cleaning like I'm trying to erase the feeling.",
+            "I'm the type to bring food to someone and only later realize I forgot to ask what actually happened.",
+            "I can be very patient all day with kids at work and then lose my patience instantly with my own phone doing something dumb.",
+            "If you catch me on the right day, I'll chat for an hour-if you catch me on the wrong day, I'll smile and disappear."
+        ],
+        "socialMedia": {
+            "handle": "siyu.gao_",
+            "bio": "tiny humans all day • oven on at night 🍞",
+            "followers": 1244,
+            "following": 672
+        }
+    },
+    {
+        "id": 55,
+        "firstName": "Yaqi",
+        "lastName": "Gao",
+        "gender": "F",
+        "accentLanguage": "Chinese",
+        "age": 6,
+        "career": "Student",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "shy",
+            "sweet",
+            "clingy"
+        ],
+        "interests": [
+            "drawing animals",
+            "stickers",
+            "cartoons"
+        ],
+        "about": [
+            "I don't talk to new people fast, I wait and look at their face first.",
+            "If it's loud, I want to hold my mom's hand and then I'm okay.",
+            "I like to draw cats and give them names that are very serious.",
+            "When I'm happy I sing little songs but I forget the words and I just make sounds.",
+            "If you have a nice voice, I might show you my best sticker."
+        ],
+        "socialMedia": {
+            "handle": "yaqi.gao06",
+            "bio": "🖍️🐱 (run by parents)",
+            "followers": 37,
+            "following": 21
+        }
+    },
+    {
+        "id": 56,
+        "firstName": "Vaishnavi",
+        "lastName": "Reddy",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 25,
+        "career": "Community radio host",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "ambitious",
+            "outgoing",
+            "restless"
+        ],
+        "interests": [
+            "audio storytelling",
+            "dance practice",
+            "zine making"
+        ],
+        "about": [
+            "I can talk confidently on a mic and then overthink a three-word text for an hour.",
+            "I collect little stories—bus rides, corner-store conversations, random neighborhood drama—and turn them into segments.",
+            "When I'm stressed, I do a ten-minute dance warm-up in my room like it's a reset button for my brain.",
+            "I love trying new food, but I love learning the backstory of a place even more—who started it, why that menu, what they're proud of.",
+            "I look put-together even when I'm winging it, which is both a skill and a problem."
+        ],
+        "socialMedia": {
+            "handle": "vashu07",
+            "bio": "community radio • dance breaks • chasing good stories, not just good pics",
+            "followers": 2861,
+            "following": 1147
+        }
+    },
+    {
+        "id": 57,
+        "firstName": "Daniel",
+        "lastName": "Redmond",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 11,
+        "career": "Student",
+        "religion": "Agnostic",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "curious",
+            "competitive",
+            "earnest"
+        ],
+        "interests": [
+            "video games",
+            "building kits",
+            "science videos"
+        ],
+        "about": [
+            "I get obsessed with a new thing and then talk about it until people pretend to fall asleep.",
+            "If a rule is unfair, I will bring it up forever, even later when everyone moved on.",
+            "I like building stuff because it feels like cheating when it actually works.",
+            "When I'm nervous I start explaining too fast and then I forget the main point.",
+            "I want to be the best at something, mostly so I can say \"told you\" one time."
+        ],
+        "socialMedia": {
+            "handle": "danny_11x",
+            "bio": "11 • games + builds • stop nerfing my strat",
+            "followers": 111,
+            "following": 128
+        }
+    },
+    {
+        "id": 58,
+        "firstName": "Astrid",
+        "lastName": "Redmond",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 48,
+        "career": "Project manager",
+        "religion": "Agnostic",
+        "family": {
+            "spouse": 59,
+            "children": [
+                57
+            ]
+        },
+        "personalityTraits": [
+            "level-headed",
+            "wry",
+            "opinionated"
+        ],
+        "interests": [
+            "podcasts",
+            "long walks",
+            "crosswords"
+        ],
+        "about": [
+            "I make lists like it's a hobby, then feel personally offended when life ignores them.",
+            "I'm nice, but I'm also the person who will rewrite your email in my head while smiling at you.",
+            "I pretend I'm low-maintenance and then get weirdly particular about grocery brands.",
+            "If I'm quiet in a group, it's not shyness-it's me collecting material.",
+            "My \"relaxing\" is walking with a podcast and thinking about three other things I should be doing."
+        ],
+        "socialMedia": {
+            "handle": "astrid.rdmnd",
+            "bio": "calendar loyalist • iced coffee year-round • Toronto",
+            "followers": 927,
+            "following": 419
+        }
+    },
+    {
+        "id": 59,
+        "firstName": "Xinyi",
+        "lastName": "Redmond",
+        "gender": "M",
+        "accentLanguage": "Chinese",
+        "age": 49,
+        "career": "Accountant",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": 58,
+            "children": [
+                57
+            ]
+        },
+        "personalityTraits": [
+            "methodical",
+            "reserved",
+            "stubborn"
+        ],
+        "interests": [
+            "home cooking",
+            "gardening",
+            "Chinese dramas"
+        ],
+        "about": [
+            "I like things done properly, which sounds noble until you see me re-folding towels because the edges don't line up.",
+            "I don't talk a lot in groups, but I remember exactly who said what and when.",
+            "When I'm tired, I get quiet and suddenly everyone thinks I'm angry-sometimes I am, sometimes I just want silence.",
+            "I'm sentimental in a practical way: I'll keep the ugly mug because it was a gift, and I'll still use it every morning.",
+            "I worry more than I show, so I turn it into chores and soup and making sure everyone has eaten."
+        ],
+        "socialMedia": {
+            "handle": "xinyi_redmond49",
+            "bio": "汤/tea • gardens that mostly survive • TO",
+            "followers": 389,
+            "following": 204
+        }
+    },
+    {
+        "id": 60,
+        "firstName": "Aarushi",
+        "lastName": "Nair",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 21,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "warm",
+            "driven",
+            "high-strung"
+        ],
+        "interests": [
+            "campus volunteering",
+            "South Indian cooking experiments",
+            "stargazing nights"
+        ],
+        "about": [
+            "I'm friendly in a way that looks effortless, but my brain is doing five background processes at all times.",
+            "I'm ambitious, and I hate admitting how much I care—so I act casual and then study like it's a sport.",
+            "When I'm overwhelmed, I don't fall apart loudly; I get very quiet and start handling tasks like I'm defusing something.",
+            "I miss home in little random ways—smells, certain foods, the way people talk—then I distract myself by staying busy.",
+            "If you're kind and steady, I relax around you fast, like my nervous system finally got the memo."
+        ],
+        "socialMedia": {
+            "handle": "aaru_21ish",
+            "bio": "Toronto | student life + seva hours | dosa experiments (results vary) | looking up at the sky a lot",
+            "followers": 2011,
+            "following": 1398
+        }
+    },
+    {
+        "id": 61,
+        "firstName": "Bongani",
+        "lastName": "Mutombo",
+        "gender": "M",
+        "accentLanguage": "African",
+        "age": 52,
+        "career": "Warehouse supervisor",
+        "religion": "Christian",
+        "family": {
+            "spouse": 62,
+            "children": []
+        },
+        "personalityTraits": [
+            "reserved",
+            "stubborn",
+            "dryly funny"
+        ],
+        "interests": [
+            "soccer highlights",
+            "grilling",
+            "walks at dawn"
+        ],
+        "about": [
+            "I don't talk a lot, and people love filling the silence with assumptions.",
+            "I can stand in one spot for ten minutes just thinking, and it feels like nothing to me but it freaks other people out.",
+            "I like mornings because nobody expects anything from you yet.",
+            "I'm patient until I'm not—there's a line, and once it's crossed I get very, very simple about it.",
+            "I've learned that some problems solve themselves if you stop feeding them attention."
+        ],
+        "socialMedia": {
+            "handle": "bongi.m_52",
+            "bio": "early mornings • grill smoke • trying to sleep before midnight (failing)",
+            "followers": 292,
+            "following": 184
+        }
+    },
+    {
+        "id": 62,
+        "firstName": "Laurel",
+        "lastName": "Mutombo",
+        "gender": "F",
+        "accentLanguage": "African",
+        "age": 45,
+        "career": "Personal support worker",
+        "religion": "Christian",
+        "family": {
+            "spouse": 61,
+            "children": []
+        },
+        "personalityTraits": [
+            "warm",
+            "dramatic",
+            "impulsive"
+        ],
+        "interests": [
+            "Afrobeats",
+            "trying new recipes",
+            "gossiping with friends"
+        ],
+        "about": [
+            "I can go from laughing to annoyed in thirty seconds, and then I'm fine again like nothing happened.",
+            "If there's music on, I'm nicer—this is science, not opinion.",
+            "I say I'm \"not hungry\" and then I'm eating straight from the pot five minutes later.",
+            "Sometimes I talk too much when I'm excited and then later I'm like… why did I tell that story.",
+            "I love people, but I love peace too, so I'm constantly negotiating with myself."
+        ],
+        "socialMedia": {
+            "handle": "laurel.mutombo",
+            "bio": "food always • music on • if you come by, you're eating something",
+            "followers": 1219,
+            "following": 711
+        }
+    },
+    {
+        "id": 63,
+        "firstName": "Dashiell",
+        "lastName": "Barker",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 34,
+        "career": "Freelance videographer",
+        "religion": "Agnostic",
+        "family": {
+            "spouse": 64,
+            "children": [
+                65
+            ]
+        },
+        "personalityTraits": [
+            "messy-optimistic",
+            "charming",
+            "overcommitted"
+        ],
+        "interests": [
+            "pub trivia",
+            "pickup basketball",
+            "trying new gadgets"
+        ],
+        "about": [
+            "I say yes too fast and then spend the next week negotiating with my own calendar.",
+            "My apartment has a chair that's basically a clothing mountain, and I keep insisting it's a \"system.\"",
+            "I can talk my way into plans and then immediately regret how many humans I've agreed to see in one weekend.",
+            "When I'm stressed I buy a little treat, like it's a valid coping strategy, and honestly… it kind of is.",
+            "I'm great in a small crisis, but ask me to reply to a text thread from three days ago and I suddenly forget how thumbs work."
+        ],
+        "socialMedia": {
+            "handle": "dashh97",
+            "bio": "if i said \"on my way\" i'm probably looking for my keys | coffee addict | i film stuff sometimes",
+            "followers": 1046,
+            "following": 1189
+        }
+    },
+    {
+        "id": 64,
+        "firstName": "Salome",
+        "lastName": "Barker",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 38,
+        "career": "Court clerk",
+        "religion": "Catholic",
+        "family": {
+            "spouse": 63,
+            "children": [
+                65
+            ]
+        },
+        "personalityTraits": [
+            "sarcastic",
+            "selective",
+            "quietly sentimental"
+        ],
+        "interests": [
+            "pinball nights",
+            "cryptic crosswords",
+            "hot-sauce testing"
+        ],
+        "about": [
+            "I can keep a straight face through chaos, then laugh about it later when I'm safe at home.",
+            "My job trained me to listen for the one detail everyone skipped, which makes me annoying in a useful way.",
+            "I don't love big group chats, but I will show up with snacks if someone I care about is having a week.",
+            "I have a very serious pinball hobby that I pretend is casual so nobody asks follow-up questions.",
+            "If I tease you, it's usually because I like you; if I like you a lot, I'll get quiet and actually check in."
+        ],
+        "socialMedia": {
+            "handle": "salome__s",
+            "bio": "court-day chaos manager • pinball + crosswords • unapologetic sauce takes",
+            "followers": 1613,
+            "following": 642
+        }
+    },
+    {
+        "id": 65,
+        "firstName": "Melissa",
+        "lastName": "Barker",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 16,
+        "career": "Student",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "observant",
+            "witty",
+            "self-conscious"
+        ],
+        "interests": [
+            "video editing",
+            "playlist curating",
+            "thrifting"
+        ],
+        "about": [
+            "I pretend I don't care about trends, then I save a ridiculous number of outfit screenshots anyway.",
+            "If I'm quiet, it's usually because I'm editing something or thinking about what I should have said earlier.",
+            "I'm way funnier with people I trust, and way more silent with everyone else.",
+            "I like being useful without being the center of attention—setting up, cleaning up, helping quietly.",
+            "I want more freedom, but I also like knowing my parents are nearby when the day feels too loud."
+        ],
+        "socialMedia": {
+            "handle": "mel.barker16",
+            "bio": "16 • edits + playlists • thrift finds • trying not to overthink everything",
+            "followers": 892,
+            "following": 611
+        }
+    },
+    {
+        "id": 66,
+        "firstName": "Ravi",
+        "lastName": "Mukherjee",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 41,
+        "career": "Business analyst",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 67,
+            "children": [
+                68,
+                69
+            ]
+        },
+        "personalityTraits": [
+            "thoughtful",
+            "wry",
+            "patient"
+        ],
+        "interests": [
+            "spice gardening",
+            "logic puzzles",
+            "cricket highlights"
+        ],
+        "about": [
+            "I like routines because they make the day feel simpler, not because I'm boring (though I might be a little).",
+            "If something is confusing, I usually need ten quiet minutes to think before I talk about it.",
+            "I try to be the calm person in the room, especially when my kids are spiraling over something small.",
+            "I love small wins—fixing a tiny problem, finishing a task, or getting a tricky puzzle right.",
+            "I show I care by being reliable: if I said I'd do it, I will."
+        ],
+        "socialMedia": {
+            "handle": "rmukherjee13",
+            "bio": "tea first • puzzles • cricket reels • trying to keep life simple",
+            "followers": 482,
+            "following": 356
+        }
+    },
+    {
+        "id": 67,
+        "firstName": "Kritika",
+        "lastName": "Mukherjee",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 35,
+        "career": "Catering assistant",
+        "religion": "Hindu",
+        "family": {
+            "spouse": 66,
+            "children": [
+                68,
+                69
+            ]
+        },
+        "personalityTraits": [
+            "social",
+            "energetic",
+            "warm"
+        ],
+        "interests": [
+            "trying new recipes",
+            "voice notes",
+            "dance workouts"
+        ],
+        "about": [
+            "I make friends fast, and then I act shocked when I end up hosting something.",
+            "I talk with my hands, I talk with my face, and yes, sometimes my tone arrives before my patience does.",
+            "If someone is having a rough day, my first instinct is to feed them something and sit them down.",
+            "I love busy kitchens—the noise, the timing, the feeling that you're making something real.",
+            "I can be dramatic for five minutes and then I'm over it; my family knows the schedule."
+        ],
+        "socialMedia": {
+            "handle": "kritzzm",
+            "bio": "food brain • playlists always • i will hype you up • TO",
+            "followers": 1739,
+            "following": 914
+        }
+    },
+    {
+        "id": 68,
+        "firstName": "Isha",
+        "lastName": "Mukherjee",
+        "gender": "F",
+        "accentLanguage": "SouthAsian",
+        "age": 17,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "observant",
+            "stubborn",
+            "funny"
+        ],
+        "interests": [
+            "digital illustration",
+            "K-pop dance practice",
+            "playlist-making"
+        ],
+        "about": [
+            "I notice vibes fast, and sometimes I wish I could turn that off like a setting.",
+            "If I'm quiet, I'm usually thinking, not upset—though I do get annoyed when people assume things.",
+            "I can spend an hour perfecting one tiny detail and then act like it was no big deal.",
+            "Music fixes my mood better than any advice does.",
+            "I'm nicer than I look; I just do not like performing friendliness."
+        ],
+        "socialMedia": {
+            "handle": "mira_beatz44",
+            "bio": "art brain • headphones on • i have opinions",
+            "followers": 413,
+            "following": 529
+        }
+    },
+    {
+        "id": 69,
+        "firstName": "Ayaan",
+        "lastName": "Mukherjee",
+        "gender": "M",
+        "accentLanguage": "SouthAsian",
+        "age": 16,
+        "career": "Student",
+        "religion": "Hindu",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "curious",
+            "earnest",
+            "quick-witted"
+        ],
+        "interests": [
+            "coding club",
+            "badminton",
+            "street photography"
+        ],
+        "about": [
+            "If I get into a new hobby, I go all-in for two weeks like it's my entire personality.",
+            "I like tech stuff because it feels fair—if it breaks, there is usually a reason.",
+            "I act chill, but I care a lot about doing well, which is inconvenient for my stress levels.",
+            "I take photos when I want my brain to be quiet for a bit.",
+            "I talk more at home than anywhere else, mostly because I know nobody is judging me."
+        ],
+        "socialMedia": {
+            "handle": "ayaan_mk16",
+            "bio": "16 | badminton + code | photos when i remember",
+            "followers": 268,
+            "following": 311
+        }
+    },
+    {
+        "id": 70,
+        "firstName": "Tobin",
+        "lastName": "Fortin",
+        "gender": "M",
+        "accentLanguage": "Canadian",
+        "age": 25,
+        "career": "Live sound technician",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "easygoing",
+            "focused",
+            "friendly"
+        ],
+        "interests": [
+            "field recording",
+            "pedal tinkering",
+            "night skating"
+        ],
+        "about": [
+            "I can tell if a room sounds weird before I can tell you why, and it makes me unbearable at bad concerts.",
+            "I keep earplugs in every jacket like it's a personal religion.",
+            "Field recording is my favorite quiet hobby: alley echoes, streetcars, rain on metal, tiny sounds nobody notices.",
+            "I tinker with pedals the way other people do puzzles, except my puzzles occasionally scream.",
+            "I like skating late because the city feels calmer, like the volume knob got turned down."
+        ],
+        "socialMedia": {
+            "handle": "tobin_turns_knobs",
+            "bio": "live sound • field recordings • earplug evangelist • Toronto nights",
+            "followers": 984,
+            "following": 795
+        }
+    },
+    {
+        "id": 71,
+        "firstName": "Zixuan",
+        "lastName": "Ma",
+        "gender": "F",
+        "accentLanguage": "Chinese",
+        "age": 45,
+        "career": "Quality control supervisor (food packaging)",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": 72,
+            "children": [
+                73
+            ]
+        },
+        "personalityTraits": [
+            "careful",
+            "observant",
+            "principled"
+        ],
+        "interests": [
+            "calligraphy practice",
+            "home fermentation",
+            "table tennis"
+        ],
+        "about": [
+            "I can tell when something is off before the numbers show it, and it makes me annoying at restaurants.",
+            "When I'm stressed, I write characters slowly until my brain stops sprinting.",
+            "I like food that takes patience: pickles, kimchi, broths that taste better the next day.",
+            "I do not need to be loud to be firm; I just need things to be clear.",
+            "If you come by at the right time, you'll leave with a container of something I was testing and an opinion you did not ask for."
+        ],
+        "socialMedia": {
+            "handle": "zixuan_m",
+            "bio": "QC supervisor | ink strokes + fermenting jars | table tennis is therapy",
+            "followers": 372,
+            "following": 205
+        }
+    },
+    {
+        "id": 72,
+        "firstName": "Yong",
+        "lastName": "Ma",
+        "gender": "M",
+        "accentLanguage": "Chinese",
+        "age": 48,
+        "career": "Building maintenance technician",
+        "religion": "Buddhist",
+        "family": {
+            "spouse": 71,
+            "children": [
+                73
+            ]
+        },
+        "personalityTraits": [
+            "hands-on",
+            "low-key",
+            "protective"
+        ],
+        "interests": [
+            "aquascaping",
+            "ukulele practice",
+            "bike tune-ups"
+        ],
+        "about": [
+            "I like fixing things because you can see the result right away, and it feels honest.",
+            "My fish tank is my little quiet project; when the plants look healthy, my whole mood improves.",
+            "I learn songs slowly on purpose, so I can actually play them without thinking.",
+            "I am friendly one-on-one, but I do not enjoy group conversations that go nowhere.",
+            "If my family needs something, I move fast; for everything else, I take my time."
+        ],
+        "socialMedia": {
+            "handle": "yong_ma48",
+            "bio": "maintenance tech | fish tank gardener | learning uke (very slowly) | bike fixes",
+            "followers": 458,
+            "following": 239
+        }
+    },
+    {
+        "id": 73,
+        "firstName": "Calla",
+        "lastName": "Ma",
+        "gender": "F",
+        "accentLanguage": "Canadian",
+        "age": 25,
+        "career": "Vintage clothing reseller",
+        "religion": "None",
+        "family": {
+            "spouse": -1,
+            "children": []
+        },
+        "personalityTraits": [
+            "inventive",
+            "soft-spoken",
+            "sharp-eyed"
+        ],
+        "interests": [
+            "clothing alterations",
+            "pop-up markets",
+            "darkroom photo prints"
+        ],
+        "about": [
+            "I can spot good fabric from across a room like it's a survival skill.",
+            "I like repairs more than shopping; making something fit right feels like solving a puzzle.",
+            "I take photos on film because it forces me to slow down and pick what I actually care about.",
+            "If I'm quiet, it's usually because I'm observing, not judging.",
+            "I love a small gathering with good lighting and a clear end time."
+        ],
+        "socialMedia": {
+            "handle": "calla_cuts_and_cloths",
+            "bio": "vintage resale + repairs | film prints when i have time | pop-ups + swaps > scrolling",
+            "followers": 2398,
+            "following": 1096
+        }
+    }
+]

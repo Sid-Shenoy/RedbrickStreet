@@ -1,0 +1,36 @@
+Product Name: Redbrick Street
+Product Description: A highly interactive first person simulation (single player) of a street complete with houses and people, designed to resemble real life as closely as possible.
+Platform: Must be accessible from web browser.
+Content Rating: M (18+) due to violence
+
+Description:
+The setting is just a single street (inspired by Williamson Drive). The entire street will be surrounded by a tall brick wall to eliminate boundaries. But it must be detailed to the point that it becomes almost indistinguishable from reality. Each house will have two floors and a basement, making three in total, and will be occupied by NPC occupants reflecting diversity (like a believable neighborhood in Toronto). For instance, a house may be occupied by a man, his wife, and their son and daughter. Each character will have a detailed profile (name, age, gender, accent, appearance, personality traits, etc.). The player will be able to move around the street, interact with objects, talk to NPCs who respond and act realistically (powered by a small LLM with no fees) to the point of developing relationships. There are no vehicles.
+
+Controls:
+The player will use the keyboard primarily to walk/run. The camera will keep track of the players face and hands, which will be used for further interaction with the environment. For example, the player can move their hand forward and clench it into a fist to grab something, or can punch/push entities. The player's face will be used for direction of view. So if the played turns their face a couple degrees towards the left of the screen, it will be equivalent to turning the head fully left (on screen). The player can lower the position (not orientation) of their face while still looking at the screen to crouch. The microphone will be used for voice input (speaking to NPCs).
+
+Phone mode:
+There will be a setting where the user can play on mobile by using one hand to hold the phone over their eyes and the other hand to interact with the envronment, giving a VR-life effect.
+
+Realism:
+There will be no gauges that aren't accessible in real life, such as relationship meters, or healthbars. NPC will also respond realistically based on their personality traits, and will have ragdoll physics. As far as possible, unrealistic situations will be ruled out. If the player gets knocked out, he will get back up in the same location (perhaps if he gets knocked out an the street, and NPC may eventually assist him). But there will be no police or any form of emergency services. The goal is to give the player a lot of freedom.
+
+Optimization:
+Several features will be optimized for performance without sacrificing realism. Innovative techniques will be used for this. Below are some examples of optimization techniques:
+1) Instead of loading all game resources and then starting the game, load sufficient data to account for the current setting, start the game, and continue loading assets.
+2) Use less vertices as long as realism is not compromised. For example, a round toilet would look blocky with less vertices, so you may want to use a rounded rectangle will small but well-defined edges as the shape.
+3) Near/far clip distance should adapt to the situation when constrained by limits. When outdoors, the player should be able to see across the street as long as there are no objects really close in front of view. Near clip space must be sufficiently low during relevant interactions (like drinking from a cup, kissing, etc.), and the player should NEVER see through objects (e.g. a face when really close) to maintain realism.
+4) For NPCs, use programatically generated meshes and textures in a way that does not compromise fine details when overly close (should be able to generate a realistic textured NPC mesh for any given body measurements).
+
+In-game Phone:
+The player will have a phone with basic apps (e.g clock, email, etc.). A major feature will be a fictional yet functional social media app with only people from that street, with functionality to follow/message NPCs, comment on posts, and view posts.
+
+NPC AI:
+NPCs will use a mix of algorithmic and LLM-based techniques to determine behaviour. They will all have personalities and general routines. For example, a custom prompt for behaviour may accept input like `[punched_by(player)]["player_said":"No!"]` and output something like: `AAAAH! [run_from(player)]`. To maintain realism, their behaviour should not be overly predicatable.
+
+Non-functional requirements:
+NFR-01: It must be impossible to incur fees as a result of any user activity (e.g. LLMs).
+NFR-02: The game must not require any credits or fees due to licensing (only use freely available resources).
+NFR-03: A user must be able to open and play the game directly in the web browser.
+
+Note: Voice audios will be obtained from https://elevenlabs.io/

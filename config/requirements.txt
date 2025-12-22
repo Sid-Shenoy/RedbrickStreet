@@ -1,0 +1,58 @@
+Summary of this directory:
+
+Store an initial list of NPCs with all relevant associations.
+
+Non-functional requirements for this directory:
+
+1) General requirements
+1.1) Use files to store a list of NPCs and houses with all relevant relationships
+1.2) All stored data must be stored in a way that is both human-readable and machine-readable
+1.3) Data must be stored in a space-efficient manner, as long as readability is not compromised
+1.4) Character encoding and allowed characters
+1.4.1) All config files must be encoded as UTF-8
+1.4.2) If apostrophes/quotes are used, they must be ASCII ' and " only
+2) Data storage requirements
+2.1) There must be 70 to 80 NPCs plus the player, and 30 houses in all
+2.2) Each NPC must have:
+2.2.1) An integer ID (primary key)
+2.2.2) Full name (first and last) with no special characters (e.g. accented letters)
+2.2.3) Gender (must be either "M" or "F")
+2.2.4) Age (must be an integer)
+2.2.4.1) An NPC with an age or 17 or below must be living with an adult family member
+2.2.4.2) An NPC cannot have an age less than or equal to 5
+2.2.5) Accent language (must belong to enum { Canadian, SouthAsian, Chinese, African, MiddleEastern })
+2.2.6) Career (name of current job position - can also be "Student", "Unemployed", or "Retired")
+2.2.7) Religion (must be a single word)
+2.2.8) Family information (choose best way to store this info)
+2.2.8.1) Stored relationships are limited to marriage, parent/child, and siblings
+2.2.8.2) A marriage must be between one man and one woman
+2.2.8.3) Neither a man nor a woman can have multiple husbands/wives
+2.2.8.4) An NPC must have an age of 18 or above to be married
+2.2.8.5) An NPC must have an age of 18 or above to have children
+2.2.8.6) A parent must be at least 18 years older than their child
+2.2.9) Personality traits (list of 3 personality adjectives)
+2.2.10) Interests (list of 3 words/phrases that define doing something, like "gardening" or "baking cakes")
+2.2.11) 5 facts about the NPC, stated in first person
+2.2.12) Social media information
+2.2.12.1) Handle (exclusing the "@")
+2.2.12.2) Bio (like an actual Instagram bio - lots of variation expected among NPCs - should look human)
+2.2.12.3) Followers count (a number - just avoid too many round numbers as it should be like reality)
+2.2.12.4) Following count (similar idea to above)
+2.3) Each house must have:
+2.3.1) A house number (primary key) from 0 to 29
+2.3.2) An associated surname (for all house occupants)
+2.3.2.1) This field is not defined for house 7
+2.3.3) List of occupants
+2.3.4) A minimum of 1 resident and a hard maximum of 6 residents
+2.4) The house with a number of 7 will only be occupied by the player (ID = 0)
+2.4.1) The player will not be included in the list of NPCs, but referenced by id as an occupant of house 7
+2.5) No two residents living in different houses can share a surname (player surname doesn't matter)
+2.6) No two NPCs may share the same first name
+2.7) No two NPCs may share the same social media handle
+2.8) Every NPC must live in exactly one house
+2.9) All NPCs in the same house must be related
+3) Information requirements:
+3.1) Avoid recurring themes across many NPCs (like similar careers, interests, facts, and social media info)
+3.2) The cultural voice of an NPC should somewhat correspond to their accent language
+3.3) No NPC should be aggressive or unfriendly
+3.3.1) No NPC should have any data that indicates passive aggressiveness
