@@ -1,6 +1,8 @@
 Product Name: Redbrick Street
 Product Description: A highly interactive first person simulation (single player) of a street complete with houses and people, designed to resemble real life as closely as possible.
-Platform: Must be accessible from web browser.
+Platform Details:
+- Will use Vite and Babylon.js
+- Must be accessible from web browser.
 Content Rating: M (18+) due to violence
 
 Description:
