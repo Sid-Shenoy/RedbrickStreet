@@ -11,6 +11,6 @@ Current task: Setup Redbrick Street
 - Backyards will be separated by a fence
 - The street will be surrounded by setup large brick walls on all 4 sides
 - On each side, zones must be touching each other but not overlapping - when one ends, another begins
-- In `houses.json`, each house should store position and dimensions as attributes - houses will later be modelled relative to this.
+- In `houses.json`, each house should have a `bounds` attribute storing position (`x` and `z`) and dimensions (`xsize` and `zsize`) as attributes - houses will later be modelled relative to this.
 
-For now, update and output `houses.json` only with a `bounds` attribute containing `x`, `z`, `xsize`, and `zsize` (4 values) for each house.
+Step 1 is complete.
