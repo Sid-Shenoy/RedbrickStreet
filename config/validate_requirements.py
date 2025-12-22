@@ -41,6 +41,18 @@ DISALLOWED_QUOTE_CHARS = {
 
 NAME_RE = re.compile(r"^[A-Za-z]+$")  # Req 2.2.2: no special chars in names
 RELIGION_RE = re.compile(r"^\S+$")  # Req 2.2.7: single word (no spaces)
+EPS = 1e-9  # float comparisons for bounds
+
+def is_int(x: Any) -> bool:
+    # Important: bool is a subclass of int; reject bool
+    return isinstance(x, int) and not isinstance(x, bool)
+
+def is_number(x: Any) -> bool:
+    # Accept int/float (reject bool)
+    return (isinstance(x, (int, float)) and not isinstance(x, bool))
+
+def approx_equal(a: float, b: float, eps: float = EPS) -> bool:
+    return abs(a - b) <= eps
 
 
 @dataclass
@@ -117,6 +129,186 @@ def normalize_case(s: str) -> str:
     return s.strip().casefold()
 
 
+def _validate_bounds_for_house(hn: int, h: Dict[str, Any]) -> List[Issue]:
+    """
+    Req 2.3.5.* + 2.3.6.* (per-house parts)
+    """
+    issues: List[Issue] = []
+    b = h.get("bounds")
+    if not isinstance(b, dict):
+        issues.append(Issue("ERROR", "2.3.5.1", f"houses.json: house {hn} missing/invalid bounds object."))
+        return issues
+
+    # Required numeric keys
+    missing_keys = [k for k in ("x", "z", "xsize", "zsize") if k not in b]
+    if missing_keys:
+        issues.append(Issue("ERROR", "2.3.5.2", f"houses.json: house {hn} bounds missing key(s): {missing_keys}."))
+        return issues
+
+    x = b.get("x")
+    z = b.get("z")
+    xsize = b.get("xsize")
+    zsize = b.get("zsize")
+
+    if not is_number(x) or not is_number(z) or not is_number(xsize) or not is_int(zsize):
+        issues.append(
+            Issue(
+                "ERROR",
+                "2.3.5.2",
+                f"houses.json: house {hn} bounds must have numeric x/z/xsize and integer zsize; got "
+                f"x={x!r}, z={z!r}, xsize={xsize!r}, zsize={zsize!r}.",
+            )
+        )
+        return issues
+
+    x_f = float(x)
+    z_f = float(z)
+    xsize_f = float(xsize)
+    zsize_i = int(zsize)
+
+    # Domain constraints
+    if x_f < -EPS or x_f > 70 + EPS:
+        issues.append(Issue("ERROR", "2.3.5.2.1", f"houses.json: house {hn} bounds.x={x} out of range [0,70]."))
+    if z_f < -EPS or z_f > 200 + EPS:
+        issues.append(Issue("ERROR", "2.3.5.2.2", f"houses.json: house {hn} bounds.z={z} out of range [0,200]."))
+
+    # Size constraints
+    if not approx_equal(xsize_f, 30.0):
+        issues.append(Issue("ERROR", "2.3.5.2.3", f"houses.json: house {hn} bounds.xsize must be 30, got {xsize!r}."))
+    if not (10 <= zsize_i <= 16):
+        issues.append(
+            Issue(
+                "ERROR",
+                "2.3.5.2.3",
+                f"houses.json: house {hn} bounds.zsize must be integer in [10,16], got {zsize!r}.",
+            )
+        )
+
+    # Extents
+    if x_f + xsize_f > 70 + EPS:
+        issues.append(
+            Issue(
+                "ERROR",
+                "2.3.5.2.4",
+                f"houses.json: house {hn} bounds.x + xsize = {x_f + xsize_f} exceeds 70.",
+            )
+        )
+    if z_f + zsize_i > 200 + EPS:
+        issues.append(
+            Issue(
+                "ERROR",
+                "2.3.5.2.5",
+                f"houses.json: house {hn} bounds.z + zsize = {z_f + zsize_i} exceeds 200.",
+            )
+        )
+
+    # Side constraints (even vs odd)
+    if hn % 2 == 0:
+        # Req 2.3.6.3.1: even houses x=0, xsize=30
+        if not approx_equal(x_f, 0.0):
+            issues.append(Issue("ERROR", "2.3.6.3.1", f"houses.json: even house {hn} must have bounds.x=0, got {x!r}."))
+        if not approx_equal(xsize_f, 30.0):
+            issues.append(
+                Issue("ERROR", "2.3.6.3.1", f"houses.json: even house {hn} must have bounds.xsize=30, got {xsize!r}.")
+            )
+    else:
+        # Req 2.3.6.3.2: odd houses x=40, xsize=30
+        if not approx_equal(x_f, 40.0):
+            issues.append(Issue("ERROR", "2.3.6.3.2", f"houses.json: odd house {hn} must have bounds.x=40, got {x!r}."))
+        if not approx_equal(xsize_f, 30.0):
+            issues.append(
+                Issue("ERROR", "2.3.6.3.2", f"houses.json: odd house {hn} must have bounds.xsize=30, got {xsize!r}.")
+            )
+
+    return issues
+
+
+def validate_street_geometry(houses_by_number: Dict[int, Dict[str, Any]]) -> List[Issue]:
+    """
+    Req 2.3.6.4.* and 2.3.6.5 (global constraints along z-axis per side)
+    Also emits a WARN for 3.4 if a side has no variance in zsize.
+    """
+    issues: List[Issue] = []
+
+    even_expected = list(range(0, 30, 2))  # 0..28
+    odd_expected = list(range(1, 30, 2))   # 1..29
+
+    # Presence/order constraints
+    even_present = [hn for hn in even_expected if hn in houses_by_number]
+    odd_present = [hn for hn in odd_expected if hn in houses_by_number]
+
+    if even_present != even_expected:
+        missing = [hn for hn in even_expected if hn not in houses_by_number]
+        if missing:
+            issues.append(Issue("ERROR", "2.3.6.4.1", f"Even side missing houseNumber(s): {missing}."))
+
+    if odd_present != odd_expected:
+        missing = [hn for hn in odd_expected if hn not in houses_by_number]
+        if missing:
+            issues.append(Issue("ERROR", "2.3.6.4.2", f"Odd side missing houseNumber(s): {missing}."))
+
+    def side_check(side_hns: List[int], side_label: str) -> List[int]:
+        expected_z = 0.0
+        zsizes: List[int] = []
+        for hn in side_hns:
+            h = houses_by_number.get(hn, {})
+            b = h.get("bounds")
+            if not isinstance(b, dict):
+                continue
+            z = b.get("z")
+            zsize = b.get("zsize")
+            if not is_number(z) or not is_int(zsize):
+                continue
+
+            z_f = float(z)
+            zsize_i = int(zsize)
+
+            # Contiguity: each house starts where previous ended
+            if not approx_equal(z_f, expected_z):
+                issues.append(
+                    Issue(
+                        "ERROR",
+                        "2.3.6.4.3",
+                        f"{side_label}: house {hn} bounds.z={z_f} but expected {expected_z} (gap/overlap).",
+                    )
+                )
+                expected_z = z_f  # reduce cascading noise
+
+            zsizes.append(zsize_i)
+            expected_z = expected_z + zsize_i
+
+        # Sum constraint
+        if not approx_equal(expected_z, 200.0):
+            issues.append(Issue("ERROR", "2.3.6.5", f"{side_label}: z-lengths sum/end at {expected_z}, expected 200."))
+
+        return zsizes
+
+    # Only run detailed contiguity checks if all houses exist (keeps output cleaner)
+    if all(hn in houses_by_number for hn in even_expected):
+        even_zsizes = side_check(even_expected, "Even side (2.3.6.4.1)")
+        if even_zsizes and len(set(even_zsizes)) == 1:
+            issues.append(
+                Issue(
+                    "WARN",
+                    "3.4",
+                    f"Even side: all house zsize values are identical ({even_zsizes[0]}). Requirement 3.4 suggests some variance.",
+                )
+            )
+
+    if all(hn in houses_by_number for hn in odd_expected):
+        odd_zsizes = side_check(odd_expected, "Odd side (2.3.6.4.2)")
+        if odd_zsizes and len(set(odd_zsizes)) == 1:
+            issues.append(
+                Issue(
+                    "WARN",
+                    "3.4",
+                    f"Odd side: all house zsize values are identical ({odd_zsizes[0]}). Requirement 3.4 suggests some variance.",
+                )
+            )
+
+    return issues
+
+
 def validate_houses(houses: Any) -> Tuple[Dict[int, Dict[str, Any]], List[Issue]]:
     issues: List[Issue] = []
     by_number: Dict[int, Dict[str, Any]] = {}
@@ -189,6 +381,9 @@ def validate_houses(houses: Any) -> Tuple[Dict[int, Dict[str, Any]], List[Issue]
                         )
                     )
 
+        # New: bounds validation (all houses, including house 7)
+        issues.extend(_validate_bounds_for_house(hn, h))
+
         by_number[hn] = h
 
     # Ensure all 0..29 present
@@ -207,6 +402,8 @@ def validate_houses(houses: Any) -> Tuple[Dict[int, Dict[str, Any]], List[Issue]
     dup = {s: c for s, c in Counter(surnames).items() if c > 1}
     if dup:
         issues.append(Issue("ERROR", "2.5", f"houses.json: duplicate house surnames detected: {dup}."))
+
+    issues.extend(validate_street_geometry(by_number))
 
     return by_number, issues
 

@@ -1,34 +1,435 @@
 [
-  { "houseNumber": 0, "surname": "Whitlock", "occupants": [1, 2, 3, 4] },
-  { "houseNumber": 1, "surname": "Darwish", "occupants": [5] },
-  { "houseNumber": 2, "surname": "Tang", "occupants": [6, 7, 8] },
-  { "houseNumber": 3, "surname": "Tesfaye", "occupants": [9, 10, 11] },
-  { "houseNumber": 4, "surname": "Chawla", "occupants": [12] },
-  { "houseNumber": 5, "surname": "Gagnon", "occupants": [13, 14] },
-  { "houseNumber": 6, "surname": "Mohal", "occupants": [15, 16, 17] },
-
-  { "houseNumber": 7, "occupants": [0] },
-
-  { "houseNumber": 8, "surname": "Luo", "occupants": [18, 19, 20] },
-  { "houseNumber": 9, "surname": "Adebayo", "occupants": [21] },
-  { "houseNumber": 10, "surname": "Zhou", "occupants": [22] },
-  { "houseNumber": 11, "surname": "Levesque", "occupants": [23, 24, 25, 26] },
-  { "houseNumber": 12, "surname": "Bhattacharya", "occupants": [27, 28, 29] },
-  { "houseNumber": 13, "surname": "Smith", "occupants": [30, 31, 32, 33] },
-  { "houseNumber": 14, "surname": "Hargreaves", "occupants": [34, 35, 36] },
-  { "houseNumber": 15, "surname": "Haddad", "occupants": [37, 38] },
-  { "houseNumber": 16, "surname": "Sutherland", "occupants": [39] },
-  { "houseNumber": 17, "surname": "Kapoor", "occupants": [40, 41, 42, 43] },
-  { "houseNumber": 18, "surname": "MacDougall", "occupants": [44, 45, 46] },
-  { "houseNumber": 19, "surname": "Caldwell", "occupants": [47, 48, 49, 50, 51] },
-  { "houseNumber": 20, "surname": "Beaudoin", "occupants": [52] },
-  { "houseNumber": 21, "surname": "Gao", "occupants": [53, 54, 55] },
-  { "houseNumber": 22, "surname": "Reddy", "occupants": [56] },
-  { "houseNumber": 23, "surname": "Redmond", "occupants": [57, 58, 59] },
-  { "houseNumber": 24, "surname": "Nair", "occupants": [60] },
-  { "houseNumber": 25, "surname": "Mutombo", "occupants": [61, 62] },
-  { "houseNumber": 26, "surname": "Barker", "occupants": [63, 64, 65] },
-  { "houseNumber": 27, "surname": "Mukherjee", "occupants": [66, 67, 68, 69] },
-  { "houseNumber": 28, "surname": "Fortin", "occupants": [70] },
-  { "houseNumber": 29, "surname": "Ma", "occupants": [71, 72, 73] }
+  {
+    "houseNumber": 0,
+    "surname": "Whitlock",
+    "occupants": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 0,
+      "xsize": 30,
+      "zsize": 12
+    }
+  },
+  {
+    "houseNumber": 1,
+    "surname": "Darwish",
+    "occupants": [
+      5
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 0,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 2,
+    "surname": "Tang",
+    "occupants": [
+      6,
+      7,
+      8
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 12,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 3,
+    "surname": "Tesfaye",
+    "occupants": [
+      9,
+      10,
+      11
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 13,
+      "xsize": 30,
+      "zsize": 14
+    }
+  },
+  {
+    "houseNumber": 4,
+    "surname": "Chawla",
+    "occupants": [
+      12
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 25,
+      "xsize": 30,
+      "zsize": 14
+    }
+  },
+  {
+    "houseNumber": 5,
+    "surname": "Gagnon",
+    "occupants": [
+      13,
+      14
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 27,
+      "xsize": 30,
+      "zsize": 12
+    }
+  },
+  {
+    "houseNumber": 6,
+    "surname": "Mohal",
+    "occupants": [
+      15,
+      16,
+      17
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 39,
+      "xsize": 30,
+      "zsize": 12
+    }
+  },
+  {
+    "houseNumber": 7,
+    "occupants": [
+      0
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 39,
+      "xsize": 30,
+      "zsize": 15
+    }
+  },
+  {
+    "houseNumber": 8,
+    "surname": "Luo",
+    "occupants": [
+      18,
+      19,
+      20
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 51,
+      "xsize": 30,
+      "zsize": 15
+    }
+  },
+  {
+    "houseNumber": 9,
+    "surname": "Adebayo",
+    "occupants": [
+      21
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 54,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 10,
+    "surname": "Zhou",
+    "occupants": [
+      22
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 66,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 11,
+    "surname": "Levesque",
+    "occupants": [
+      23,
+      24,
+      25,
+      26
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 67,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 12,
+    "surname": "Bhattacharya",
+    "occupants": [
+      27,
+      28,
+      29
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 79,
+      "xsize": 30,
+      "zsize": 14
+    }
+  },
+  {
+    "houseNumber": 13,
+    "surname": "Smith",
+    "occupants": [
+      30,
+      31,
+      32,
+      33
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 80,
+      "xsize": 30,
+      "zsize": 14
+    }
+  },
+  {
+    "houseNumber": 14,
+    "surname": "Hargreaves",
+    "occupants": [
+      34,
+      35,
+      36
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 93,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 15,
+    "surname": "Haddad",
+    "occupants": [
+      37,
+      38
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 94,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 16,
+    "surname": "Sutherland",
+    "occupants": [
+      39
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 106,
+      "xsize": 30,
+      "zsize": 14
+    }
+  },
+  {
+    "houseNumber": 17,
+    "surname": "Kapoor",
+    "occupants": [
+      40,
+      41,
+      42,
+      43
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 107,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 18,
+    "surname": "MacDougall",
+    "occupants": [
+      44,
+      45,
+      46
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 120,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 19,
+    "surname": "Caldwell",
+    "occupants": [
+      47,
+      48,
+      49,
+      50,
+      51
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 120,
+      "xsize": 30,
+      "zsize": 15
+    }
+  },
+  {
+    "houseNumber": 20,
+    "surname": "Beaudoin",
+    "occupants": [
+      52
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 133,
+      "xsize": 30,
+      "zsize": 12
+    }
+  },
+  {
+    "houseNumber": 21,
+    "surname": "Gao",
+    "occupants": [
+      53,
+      54,
+      55
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 135,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 22,
+    "surname": "Reddy",
+    "occupants": [
+      56
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 145,
+      "xsize": 30,
+      "zsize": 14
+    }
+  },
+  {
+    "houseNumber": 23,
+    "surname": "Redmond",
+    "occupants": [
+      57,
+      58,
+      59
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 148,
+      "xsize": 30,
+      "zsize": 15
+    }
+  },
+  {
+    "houseNumber": 24,
+    "surname": "Nair",
+    "occupants": [
+      60
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 159,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 25,
+    "surname": "Mutombo",
+    "occupants": [
+      61,
+      62
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 163,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 26,
+    "surname": "Barker",
+    "occupants": [
+      63,
+      64,
+      65
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 172,
+      "xsize": 30,
+      "zsize": 15
+    }
+  },
+  {
+    "houseNumber": 27,
+    "surname": "Mukherjee",
+    "occupants": [
+      66,
+      67,
+      68,
+      69
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 176,
+      "xsize": 30,
+      "zsize": 12
+    }
+  },
+  {
+    "houseNumber": 28,
+    "surname": "Fortin",
+    "occupants": [
+      70
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 187,
+      "xsize": 30,
+      "zsize": 13
+    }
+  },
+  {
+    "houseNumber": 29,
+    "surname": "Ma",
+    "occupants": [
+      71,
+      72,
+      73
+    ],
+    "bounds": {
+      "x": 40,
+      "z": 188,
+      "xsize": 30,
+      "zsize": 12
+    }
+  }
 ]
