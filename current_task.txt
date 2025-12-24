@@ -10,7 +10,7 @@ Modeling houses
 - In this step, we won't worry about house objects yet - only shape.
 - All rooms must be well-defined, as later on, this data will be used to add objects (e.g. fridge, bed, etc.)
 
-As manually creating each house will take up a lot of time and space, we will write a detailed prompt file with a spec, use ChatGPT to generate houses one by one, and hard code them into `houses.json`.
+As manually creating each house model will take up a lot of time and space, we will use code to accomplish this.
 
 A house model should store data for 3 layers:
 1) The plot (includes backyard, frontyard, driveway, stairs leading up to house, etc.)

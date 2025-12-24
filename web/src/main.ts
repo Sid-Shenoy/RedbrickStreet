@@ -8,7 +8,10 @@ import {
   StandardMaterial,
   Color3,
   Mesh,
+  VertexData,
 } from "@babylonjs/core";
+
+import earcut from "earcut";
 
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
@@ -36,7 +39,7 @@ function surfaceMaterial(scene: Scene) {
   } as const;
 }
 
-// For now, our generator only emits rectangles. This keeps rendering simple.
+// Rect region renderer (CreateGround)
 function renderRectRegion(
   scene: Scene,
   house: HouseWithModel,
@@ -71,33 +74,64 @@ function renderRectRegion(
   return mesh;
 }
 
-function renderHouseBlock(scene: Scene, house: HouseWithModel, mats: ReturnType<typeof surfaceMaterial>) {
-  // Find the "houseregion" (black) and draw a simple box so houses are visible
-  const hr = house.model.plot.regions.find((r) => r.name === "houseregion" && r.type === "rectangle") as
-    | Extract<Region, { type: "rectangle" }>
-    | undefined;
+// Polygon region renderer (triangulated via earcut)
+function renderPolyRegion(
+  scene: Scene,
+  house: HouseWithModel,
+  region: Extract<Region, { type: "polygon" }>,
+  mat: StandardMaterial
+): Mesh {
+  // If polygon is explicitly closed (last point == first), drop the last point for triangulation.
+  const pts = region.points;
+  const basePts =
+    pts.length >= 4 &&
+    pts[0]![0] === pts[pts.length - 1]![0] &&
+    pts[0]![1] === pts[pts.length - 1]![1]
+      ? pts.slice(0, -1)
+      : pts;
 
-  if (!hr) return;
+  if (basePts.length < 3) {
+    const empty = new Mesh(`region_${house.houseNumber}_${region.name}`, scene);
+    empty.material = mat;
+    return empty;
+  }
 
-  const [[x0, z0], [x1, z1]] = hr.points;
-  const pA = lotLocalToWorld(house, x0, z0);
-  const pB = lotLocalToWorld(house, x1, z1);
+  // Convert to world-space XZ points
+  const world = basePts.map(([lx, lz]) => lotLocalToWorld(house, lx, lz));
 
-  const minX = Math.min(pA.x, pB.x);
-  const maxX = Math.max(pA.x, pB.x);
-  const minZ = Math.min(pA.z, pB.z);
-  const maxZ = Math.max(pA.z, pB.z);
+  // earcut expects a flat [x0, y0, x1, y1, ...] array (we use x,z)
+  const coords2d: number[] = [];
+  const positions: number[] = [];
+  const uvs: number[] = [];
 
-  const w = Math.max(0.5, maxX - minX);
-  const d = Math.max(0.5, maxZ - minZ);
-  const h = 6;
+  // Simple planar UVs (not used for flat colors, but keeps mesh valid for future)
+  const uvScale = 0.1;
 
-  const box = MeshBuilder.CreateBox(`house_${house.houseNumber}`, { width: w, depth: d, height: h }, scene);
-  box.position.x = minX + w / 2;
-  box.position.z = minZ + d / 2;
-  box.position.y = h / 2;
-  box.material = mats.wall;
-  box.checkCollisions = true;
+  for (const p of world) {
+    coords2d.push(p.x, p.z);
+    positions.push(p.x, 0, p.z);
+    uvs.push(p.x * uvScale, p.z * uvScale);
+  }
+
+  const indices = earcut(coords2d, undefined, 2);
+
+  const mesh = new Mesh(`region_${house.houseNumber}_${region.name}`, scene);
+
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.uvs = uvs;
+
+  const normals: number[] = [];
+  VertexData.ComputeNormals(positions, indices, normals);
+  vd.normals = normals;
+
+  vd.applyToMesh(mesh);
+
+  mesh.material = mat;
+  mesh.checkCollisions = true;
+
+  return mesh;
 }
 
 function renderStreet(scene: Scene, houses: HouseWithModel[]) {
@@ -131,14 +165,17 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     w.checkCollisions = true;
   }
 
-  // Plot regions + simple house boxes
+  // Plot regions only (2D)
   for (const house of houses) {
     for (const region of house.model.plot.regions) {
-      if (region.type !== "rectangle") continue; // keep prototype simple for now
       const mat = mats[region.surface];
-      renderRectRegion(scene, house, region, mat);
+
+      if (region.type === "rectangle") {
+        renderRectRegion(scene, house, region, mat);
+      } else {
+        renderPolyRegion(scene, house, region, mat);
+      }
     }
-    renderHouseBlock(scene, house, mats);
   }
 }
 
@@ -157,16 +194,16 @@ async function boot() {
   // WASD + mouse look
   const camera = new UniversalCamera("cam", new Vector3(100, 1.7, 35), scene);
   camera.attachControl(canvas, true);
-  camera.speed = 0.6;
+  camera.speed = 0.1;
   camera.angularSensibility = 4000;
 
   camera.applyGravity = true;
   camera.checkCollisions = true;
   camera.ellipsoid = new Vector3(0.35, 0.9, 0.35);
 
-  camera.keysUp = [87];    // W
-  camera.keysDown = [83];  // S
-  camera.keysLeft = [65];  // A
+  camera.keysUp = [87]; // W
+  camera.keysDown = [83]; // S
+  camera.keysLeft = [65]; // A
   camera.keysRight = [68]; // D
 
   // Click-to-pointer-lock (better mouse look)
