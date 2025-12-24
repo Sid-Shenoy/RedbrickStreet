@@ -1,4 +1,4 @@
-Current task: Setup Redbrick Street
+Current task: Setup Redbrick Street Houses
 
 1) Zoning (2D step)
 
@@ -13,4 +13,44 @@ Current task: Setup Redbrick Street
 - On each side, zones must be touching each other but not overlapping - when one ends, another begins
 - In `houses.json`, each house should have a `bounds` attribute storing position (`x` and `z`) and dimensions (`xsize` and `zsize`) as attributes - houses will later be modelled relative to this.
 
-Step 1 is complete.
+2) Modeling houses
+
+- Now that each house in `houses.json` contains area bounds, we want to model all these houses.
+- A `model` attribute will be used for each house in `houses.json` to accomplish this.
+- This will contain all geometric data for the empty house (without any objects - like someone just moved out), representing rooms, doors, windows, and stairs.
+- Data for the plot, first floor, and second floor must be stored.
+- Outdoor data will be represented too (e.g. stairs, walkway, etc.).
+- In this step, we won't worry about house objects yet - only shape.
+- All rooms must be well-defined, as later on, this data will be used to add objects (e.g. fridge, bed, etc.)
+
+As manually creating each house will take up a lot of time and space, we will write a detailed prompt file with a spec, use ChatGPT to generate houses one by one, and hard code them into `houses.json`.
+
+A house model should store data for 3 layers:
+1) The plot (includes backyard, frontyard, driveway, stairs leading up to house, etc.)
+2) The first floor (all walls, rooms, and staircase)
+3) The second floor (everything in first floor except staircase)
+
+Later on, objects will be added to each house (e.g. bed, TV, etc.) meaning that modification will eventually be required.
+
+Write a highly specific specification (`house-generation-prompt.txt`) that given a house object like this, will generate data for a house:
+
+```
+  {
+    "houseNumber": 0,
+    "surname": "Whitlock",
+    "occupants": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "bounds": {
+      "x": 0,
+      "z": 0,
+      "xsize": 30,
+      "zsize": 12
+    }
+  }
+```
+
+The prompt must be highly specific, as all 30 houses will be parsed and initialized using the same parser - running the prompt 30 times should generate 30 such houses.

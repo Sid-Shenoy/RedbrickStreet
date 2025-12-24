@@ -225,7 +225,7 @@ def _validate_bounds_for_house(hn: int, h: Dict[str, Any]) -> List[Issue]:
 
 def validate_street_geometry(houses_by_number: Dict[int, Dict[str, Any]]) -> List[Issue]:
     """
-    Req 2.3.6.4.* and 2.3.6.5 (global constraints along z-axis per side)
+    Global constraints along z-axis per side
     Also emits a WARN for 3.4 if a side has no variance in zsize.
     """
     issues: List[Issue] = []
@@ -317,7 +317,7 @@ def validate_houses(houses: Any) -> Tuple[Dict[int, Dict[str, Any]], List[Issue]
         issues.append(Issue("ERROR", "2.3", "houses.json: expected a top-level JSON array."))
         return by_number, issues
 
-    # Req 2.3: must be 30 houses
+    # Must be 30 houses
     if len(houses) != 30:
         issues.append(Issue("ERROR", "2.3", f"houses.json: expected 30 houses, found {len(houses)}."))
 
@@ -360,7 +360,7 @@ def validate_houses(houses: Any) -> Tuple[Dict[int, Dict[str, Any]], List[Issue]
                     )
                 )
 
-        # Req 2.3.2.1 and 2.4: house 7 special
+        # House 7 special
         if hn == 7:
             if "surname" in h:
                 issues.append(Issue("ERROR", "2.3.2.1", "houses.json: house 7 must not define 'surname'."))
@@ -391,7 +391,7 @@ def validate_houses(houses: Any) -> Tuple[Dict[int, Dict[str, Any]], List[Issue]
     if missing:
         issues.append(Issue("ERROR", "2.3.1", f"houses.json: missing houseNumber(s): {missing}."))
 
-    # Req 2.3.2 + 2.5 (house surnames should be unique across houses except house 7)
+    # house surnames should be unique across houses except house 7
     surnames: List[str] = []
     for hn, h in by_number.items():
         if hn == 7:
@@ -416,7 +416,7 @@ def validate_characters(characters: Any) -> Tuple[Dict[int, Dict[str, Any]], Lis
         issues.append(Issue("ERROR", "2.2", "characters.json: expected a top-level JSON array."))
         return by_id, issues
 
-    # Req 2.1: 70 to 80 NPCs plus player (player not included in NPC list)
+    # 70 to 80 NPCs plus player (player not included in NPC list)
     npc_count = len(characters)
     if not (70 <= npc_count <= 80):
         issues.append(
@@ -565,7 +565,7 @@ def validate_characters(characters: Any) -> Tuple[Dict[int, Dict[str, Any]], Lis
         if not isinstance(fam, dict):
             issues.append(Issue("ERROR", "2.2.8", f"NPC id={cid}: missing/invalid family object."))
         else:
-            # Req 2.2.8.1: only marriage, parent/child, siblings (we model spouse + children)
+            # Only marriage, parent/child, siblings (we model spouse + children)
             extra_keys = set(fam.keys()) - {"spouse", "children"}
             if extra_keys:
                 issues.append(
