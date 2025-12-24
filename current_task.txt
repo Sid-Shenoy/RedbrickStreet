@@ -1,19 +1,6 @@
 Current task: Setup Redbrick Street Houses
 
-1) Zoning (2D step)
-
-- We first want to store all house-related zoning data before we start doing anything in 3D.
-- Note that Redbrick Street will measure 200 m by length and 70 m by width in its entirety.
-- One side will have the 15 even-numbered houses in order, and the other side will have the 15 odd-numbered houses in order
-- House zones must all be 30 m in width and of roughly equal length (varied randomly, but lengths must sum to 200 m on each side) 
-- The road in between will measure 200 m by length and 10 m by width
-- Each house will have a backyard, a frontyard with two sides divided by sidewalk, a front garden, and a garage door - a zone represents the rectangular area containing all of these.
-- Backyards will be separated by a fence
-- The street will be surrounded by setup large brick walls on all 4 sides
-- On each side, zones must be touching each other but not overlapping - when one ends, another begins
-- In `houses.json`, each house should have a `bounds` attribute storing position (`x` and `z`) and dimensions (`xsize` and `zsize`) as attributes - houses will later be modelled relative to this.
-
-2) Modeling houses
+Modeling houses
 
 - Now that each house in `houses.json` contains area bounds, we want to model all these houses.
 - A `model` attribute will be used for each house in `houses.json` to accomplish this.
