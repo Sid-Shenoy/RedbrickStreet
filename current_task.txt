@@ -19,7 +19,7 @@ A house model should store data for 3 layers:
 
 Later on, objects will be added to each house (e.g. bed, TV, etc.) meaning that modification will eventually be required.
 
-Write a highly specific specification (`house-generation-prompt.txt`) that given a house object like this, will generate data for a house:
+We want a function that given a house object like this, will generate data for a house:
 
 ```
   {
@@ -39,5 +39,3 @@ Write a highly specific specification (`house-generation-prompt.txt`) that given
     }
   }
 ```
-
-The prompt must be highly specific, as all 30 houses will be parsed and initialized using the same parser - running the prompt 30 times should generate 30 such houses.
