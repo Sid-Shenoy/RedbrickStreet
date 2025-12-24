@@ -1,7 +1,7 @@
 Summary of this directory:
 
 - Store an initial list of NPCs and houses with all relevant associations.
-- Store zoning and 3d modeling information regarding houses.
+- Store zoning and modeling information regarding houses.
 
 Non-functional requirements for this directory:
 
@@ -122,25 +122,30 @@ Example of an NPC object:
 3.3.2) The player will be referenced by id as an occupant of house 7
 
 3.4) Zoning bounds (2D)
+
+Redbrick Street Specifications:
+```
+- Redbrick Street measures 200 m (along x-axis) by 70 m (along z-axis)
+- The road measures 200 m (along x-axis) by 10 m (along z-axis) from z=30 to z=40
+- The sidewalk on each side is at a distance of 3.5 m from the edge of the road and is 1.5 m wide
+```
+
 3.4.1) Each house must include a bounds object (a single rectangle covering the full property footprint)
-3.4.2) This object must store numeric attributes x, z, xsize, and zsize
-3.4.2.1) x in [0, 70]
-3.4.2.2) z in [0, 200]
-3.4.2.3) xsize = 30, zsize is integer in [10, 16]
-3.4.2.4) x + xsize <= 70
-3.4.2.5) z + zsize <= 200
+3.4.2) This object must store numeric attributes representing size and position relative to the street
+3.4.2.1) From a bird's eye view, x represents offset from left, z represents offset from top
+3.4.2.2) For all houses, xsize is integer in [10, 16], zsize = 30
 
 3.5) Street geometry constraints (global zoning rules)
 3.5.1) House zones must all be 30 m wide (along x-axis):
-3.5.1.1) Even-numbered houses must be on one side: x = 0, xsize = 30
-3.5.1.2) Odd-numbered houses must be on the other side: x = 40, xsize = 30
-3.5.2) Along the street length (z axis), houses must be contiguous and non-overlapping on each side:
-3.5.2.1) Even side contains houses [0,2,4,...,28] in increasing order of houseNumber along +z
-3.5.2.2) Odd side contains houses [1,3,5,...,29] in increasing order of houseNumber along +z
+3.5.1.1) Even-numbered houses must be on one side: z = 0, zsize = 30
+3.5.1.2) Odd-numbered houses must be on the other side: z = 40, zsize = 30
+3.5.2) Along the street length (x-axis), houses must be contiguous and non-overlapping on each side:
+3.5.2.1) Even side contains houses [0,2,4,...,28] in increasing order of houseNumber along +x
+3.5.2.2) Odd side contains houses [1,3,5,...,29] in increasing order of houseNumber along +x
 3.5.2.3) On each side, when one house zone ends, the next begins (no gaps, no overlaps)
-3.5.3) The 15 house z-lengths (zsize) on each side must sum to exactly 200 m
-3.5.3.1) House z-lengths (zsize) should be roughly equal with some variance
-3.5.3.2) House z-lengths (zsize) do not neet to be symmetrical across both sides of the street
+3.5.3) The 15 house x-lengths (x-size) on each side must sum to exactly 200 m
+3.5.3.1) House x-lengths (x-size) should be roughly equal with some variance
+3.5.3.2) House x-lengths (x-size) do not neet to be symmetrical across both sides of the street
 
 3.6) Cross-house and within-house constraints (cross-file with characters.json)
 3.6.1) No two residents living in different houses can share a surname (player surname doesn't matter)
@@ -148,23 +153,19 @@ Example of an NPC object:
 
 3.7) House modeling constraints
 
-Redbrick Street Specifications:
-```
-- Redbrick Street measures 200 m (along z-axis) by 70 m (along x-axis)
-- The road measures 200 m (along z-axis) by 10 m (along x-axis) from x=30 to x=40
-- The sidewalk on each side is at a distance of 3.5 m from the edge of the road
-- 
-```
-
 3.7.1) All houses must store all geometric data for the empty house
 3.7.1.1) Do not include objects (e.g. chairs, tables, etc.) - it should be empty like the owners just moved out
-3.7.2.2) All coordinates are lot local ((x, z) in street space becomes (0, 0) in house space)
-3.7.2) Modeling data will represent rooms (regions), and house construction items (walls, doors, windows, stairs, etc.)
+3.7.2.2) All coordinates are lot local
+3.7.2.2.1) For even-numbered houses, (x, z) in street space becomes (0, 0) in house space
+3.7.2.2.1) For even-numbered houses, (x+xsize, z+zsize) in street space becomes (0, 0) in house space, with a 180 degree rotation
+3.7.2) Modeling data will represent rooms/areas (regions), and house construction items (walls, doors, windows, stairs, etc.)
 3.7.3) Data for the entire plot, first floor, and second floor must be stored.
-3.7.4) The plot must contain the following (defined as polygons):
-3.7.4.1) Two polygons each for a front lawn and driveway, both divided by sidewalk
-3.7.4.2) The front lawn must be on the side closer to the road
-3.7.4.3) A polygon defining the bounds of the actual house
+3.7.4) The plot must contain a backyard area, a house area, and a frontyard area
+3.7.4.1) All regions must be defined as rectangles or polygons
+3.7.4.2) No regions may overlap, and all regions together must cover the entire plot
+3.7.5) Each region must have the following fields:
+3.7.5.1) A name which will be used for readability and identification of regions
+3.7.5.2) A surface (must belong to enum { grass, black, stone, pavement })
 
 Example of a house object (modelled after 43 Jenmat Dr.):
 ```
@@ -191,7 +192,7 @@ Example of a house object (modelled after 43 Jenmat Dr.):
             "name": house",
             "surface": "black",
             "type": "polygon",
-            "points": [[0,8], [7,8], [7,7], [11,7], [11,8], [12,8], [12,?]]
+            "points": [[0,8], [7,8], [7,7], [11,7], [11,8], [12,8], [12,19.5], [11,19.5], [11,22.5], [5.5,22.5], [5.5,19.5], [0,19.5]]
           },
           {
             "name": "nearfrontlawn",
@@ -201,7 +202,7 @@ Example of a house object (modelled after 43 Jenmat Dr.):
           },
           {
             "name": "walkway",
-            "surface": "tile",
+            "surface": "stone",
             "type": "rectangle",
             "points": [[5.5,22.5], [7.5,25]]
           },
@@ -225,23 +226,23 @@ Example of a house object (modelled after 43 Jenmat Dr.):
           }
         ],
         "objects": [
-
+          // Empty for now
         ]
       },
       "firstFloor": {
         "regions": [
-
+          // Rooms go here (similar format to plot regions)
         ],
         "objects": [
-
+          // Empty for now
         ]
       },
       "secondFloor": {
         "regions": [
-
+          // Rooms go here (similar format to plot regions)
         ],
         "objects": [
-            
+          // Empty for now
         ]
       },
     }
