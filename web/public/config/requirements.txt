@@ -135,7 +135,7 @@ Redbrick Street Specifications:
 3.4.2.2) For all houses, xsize is integer in [10, 16], zsize = 30
 
 3.5) Street geometry constraints (global zoning rules)
-3.5.1) House zones must all be 30 m wide (along x-axis):
+3.5.1) House zones must all be 30 m wide (along z-axis):
 3.5.1.1) Even-numbered houses must be on one side: z = 0, zsize = 30
 3.5.1.2) Odd-numbered houses must be on the other side: z = 40, zsize = 30
 3.5.2) Along the street length (x-axis), houses must be contiguous and non-overlapping on each side:
@@ -144,35 +144,37 @@ Redbrick Street Specifications:
 3.5.2.3) On each side, when one house zone ends, the next begins (no gaps, no overlaps)
 3.5.3) The 15 house x-lengths (x-size) on each side must sum to exactly 200 m
 3.5.3.1) House x-lengths (x-size) should be roughly equal with some variance
-3.5.3.2) House x-lengths (x-size) do not neet to be symmetrical across both sides of the street
+3.5.3.2) House x-lengths (x-size) do not need to be symmetrical across both sides of the street
 
 3.6) Cross-house and within-house constraints (cross-file with characters.json)
 3.6.1) No two residents living in different houses can share a surname (player surname doesn't matter)
 3.6.2) All NPCs in the same house must be related
 
-3.7) House modeling constraints
+4) House modeling constraints
 
-3.7.1) All houses must store all geometric data for the empty house
-3.7.1.1) Do not include objects (e.g. chairs, tables, etc.) - it should be empty like the owners just moved out
-3.7.2.2) All coordinates are lot local
-3.7.2.2.1) For even-numbered houses, (x+px, z+pz) in street space becomes (0+px, 0+pz) in house space
-3.7.2.2.2) For even-numbered houses, (x+xsize+px, z+zsize+pz) in street space becomes (0-px, 0-pz) in house space
-3.7.2) Modeling data will represent rooms/areas (regions), and house construction items (walls, doors, windows, stairs, etc.)
-3.7.3) Data for the entire plot, first floor, and second floor must be stored
-3.7.4) The plot must contain a backyard area, a house area, a frontyard area, and a sidewalk
-3.7.4.1) All regions must be defined as rectangles or polygons
-3.7.4.2) The sidewalk on each side must be at a distance of 3.5 m from the edge of the road and be 1.5 m wide
-3.7.4.2.1) For each house, it must be a rectangle from (0, 25) to (xsize, 26.5)
-3.7.4.3) No regions may overlap, and all regions together must cover the entire plot
-3.7.5) Each region must have the following fields:
-3.7.5.1) A name which will be used for readability and identification of regions
-3.7.5.2) A surface (must belong to enum { black, grass, concrete_light, concrete_medium, concrete_dark })
-3.7.5.3) Shape type (must be either "polygon" or "rectangle")
-3.7.5.4) Shape coordinates
-3.7.5.4.1) [[min_x, min_z], [max_x, max_z]] for rectangle
-3.7.5.4.2) [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]] for polygon from points (p1, p2, ... pn, p1)
+4.1) When loaded, all houses must store all geometric data for the empty house
+4.1.1) This should be done through a seeded house model generation function
+4.1.1.1) The house models should be the same each time the game is loaded
+4.1.2) Right now, they will not include objects (e.g. chairs, tables, etc.) - it should be empty like the owners just moved out
+4.2.2) All coordinates are lot local
+4.2.2.1) For even-numbered houses, (x+px, z+pz) in street coordinates becomes (0+px, 0+pz) in lot-local coordinates
+4.2.2.2) For odd-numbered houses, (x+xsize+px, z+zsize+pz) in street coordinates becomes (0-px, 0-pz) in lot-local coordinates
+4.2) Modeling data will represent rooms/areas (regions), and house construction items (walls, doors, windows, stairs, etc.)
+4.3) Data for the entire plot, first floor, and second floor must be stored
+4.4) The plot must contain a backyard area, a house area, a frontyard area, and a sidewalk
+4.4.1) All regions must be defined as rectangles or polygons
+4.4.2) The sidewalk must be 1.5 m wide and must sit 3.5 m away from the road edge (measured from the sidewalk edge closest to the road)
+4.4.2.1) In lot-local coordinates, the sidewalk is always a rectangle from (0, 25) to (xsize, 26.5)
+4.4.3) No regions may overlap, and all regions together must cover the entire plot
+4.5) Each region must have the following fields:
+4.5.1) A name which will be used for readability and identification of regions
+4.5.2) A surface (must belong to enum { black, grass, concrete_light, concrete_medium, concrete_dark })
+4.5.3) Shape type (must be either "polygon" or "rectangle")
+4.5.4) Shape coordinates
+4.5.4.1) [[min_x, min_z], [max_x, max_z]] for rectangle
+4.5.4.2) [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]] for polygon from points (p1, p2, ... pn, p1)
 
-Example of a house object (modelled after 43 Jenmat Dr.):
+Example of a house object after being loaded and updated (modelled after 43 Jenmat Dr.):
 ```
   {
     "houseNumber": 0,
@@ -181,8 +183,8 @@ Example of a house object (modelled after 43 Jenmat Dr.):
     "bounds": {
       "x": 0,
       "z": 0,
-      "xsize": 30,
-      "zsize": 12
+      "xsize": 12,
+      "zsize": 30
     },
     "model": {
       "plot": {
@@ -194,7 +196,7 @@ Example of a house object (modelled after 43 Jenmat Dr.):
             "points": [[0,0], [12,0], [12,8], [11,8], [11,7], [7,7], [7,8], [0,8]]
           },
           {
-            "name": houseregion",
+            "name": "houseregion",
             "surface": "black",
             "type": "polygon",
             "points": [[0,8], [7,8], [7,7], [11,7], [11,8], [12,8], [12,19.5], [11,19.5], [11,22.5], [5.5,22.5], [5.5,19.5], [0,19.5]]
@@ -233,27 +235,27 @@ Example of a house object (modelled after 43 Jenmat Dr.):
             "name": "sidewalk",
             "surface": "concrete_light",
             "type": "rectangle",
-            "points": [[0,26.5], [5.5,30]]
+            "points": [[0,25], [12,26.5]]
           }
         ],
         "objects": [
-          // Empty for now
+          /* Empty for now */
         ]
       },
       "firstFloor": {
         "regions": [
-          // Rooms go here (similar format to plot regions)
+          /* Rooms go here (similar format to plot regions) */
         ],
         "objects": [
-          // Empty for now
+          /* Empty for now */
         ]
       },
       "secondFloor": {
         "regions": [
-          // Rooms go here (similar format to plot regions)
+          /* Rooms go here (similar format to plot regions) */
         ],
         "objects": [
-          // Empty for now
+          /* Empty for now */
         ]
       },
     }

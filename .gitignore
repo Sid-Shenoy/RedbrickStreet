@@ -1,1 +1,21 @@
+# Data dumping files
 dumpfiles.bat
+dumptree.bat
+
+# Node / package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite build output
+dist/
+dist-ssr/
+
+# TypeScript
+*.tsbuildinfo
+
+# Local env files
+.env
+.env.*
