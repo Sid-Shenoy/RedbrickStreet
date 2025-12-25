@@ -31,7 +31,7 @@
 2.3.4.2) [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]] for polygon from points (p1, p2, ... pn, p1)
 2.3.4.3) All coordinates must be in lot-local space
 
-2.4) Plot specifications:
+2.4) Plot specifications (`plot.ts`):
 2.4.1) No regions may overlap, and all regions together must cover the entire plot
 2.4.2) The plot must contain exactly one region each for:
 2.4.2.1) `backyard` behind house (away from road)
@@ -45,7 +45,7 @@
 2.4.2.7.1) In lot-local coordinates, the sidewalk is always a rectangle from (0, 25) to (xsize, 26.5)
 2.4.2.8) `walkway` as the path leading up to the house entrance
 
-2.5) First floor specifications:
+2.5) First floor specifications (`firstFloor.ts`):
 2.5.1) No regions may overlap, and all regions together must cover the entire house region from the plot
 2.5.2) The first floor must contain exactly one region each for:
 2.5.2.1) `foyer` as the interior entry area immediately inside the front door
@@ -63,7 +63,7 @@
 2.5.3) The first floor must contain a minimum of 2 and no more than 3 distinct optional regions:
 2.5.3.1) Optional region names: `mudroom`, `laundry`, `pantry`, `office`, `utility`
 
-2.6) Second floor specifications:
+2.6) Second floor specifications (`secondFloor.ts`):
 2.6.1) No regions may overlap, and all regions together must cover the entire house region from the plot
 2.6.2) The second floor must contain an appropriate number of distinct `bedroom` regions
 2.6.2.1) Minimum of ceil((number of occupants) / 2) and no more than min(3, ceil((number of occupants) / 2) + 1)
