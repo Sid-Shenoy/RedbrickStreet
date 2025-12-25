@@ -12,6 +12,7 @@ export type Region =
 
 export interface FloorModel {
   regions: Region[];
+  construction: unknown[]; // empty for now (walls/doors/windows/stairs later)
   objects: unknown[]; // empty for now
 }
 

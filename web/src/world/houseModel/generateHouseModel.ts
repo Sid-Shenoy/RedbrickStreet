@@ -133,10 +133,11 @@ export function generateHouseModel(house: HouseConfig, streetSeed: string): Hous
 
   return {
     seed,
-    plot: { regions, objects: [] },
+    plot: { regions, construction: [], objects: [] },
 
     // Floors are intentionally left empty for this milestone (plot-level consistency first).
-    firstFloor: { regions: [], objects: [] },
-    secondFloor: { regions: [], objects: [] },
+    firstFloor: { regions: [], construction: [], objects: [] },
+    secondFloor: { regions: [], construction: [], objects: [] },
   };
+
 }
