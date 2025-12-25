@@ -1,6 +1,13 @@
 import type { HouseConfig } from "../../types/config";
 
-export type Surface = "black" | "grass" | "concrete_light" | "concrete_medium" | "concrete_dark";
+export type Surface =
+  | "black"
+  | "grass"
+  | "concrete_light"
+  | "concrete_medium"
+  | "concrete_dark"
+  | "wood"
+  | "tile";
 export type RegionType = "polygon" | "rectangle";
 
 export type RectPoints = [[number, number], [number, number]];

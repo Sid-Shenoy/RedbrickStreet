@@ -34,6 +34,8 @@ function surfaceMaterial(scene: Scene) {
     concrete_light: makeMat(scene, "mat_conc_light", new Color3(0.75, 0.75, 0.75)),
     concrete_medium: makeMat(scene, "mat_conc_med", new Color3(0.55, 0.55, 0.55)),
     concrete_dark: makeMat(scene, "mat_conc_dark", new Color3(0.32, 0.32, 0.32)),
+    wood: makeMat(scene, "mat_wood", new Color3(0.45, 0.30, 0.18)),
+    tile: makeMat(scene, "mat_tile", new Color3(0.65, 0.65, 0.70)),
     road: makeMat(scene, "mat_road", new Color3(0.12, 0.12, 0.12)),
     wall: makeMat(scene, "mat_wall", new Color3(0.45, 0.20, 0.18)),
   } as const;
