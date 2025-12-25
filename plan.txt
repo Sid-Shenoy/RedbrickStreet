@@ -12,10 +12,10 @@ Controls:
 The player will use the keyboard primarily to walk/run. The camera will keep track of the players face and hands, which will be used for further interaction with the environment. For example, the player can move their hand forward and clench it into a fist to grab something, or can punch/push entities. The player's face will be used for direction of view. So if the played turns their face a couple degrees towards the left of the screen, it will be equivalent to turning the head fully left (on screen). The player can lower the position (not orientation) of their face while still looking at the screen to crouch. The microphone will be used for voice input (speaking to NPCs).
 
 Phone mode:
-There will be a setting where the user can play on mobile by using one hand to hold the phone over their eyes and the other hand to interact with the envronment, giving a VR-life effect.
+There will be a setting where the user can play on mobile by using one hand to hold the phone over their eyes and the other hand to interact with the envronment, giving a VR-like effect.
 
 Realism:
-There will be no gauges that aren't accessible in real life, such as relationship meters, or healthbars. NPC will also respond realistically based on their personality traits, and will have ragdoll physics. As far as possible, unrealistic situations will be ruled out. If the player gets knocked out, he will get back up in the same location (perhaps if he gets knocked out an the street, and NPC may eventually assist him). But there will be no police or any form of emergency services. The goal is to give the player a lot of freedom.
+There will be no gauges that aren't accessible in real life, such as relationship meters, or healthbars. NPC will also respond realistically based on their personality traits, and will have ragdoll physics. As far as possible, unintended unrealistic situations will be ruled out. If the player gets knocked out, he will get back up in the same location (perhaps if he gets knocked out an the street, and NPC may eventually assist him). But there will be no police or any form of emergency services. The goal is to give the player as much freedom as possible.
 
 Optimization:
 Several features will be optimized for performance without sacrificing realism. Innovative techniques will be used for this. Below are some examples of optimization techniques:
@@ -35,4 +35,3 @@ NFR-01: It must be impossible to incur fees as a result of any user activity (e.
 NFR-02: The game must not require any credits or fees due to licensing (only use freely available resources).
 NFR-03: A user must be able to open and play the game directly in the web browser.
 
-Note: Voice audios will be obtained from https://elevenlabs.io/
