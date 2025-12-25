@@ -1,1 +1,3 @@
-I have sent you a list of all project files and the contents of several.
+I have sent you:
+1) A list of all project files
+2) The contents of several important project files
