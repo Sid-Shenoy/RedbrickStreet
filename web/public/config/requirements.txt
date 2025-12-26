@@ -17,7 +17,7 @@ Non-functional requirements for this directory:
 2) NPC requirements (characters.json)
 
 2.1) `characters.json` must store only a top-level array of NPC objects
-2.1.1) There must be 70 to 80 NPCs (player excluded)
+2.1.1) There must be 73 NPCs (player excluded)
 2.1.2) The player will not be included in the list of NPCs
 
 2.2) Each NPC must have:
@@ -60,7 +60,7 @@ Non-functional requirements for this directory:
 2.5.3) No NPC should be aggressive or unfriendly
 2.5.3.1) No NPC should have any data that indicates passive aggressiveness
 
-Example of an NPC object:
+Example of an NPC object from `characters.json`:
 ```
     {
         "id": 1,
@@ -150,7 +150,7 @@ Redbrick Street Specifications:
 3.6.1) No two residents living in different houses can share a surname (player surname doesn't matter)
 3.6.2) All NPCs in the same house must be related
 
-Example of a house object:
+Example of a house object from `houses.json`:
 ```
   {
     "houseNumber": 0,
