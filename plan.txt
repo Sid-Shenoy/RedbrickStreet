@@ -34,4 +34,3 @@ Non-functional requirements:
 NFR-01: It must be impossible to incur fees as a result of any user activity (e.g. LLMs).
 NFR-02: The game must not require any credits or fees due to licensing (only use freely available resources).
 NFR-03: A user must be able to open and play the game directly in the web browser.
-

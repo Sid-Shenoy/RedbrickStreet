@@ -1,3 +1,5 @@
 I have sent you:
 1) A list of all project files
 2) The contents of several important project files
+
+To limit prompt size, some large files have not been displayed. Only if there exists a `requirements.txt` that sufficiently documents a file, that file will be included in `exclude_list.txt` meaning its contents have not been printed here.
