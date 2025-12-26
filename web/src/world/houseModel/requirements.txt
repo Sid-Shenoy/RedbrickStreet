@@ -1,5 +1,5 @@
 
-1) All coordinates are lot local (`lotLocalToWorld.ts`)
+1) All coordinates are lot local (`lotTransform.ts`)
 
 1.2.1) Lot-local coordinates are always within the lot rectangle (localX in [0, xsize], localZ in [0, zsize])
 1.2.2) The lot-local "front" edge is always localZ = zsize (30), regardless of street side
