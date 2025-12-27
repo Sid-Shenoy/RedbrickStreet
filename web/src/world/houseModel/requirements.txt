@@ -50,23 +50,23 @@
 2.5.1) No regions may overlap, and all regions together must cover the entire house region from the plot
 2.5.2) The first floor must contain exactly one region each for:
 2.5.2.1) `foyer` as the interior entry area immediately inside the front door
-2.5.2.1.1) Must be connected to `walkway` from the plot
+2.5.2.1.1) Must be connected to `walkway` from the plot (shared boundary length >= 1m)
 2.5.2.2) `garage` as the indoor garage area
-2.5.2.2.1) Must be connected to `driveway_near` from the plot
+2.5.2.2.1) Must be connected to `driveway_near` from the plot (shared boundary length >= 1m)
 2.5.2.3) `livingroom` as the primary living / sitting area on the first floor
-2.5.2.3.1) Must be connected to `foyer`
+2.5.2.3.1) Must be connected to `foyer` (shared boundary length >= 1m)
 2.5.2.4) `kitchen` as the kitchen area (where counters/appliances will later be placed)
 2.5.2.5) `dining` as the primary dining area on the first floor
-2.5.2.5.1) Must be connected to `kitchen`
+2.5.2.5.1) Must be connected to `kitchen` (shared boundary length >= 1m)
 2.5.2.6) `bathroom_small` as a half-bathroom (toilet + sink) on the first floor
 2.5.2.7) `stairs` as the staircase footprint region (the area occupied by the stairs on the first floor)
 2.5.2.7.1) Must be a rectangle
 2.5.2.8) `hallway` as the circulation space connecting `foyer` to the other first-floor rooms and to `stairs`
 2.5.3) The first floor must contain a minimum of 2 and no more than 3 distinct optional regions:
-2.5.3.1) Optional region names: `mudroom`, `laundry`, `pantry`, `office`, `utility`
+2.5.3.1) Optional region names: `mudroom`, `laundry`, `pantry`, `utility`, `closet`
 
 2.6) Second floor specifications (`secondFloor.ts`):
-2.6.1) No regions may overlap, and all regions together must cover the entire house region from the plot
+2.6.1) No regions may overlap, and all regions together must cover the entire house region (`houseregion`) from the plot
 2.6.2) The second floor must contain an appropriate number of distinct `bedroom` regions
 2.6.2.1) Minimum of ceil((number of occupants) / 2) and no more than min(3, ceil((number of occupants) / 2) + 1)
 2.6.3) The second floor must contain exactly one region each for:
@@ -75,8 +75,7 @@
 2.6.3.3) `stairwell` as the upstairs landing / opening associated with the staircase
 2.6.3.3.1) Must overlap and be congruent with the first floor `stairs` region
 2.6.3.4) `hallway` as the circulation space connecting other rooms to `stairwell`
-2.6.3.5) `laundry` as the laundry room
-2.5.3.6) `bathroom_small` as a half-bathroom (toilet + sink) on the second floor
+2.6.3.6) `bathroom_small` as a half-bathroom (toilet + sink) on the second floor
 2.6.4) The second floor must contain a minimum of 1 and no more than 3 distinct `closet` regions
 
 Example of an original house object from `web/public/config/houses.json`:
