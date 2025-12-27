@@ -59,6 +59,7 @@
 2.5.2.5.1) Must be connected to `kitchen`
 2.5.2.6) `bathroom_small` as a half-bathroom (toilet + sink) on the first floor
 2.5.2.7) `stairs` as the staircase footprint region (the area occupied by the stairs on the first floor)
+2.5.2.7.1) Must be a rectangle
 2.5.2.8) `hallway` as the circulation space connecting `foyer` to the other first-floor rooms and to `stairs`
 2.5.3) The first floor must contain a minimum of 2 and no more than 3 distinct optional regions:
 2.5.3.1) Optional region names: `mudroom`, `laundry`, `pantry`, `office`, `utility`
@@ -67,16 +68,15 @@
 2.6.1) No regions may overlap, and all regions together must cover the entire house region from the plot
 2.6.2) The second floor must contain an appropriate number of distinct `bedroom` regions
 2.6.2.1) Minimum of ceil((number of occupants) / 2) and no more than min(3, ceil((number of occupants) / 2) + 1)
-2.6.2) The second floor must contain an appropriate number of distinct `bathroom_small` regions
-2.6.2.1) Minimum of ((number of occupants) / 2) and no more than ((number of occupants) / 2)
 2.6.2) The second floor must contain exactly one region each for:
 2.6.2.1) `office` as the primary work room
 2.6.2.2) `bathroom_large` as the primary full bathroom on the second floor (toilet + sink + bath/shower)
 2.6.2.3) `stairwell` as the upstairs landing / opening associated with the staircase
-2.6.2.4.1) Must cover the first floor `stairs` region, but may be larger
+2.6.2.4.1) Must overlap and be congruent with the first floor `stairs` region
 2.6.2.5) `hallway` as the circulation space connecting other rooms to `stairwell`
 2.6.2.6) `laundry` as the laundry room
-2.6.3) The second floor must contain a minimum of 2 and no more than 4 distinct `closet` regions
+2.5.2.7) `bathroom_small` as a half-bathroom (toilet + sink) on the second floor
+2.6.3) The second floor must contain a minimum of 1 and no more than 3 distinct `closet` regions
 
 Example of an original house object from `web/public/config/houses.json`:
 ```
