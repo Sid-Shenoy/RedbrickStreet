@@ -80,10 +80,10 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     xWalk0 = clamp(xWalk1 - walkwayW, minLawnW, xWalk1 - 0.5);
   }
 
-  assert(xDrive1 - xDrive0 > 0.5, `Plot gen house ${house.houseNumber}: driveway width too small`);
-  assert(xWalk1 - xWalk0 > 0.4, `Plot gen house ${house.houseNumber}: walkway width too small`);
-  assert(xDrive0 >= -EPS && xDrive1 <= xsize + EPS, `Plot gen house ${house.houseNumber}: driveway out of bounds`);
-  assert(xWalk0 >= -EPS && xWalk1 <= xsize + EPS, `Plot gen house ${house.houseNumber}: walkway out of bounds`);
+  assert(xDrive1 - xDrive0 > 0.5, `plot: driveway width too small`);
+  assert(xWalk1 - xWalk0 > 0.4, `plot: walkway width too small`);
+  assert(xDrive0 >= -EPS && xDrive1 <= xsize + EPS, `plot: driveway out of bounds`);
+  assert(xWalk0 >= -EPS && xWalk1 <= xsize + EPS, `plot: walkway out of bounds`);
 
   // --------- Vertical (Z) decisions
   // House back line (end of backyard): 7–10m is common in these scaled lots.
@@ -98,7 +98,7 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     // push front forward if needed (still keeping space to sidewalk)
     zFrontMain = Math.min(zFrontMain + (minHouseDepth - (zFrontMain - zHouseBack)), 21.2);
   }
-  assert(zFrontMain - zHouseBack >= 8.5, `Plot gen house ${house.houseNumber}: house depth too small`);
+  assert(zFrontMain - zHouseBack >= 8.5, `plot: house depth too small`);
 
   // Porch/bump depth (house protrusion towards sidewalk):
   // must stay behind the sidewalk start.
@@ -106,7 +106,7 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
   const bumpDepth = clamp(rng.float(2.0, 3.5), 1.4, Math.max(1.4, bumpMax));
   const zFrontBump = zFrontMain + bumpDepth;
 
-  assert(zFrontBump < Z_SIDEWALK_START - 0.2, `Plot gen house ${house.houseNumber}: bump too close to sidewalk`);
+  assert(zFrontBump < Z_SIDEWALK_START - 0.2, `plot: bump too close to sidewalk`);
 
   // --------- Rear extension notch (optional)
   const hasRearExt = rng.bool(0.65);

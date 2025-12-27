@@ -11,3 +11,4 @@ Once a feature is complete, it should be possible to understand everything is do
 2) Use examples wherever possible, encapsulated in triple ticks
 3) All examples must use two-space indentation
 4) Include interface information and functionality (what is does), but not implementation details (how it does it)
+5) Don't worry about listing overly specific details for very small files, as these files won't be hidden
