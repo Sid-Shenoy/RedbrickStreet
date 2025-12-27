@@ -1,0 +1,40 @@
+Summary of this directory:
+
+- Store a list of jpg image textures that can be folded and repeated to avoid visible edges.
+
+To generate a texture:
+```
+1) Ask ChatGPT:
+Generate a realistic 1024x1024 texture for 1 m^2 of <material>
+2) Crop texture to 512x512 (top-left quadrant) and save in jpg format
+3) The new image can be folded out and repeated over a surface
+```
+
+Non-functional requirements for this directory:
+
+1) General requirements
+
+1.1) All textures must be named <texture_name>.jpg
+1.2) Each texture image should have a resolution of 512 by 512 pixels
+1.3) Each texture image should represent a 50 cm by 50 cm block
+
+Textures will be used as follows:
+
+Original 50 cm by 50 cm texture image (from this folder):
+```
+A-----B
+|     |
+|     |
+C-----D
+```
+
+Repeating 1 m by 1 m texture image (unfolded):
+```
+A-----B-----A
+|     |     |
+|     |     |
+C-----D-----C
+|     |     |
+|     |     |
+A-----B-----A
+```
