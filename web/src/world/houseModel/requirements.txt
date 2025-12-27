@@ -1,194 +1,318 @@
-
 1) All coordinates are lot local (`lotTransform.ts`)
 
-1.2.1) Lot-local coordinates are always within the lot rectangle (localX in [0, xsize], localZ in [0, zsize])
-1.2.2) The lot-local "front" edge is always localZ = zsize (30), regardless of street side
-1.2.2.1) Converting lot-local (localX, localZ) to world/street coordinates:
-1.2.2.1.1) Even-numbered houses: worldX = x + localX, worldZ = z + localZ
-1.2.2.1.2) Odd-numbered houses: worldX = x + (xsize - localX), worldZ = z + (zsize - localZ)
+1.1) Lot-local coordinate system
+1.1.1) Lot-local coordinates are always within the lot rectangle (localX in [0, xsize], localZ in [0, zsize])
+1.1.2) The lot-local "front" edge is always localZ = zsize (30), regardless of street side
+
+1.2) Converting lot-local (localX, localZ) to world/street coordinates
+1.2.1) Even-numbered houses: worldX = x + localX, worldZ = z + localZ
+1.2.2) Odd-numbered houses: worldX = x + (xsize - localX), worldZ = z + (zsize - localZ)
 
 2) House modeling constraints (`generateHouseModel.ts`)
 
 2.1) When loaded (from `web/public/config/houses.json`), all houses must store all geometric data for the house
-2.1.1) This should be done through a seeded house model generation function
-2.1.1.1) The house models should be the same each time the game is loaded
-2.1.2) Data for the entire plot, first floor, and second floor must be stored
-2.1.3) Right now, they will not include objects (e.g. chairs, tables, etc.) - it should be empty like the owners just moved out
 
-2.2) Modeling data will contain the following:
-2.2.1) Regions (representing rooms/areas in 2d)
-2.2.1.1) All regions must be defined as rectangles or polygons
+2.1.1) This must be done through a seeded house model generation function
+2.1.1.1) The house models must be the same each time the game is loaded (deterministic)
+2.1.1.2) Determinism contract:
+2.1.1.2.1) The seed string must be `${streetSeed}/house/${house.houseNumber}` (see `generation/context.ts`)
+2.1.1.2.2) For a given (streetSeed, houseNumber, house.bounds, house.occupants.length), output must be identical across runs
+
+2.1.2) Data for the entire plot, first floor, and second floor must be stored
+2.1.3) Right now, models will not include objects (e.g. chairs, tables, etc.) - it should be empty like the owners just moved out
+
+2.2) Modeling data must contain the following:
+
+2.2.1) Regions (representing rooms/areas in 2D)
+2.2.1.1) All regions must be defined as rectangles or polygons (see Region format below)
 2.2.2) Construction (representing house construction items like walls, doors, windows, stairs, etc.)
 2.2.3) Objects (representing movable objects like tables, chairs, appliances, etc.)
 
-2.3) Each region must have the following fields:
-2.3.1) A name which will be used for readability and identification of regions
-2.3.2) A surface type (will be used to determine texture)
-2.3.2.1) Must belong to enum { black, grass, concrete_light, concrete_medium, concrete_dark, wood, tile })
-2.3.3) Shape type (must be either "polygon" or "rectangle")
-2.3.4) Shape coordinates
-2.3.4.1) A rectangle is represented as [[min_x, min_z], [max_x, max_z]]
-2.3.4.2) A polygon from points (p1, p2, ... pn, p1) is represented as [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]]
-2.3.4.2.1) Do not explicitly close polygons in house object (this is implied)
+2.2.4) Current implementation status:
+2.2.4.1) `construction` arrays are empty for now
+2.2.4.2) `objects` arrays are empty for now
+2.2.4.3) `regions` are fully generated for plot, firstFloor, secondFloor
+
+2.3) Region data format (applies to plot, firstFloor, secondFloor)
+
+2.3.1) Each region must have a name which will be used for readability and identification of regions
+2.3.2) Each region must have a surface type (used to determine texture/material)
+2.3.2.1) Must belong to enum { black, grass, concrete_light, concrete_medium, concrete_dark, wood, tile }
+2.3.3) Each region must have a shape type (must be either "polygon" or "rectangle")
+2.3.4) Shape coordinates must follow:
+
+2.3.4.1) Rectangle format: [[min_x, min_z], [max_x, max_z]]
+2.3.4.2) Polygon format: [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]]
+2.3.4.2.1) Do not explicitly close polygons (closure is implied by consumers)
 2.3.4.3) All coordinates must be in lot-local space
 
-2.4) Plot specifications (`plot.ts`):
-2.4.1) No regions may overlap, and all regions together must cover the entire plot
-2.4.2) The plot must contain exactly one region each for:
+2.3.5) Geometry invariants (all layers)
+2.3.5.1) All region coordinates must remain within lot-local bounds:
+2.3.5.1.1) x in [0, xsize] and z in [0, 30] (allowing tiny floating tolerance)
+2.3.5.2) Region shapes must be axis-aligned rectangles or simple (non-self-intersecting) polygons
+2.3.5.2.1) Generated polygons are orthogonal (edges axis-aligned) and simplified (no redundant collinear points)
+2.3.5.3) Regions must not overlap within the same layer (no area overlap; shared boundaries are allowed)
+2.3.5.4) Regions must fully cover the intended footprint for that layer (see each layer’s footprint definition)
+
+2.4) Plot specifications (`generation/plot.ts`)
+
+2.4.1) Plot footprint and coverage
+
+2.4.1.1) The plot footprint is the full lot rectangle:
+2.4.1.1.1) x in [0, xsize], z in [0, 30]
+2.4.1.2) No plot regions may overlap, and all plot regions together must cover the entire plot footprint
+
+2.4.2) Plot must contain exactly one region each for:
+
 2.4.2.1) `backyard` behind house (away from road)
 2.4.2.2) `houseregion` as the flat house region surface where the house goes
-2.4.2.2.1) `houseregion` must always be a region with type == "polygon", even if its outline could be represented as a rectangle
+2.4.2.2.1) `houseregion` must always be a region with type == "polygon", even if it could be represented as a rectangle
 2.4.2.3) `frontlawn_near` as the section of the front lawn closer to the house
 2.4.2.4) `frontlawn_far` as the section of the front lawn farther from the house and closer to the road
 2.4.2.5) `driveway_near` as the section of the driveway closer to the house
 2.4.2.6) `driveway_far` as the section of the driveway farther from the house and closer to the road
-2.4.2.7) `sidewalk` as the sidewalk separating `driveway_near` and `driveway_far`, as well as `frontlawn_near` and `frontlawn_far`
-2.4.2.7.1) Must be 1.5 m wide and must sit 3.5 m away from the road edge (measured from the sidewalk edge closest to the road)
-2.4.2.7.2) In lot-local coordinates, the sidewalk is always a rectangle from (0, 25) to (xsize, 26.5)
+2.4.2.7) `sidewalk` as the sidewalk separating near/far regions
 2.4.2.8) `walkway` as the path leading up to the house entrance
 
-2.5) First floor specifications (`firstFloor.ts`):
-2.5.1) No regions may overlap, and all regions together must cover the entire house region from the plot
+2.4.3) Sidewalk requirements (fixed geometry)
+
+2.4.3.1) Sidewalk must be 1.5 m wide and must sit 3.5 m away from the road edge (measured from the sidewalk edge closest to the road)
+2.4.3.2) In lot-local coordinates, the sidewalk is always a rectangle from (0, 25) to (xsize, 26.5)
+2.4.3.3) `sidewalk` surface must be `concrete_light`
+
+2.4.4) Plot generator variation (deterministic)
+
+2.4.4.1) Driveway side may be left or right (deterministic from seed)
+2.4.4.2) Driveway width varies deterministically but must remain realistic and must always leave some lawn on the opposite side
+2.4.4.3) Walkway width varies deterministically and must remain realistic
+2.4.4.4) House depth and front “bump/porch” depth vary deterministically and must remain realistic
+2.4.4.5) Optional rear notch/extension may be included deterministically
+
+2.4.5) Plot generator geometric guarantees (must be true for every house)
+
+2.4.5.1) `driveway_near` and `driveway_far` are rectangles with surface `concrete_dark`
+2.4.5.2) `walkway` is a rectangle with surface `concrete_medium`
+2.4.5.3) `frontlawn_far`, `frontlawn_near`, and `backyard` use surface `grass`
+2.4.5.4) `houseregion` uses surface `black`
+2.4.5.5) `walkway` must touch `sidewalk` along a shared boundary segment (non-zero length)
+2.4.5.6) `walkway` must touch the front edge of `houseregion` along a shared boundary segment (the “entry” connection)
+
+2.4.6) Plot generator algorithm summary (must remain true even if implementation changes)
+
+2.4.6.1) The generator chooses deterministic “landmark” Z lines:
+2.4.6.1.1) back line (end of backyard / start of house)
+2.4.6.1.2) main front line (garage/front wall line)
+2.4.6.1.3) bump front line (porch/front protrusion)
+2.4.6.2) The generator chooses deterministic “landmark” X spans:
+2.4.6.2.1) driveway span (left or right)
+2.4.6.2.2) walkway span adjacent to driveway on the lawn side
+2.4.6.2.3) bump span on the lawn side adjacent to the walkway
+2.4.6.3) `houseregion` is generated as a polygon (orthogonal), optionally including a rear notch
+2.4.6.4) Regions are constructed so that they:
+2.4.6.4.1) do not overlap
+2.4.6.4.2) exactly cover the lot footprint
+
+2.5) First floor specifications (`generation/firstFloor.ts`)
+
+2.5.1) First floor footprint and coverage
+
 2.5.1.1) The first floor footprint is exactly the polygon region in plot.regions where name === "houseregion"
-2.5.2) The first floor must contain exactly one region each for:
+2.5.1.2) No first-floor regions may overlap, and all first-floor regions together must cover the entire first-floor footprint
+
+2.5.2) First floor must contain exactly one region each for:
+
 2.5.2.1) `foyer` as the interior entry area immediately inside the front door
-2.5.2.1.1) Must be connected to `walkway` from the plot (shared boundary length >= 1m)
 2.5.2.2) `garage` as the indoor garage area
-2.5.2.2.1) Must be connected to `driveway_near` from the plot (shared boundary length >= 1m)
 2.5.2.3) `livingroom` as the primary living / sitting area on the first floor
-2.5.2.3.1) Must be connected to `foyer` (shared boundary length >= 1m)
 2.5.2.4) `kitchen` as the kitchen area (where counters/appliances will later be placed)
 2.5.2.5) `dining` as the primary dining area on the first floor
-2.5.2.5.1) Must be connected to `kitchen` (shared boundary length >= 1m)
 2.5.2.6) `bathroom_small` as a half-bathroom (toilet + sink) on the first floor
 2.5.2.7) `stairs` as the staircase footprint region (the area occupied by the stairs on the first floor)
-2.5.2.7.1) Must be a rectangle
-2.5.2.8) `hallway` as the circulation space connecting `foyer` to the other first-floor rooms and to `stairs`
-2.5.3) The first floor must contain a minimum of 2 and no more than 3 distinct optional regions:
-2.5.3.1) Optional region names: `mudroom`, `laundry`, `pantry`, `utility`, `closet`
+2.5.2.7.1) `stairs` must be a rectangle region
+2.5.2.8) `hallway` as the circulation space connecting the first-floor rooms and to `stairs`
 
-2.6) Second floor specifications (`secondFloor.ts`):
-2.6.1) No regions may overlap, and all regions together must cover the entire house region
+2.5.3) Optional first-floor regions (current implementation)
+
+2.5.3.1) The first floor must contain exactly 2 distinct optional regions
+2.5.3.2) `laundry` must always be included
+2.5.3.3) Exactly one of { `pantry`, `utility` } must be included (and never both)
+
+2.5.4) Connectivity constraints (must be enforced for every house)
+
+2.5.4.1) `foyer` must be connected to plot `walkway` (shared boundary length >= 1m)
+2.5.4.2) `garage` must be connected to plot `driveway_near` (shared boundary length >= 1m)
+2.5.4.3) `livingroom` must be connected to `foyer` (shared boundary length >= 1m)
+2.5.4.4) `dining` must be connected to `kitchen` (shared boundary length >= 1m)
+
+2.5.5) Driveway-side normalization (internal planning rule)
+
+2.5.5.1) The generator must detect driveway side from plot region `driveway_near`
+2.5.5.1.1) left driveway if driveway_near rectangle has x0 == 0 (lot-local)
+2.5.5.1.2) right driveway otherwise
+2.5.5.2) The generator must internally mirror X (normalized “N-space”) so driveway is always treated as on the left
+2.5.5.3) The final emitted regions must be converted back to lot-local coordinates
+
+2.5.6) First-floor generation algorithm summary (must remain true even if implementation changes)
+
+2.5.6.1) The generator plans key Z “bands” for:
+2.5.6.1.1) a front band (garage + living + hallway/entry)
+2.5.6.1.2) a mid band (hallway circulation + stairs + bathroom + portions of kitchen/living)
+2.5.6.1.3) a back band (kitchen + dining + laundry + pantry/utility)
+2.5.6.2) It reserves/places specific rectangles (in normalized space) for:
+2.5.6.2.1) `stairs` (forced to be rectangular)
+2.5.6.2.2) `bathroom_small`
+2.5.6.2.3) `laundry`
+2.5.6.2.4) `pantry` or `utility` depending on fit
+2.5.6.3) It rasterizes the houseregion footprint into a grid defined by all planned X/Z cut lines and footprint vertices
+2.5.6.4) Each grid cell whose midpoint lies inside the footprint is assigned exactly one region label
+2.5.6.5) Region polygons are reconstructed as the boundary of the union of that region’s grid rectangles
+2.5.6.5.1) Shared internal edges are cancelled; the remaining boundary edges form a single simple loop
+2.5.6.5.2) Collinear boundary points are removed
+2.5.6.5.3) If the boundary reduces to an axis-aligned rectangle, the output region must be emitted as a rectangle
+
+2.5.7) Default first-floor surfaces (current implementation)
+
+2.5.7.1) foyer: wood
+2.5.7.2) hallway: wood
+2.5.7.3) livingroom: wood
+2.5.7.4) dining: wood
+2.5.7.5) kitchen: tile
+2.5.7.6) bathroom_small: tile
+2.5.7.7) stairs: wood
+2.5.7.8) garage: concrete_medium
+2.5.7.9) laundry: tile
+2.5.7.10) pantry: tile
+2.5.7.11) utility: concrete_light
+
+2.5.8) Failure behavior
+
+2.5.8.1) If constraints cannot be satisfied, the generator must throw an Error (fail fast)
+2.5.8.2) Errors are expected to include a clear prefix (e.g. "firstFloor: ...") for debugging
+
+2.6) Second floor specifications (`generation/secondFloor.ts`)
+
+2.6.1) Second floor footprint and coverage
+
 2.6.1.1) The second floor footprint is exactly the polygon region in plot.regions where name === "houseregion"
-2.6.2) The second floor must contain an appropriate number of distinct `bedroom` regions
-2.6.2.1) Minimum of ceil((number of occupants) / 2) and no more than min(3, ceil((number of occupants) / 2) + 1)
-2.6.3) The second floor must contain exactly one region each for:
+2.6.1.2) No second-floor regions may overlap, and all second-floor regions together must cover the entire second-floor footprint
+
+2.6.2) Bedroom count constraints (must be enforced)
+
+2.6.2.1) Let occ = number of occupants for the house (house.occupants.length)
+2.6.2.2) Minimum bedrooms = ceil(occ / 2)
+2.6.2.3) Maximum bedrooms = min(3, minimum bedrooms + 1)
+2.6.2.4) The generator must deterministically choose a bedroom count within [minBedrooms, maxBedrooms]
+
+2.6.3) Second floor required regions (exactly one each)
+
 2.6.3.1) `office` as the primary work room
 2.6.3.2) `bathroom_large` as the primary full bathroom on the second floor (toilet + sink + bath/shower)
-2.6.3.3) `stairwell` as the upstairs landing / opening associated with the staircase
-2.6.3.3.1) Must overlap and be congruent with the first floor `stairs` region
-2.6.3.4) `hallway` as the circulation space connecting other rooms to `stairwell`
-2.6.3.5) `bathroom_small` as a half-bathroom (toilet + sink) on the second floor
-2.6.4) The second floor must contain a minimum of 1 and no more than 3 distinct `closet` regions
+2.6.3.3) `bathroom_small` as a half-bathroom (toilet + sink) on the second floor
+2.6.3.4) `stairwell` as the upstairs landing/opening associated with the staircase
+2.6.3.4.1) `stairwell` must overlap and be congruent with the first floor `stairs` region
+2.6.3.5) `hallway` as the circulation space connecting other rooms to `stairwell`
+
+2.6.4) Second floor bedroom and closet naming (current implementation)
+
+2.6.4.1) Bedrooms are named: bedroom1, bedroom2, bedroom3 (up to the chosen bedroom count)
+2.6.4.2) Closets are named: closet1, closet2, closet3 (up to the chosen closet count)
+
+2.6.5) Closet count constraints (must be enforced)
+
+2.6.5.1) The second floor must contain a minimum of 1 and no more than 3 distinct closet regions
+2.6.5.2) Closet count is chosen deterministically (may depend on bedroom count and seed), but must remain within [1,3]
+
+2.6.6) Connectivity constraints (must be enforced for every house)
+
+2.6.6.1) `hallway` must be connected to `stairwell` (shared boundary length >= 1m)
+
+2.6.7) Driveway-side normalization (internal planning rule)
+
+2.6.7.1) The generator must detect driveway side from plot region `driveway_near`
+2.6.7.2) The generator must internally mirror X (normalized “N-space”) so driveway is always treated as on the left
+2.6.7.3) The final emitted regions must be converted back to lot-local coordinates
+
+2.6.8) Second-floor generation algorithm summary (must remain true even if implementation changes)
+
+2.6.8.1) The generator imports the first-floor stairs rectangle and treats it as the upstairs `stairwell`
+2.6.8.2) The generator places a main hallway strip along an exterior wall (left or right) to preserve hallway connectivity
+2.6.8.3) Bathrooms are placed on the wall opposite the hallway strip to reduce hallway fragmentation
+2.6.8.4) Closets are placed along the inner edge of the hallway strip so they carve from room edges (not as internal “holes”)
+2.6.8.5) The generator rasterizes the houseregion footprint into a grid defined by:
+2.6.8.5.1) footprint polygon vertices
+2.6.8.5.2) key planned split lines
+2.6.8.5.3) stairwell/bath/closet/hallway rectangle edges
+2.6.8.6) Each grid cell whose midpoint lies inside the footprint is assigned exactly one region label
+2.6.8.7) Region polygons are reconstructed as the boundary of the union of that region’s grid rectangles
+2.6.8.7.1) Shared internal edges are cancelled; the remaining boundary edges form a single simple loop
+2.6.8.7.2) Collinear boundary points are removed
+2.6.8.7.3) If the boundary reduces to an axis-aligned rectangle, the output region must be emitted as a rectangle
+2.6.8.8) Reconstruction assumes each region is a single connected component and the generator must avoid creating holes
+
+2.6.9) Default second-floor surfaces (current implementation)
+
+2.6.9.1) hallway: wood
+2.6.9.2) stairwell: wood
+2.6.9.3) office: wood
+2.6.9.4) bathroom_large: tile
+2.6.9.5) bathroom_small: tile
+2.6.9.6) bedroom1: wood
+2.6.9.7) bedroom2: wood
+2.6.9.8) bedroom3: wood
+2.6.9.9) closet1: wood
+2.6.9.10) closet2: wood
+2.6.9.11) closet3: wood
+
+2.6.10) Failure behavior
+
+2.6.10.1) If constraints cannot be satisfied, the generator must throw an Error (fail fast)
+2.6.10.2) Errors are expected to include a clear prefix (e.g. "secondFloor: ...") for debugging
 
 Example of an original house object from `web/public/config/houses.json`:
 ```
-  {
-    "houseNumber": 0,
-    "surname": "Whitlock",
-    "occupants": [1, 2, 3, 4],
-    "bounds": {
-      "x": 0,
-      "z": 0,
-      "xsize": 12,
-      "zsize": 30
-    }
+{
+  "houseNumber": 0,
+  "surname": "Whitlock",
+  "occupants": [1, 2, 3, 4],
+  "bounds": {
+    "x": 0,
+    "z": 0,
+    "xsize": 12,
+    "zsize": 30
   }
+}
 ```
 
-Example of a house object after being loaded and updated (modelled after 43 Jenmat Dr.):
+Example of a house object after being loaded and updated:
+(Note: polygons are not explicitly closed in data; closure is implied.)
 ```
-  {
-    "houseNumber": 0,
-    "surname": "Whitlock",
-    "occupants": [1, 2, 3, 4],
-    "bounds": {
-      "x": 0,
-      "z": 0,
-      "xsize": 12,
-      "zsize": 30
+{
+  "houseNumber": 0,
+  "surname": "Whitlock",
+  "occupants": [1, 2, 3, 4],
+  "bounds": {
+    "x": 0,
+    "z": 0,
+    "xsize": 12,
+    "zsize": 30
+  },
+  "model": {
+    "seed": "redbrick-street/v0/house/0",
+    "plot": {
+      "regions": [ /* Plot regions (exactly 8) */ ],
+      "construction": [],
+      "objects": []
     },
-    "model": {
-      "plot": {
-        "regions": [
-          {
-            "name": "backyard",
-            "surface": "grass",
-            "type": "polygon",
-            "points": [[0,0], [12,0], [12,8], [11,8], [11,7], [7,7], [7,8], [0,8]]
-          },
-          {
-            "name": "houseregion",
-            "surface": "black",
-            "type": "polygon",
-            "points": [[0,8], [7,8], [7,7], [11,7], [11,8], [12,8], [12,19.5], [11,19.5], [11,22.5], [5.5,22.5], [5.5,19.5], [0,19.5]]
-          },
-          {
-            "name": "frontlawn_near",
-            "surface": "grass",
-            "type": "polygon",
-            "points": [[7.5,22.5], [7.5,25], [12,25], [12,19.5], [11,19.5], [11,22.5]]
-          },
-          {
-            "name": "walkway",
-            "surface": "concrete_medium",
-            "type": "rectangle",
-            "points": [[5.5,22.5], [7.5,25]]
-          },
-          {
-            "name": "frontlawn_far",
-            "surface": "grass",
-            "type": "rectangle",
-            "points": [[5.5,26.5], [12,30]]
-          },
-          {
-            "name": "driveway_near",
-            "surface": "concrete_dark",
-            "type": "rectangle",
-            "points": [[0,19.5], [5.5,25]]
-          },
-          {
-            "name": "driveway_far",
-            "surface": "concrete_dark",
-            "type": "rectangle",
-            "points": [[0,26.5], [5.5,30]]
-          },
-          {
-            "name": "sidewalk",
-            "surface": "concrete_light",
-            "type": "rectangle",
-            "points": [[0,25], [12,26.5]]
-          }
-        ],
-        "construction": [
-          /* Empty for now */
-        ]
-        "objects": [
-          /* Empty for now */
-        ]
-      },
-      "firstFloor": {
-        "regions": [
-          /* Rooms go here (similar format to plot regions) */
-        ],
-        "construction": [
-          /* Empty for now */
-        ]
-        "objects": [
-          /* Empty for now */
-        ]
-      },
-      "secondFloor": {
-        "regions": [
-          /* Rooms go here (similar format to plot regions) */
-        ],
-        "construction": [
-          /* Empty for now */
-        ]
-        "objects": [
-          /* Empty for now */
-        ]
-      },
+    "firstFloor": {
+      "regions": [ /* First-floor regions: required + exactly 2 optional */ ],
+      "construction": [],
+      "objects": []
+    },
+    "secondFloor": {
+      "regions": [ /* Second-floor regions: required + bedrooms + closets */ ],
+      "construction": [],
+      "objects": []
     }
   }
+}
 ```

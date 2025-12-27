@@ -1,3 +1,13 @@
 To simplify AI-assisted development, the codebase must follow all conventions listed below:
 
-`requirements.txt` files must be used to specify all important requirements. There will be several of these files throughout the project, across different directories. As the codebase is very large, I cannot send all file contents to ChatGPT as doing so would exceed the context window. This is why I am using `requirements.txt` files to store all requirements. From a `requirements.txt` file, it should be possible to clearly understand the interface and functionality of all listed code files and the format of all listed data files (if present), as necessary for future development efforts. ALL code/data files MUST be consistent with the corresponding `requirements.txt` file. Development on a feature will not start until it has been confirmed that the `requirements.txt` file is complete, accurate, and consistent with everything else. Once a feature is complete, it should be possible to understand everything is does that may be necessary for future development efforts, simply by looking at the corresponding `requirements.txt` file(s). At this point, all large files for that feature will be added to `exclude_list.txt`, to ensure that the entire contents of those files are not included in the prompt.
+`requirements.txt` files must be used to specify all important requirements. There will be several of these files throughout the project, across different directories. As the codebase is very large, I cannot send all file contents to ChatGPT as doing so would exceed the context window. This is why I am using `requirements.txt` files to store all requirements.
+
+From a `requirements.txt` file, it should be possible to clearly understand the interface and functionality of all listed code files and the format of all listed data files (if present), as necessary for future development efforts (like a user manual). ALL code/data files MUST be consistent with the corresponding `requirements.txt` file. Development on a feature will not start until it has been confirmed that the `requirements.txt` file is complete, accurate, and consistent with everything else.
+
+Once a feature is complete, it should be possible to understand everything is does that may be necessary for future development efforts, simply by looking at the corresponding `requirements.txt` file(s). At this point, all large files for that feature will be added to `exclude_list.txt`, to ensure that the entire contents of those files are not included in the prompt.
+
+`requirements.txt` files must follow the below coventions to ensure consistency:
+1) Requirements must be ordered using a hierarchical numbering system
+2) Use examples wherever possible, encapsulated in triple ticks
+3) All examples must use two-space indentation
+4) Include interface information and functionality (what is does), but not implementation details (how it does it)
