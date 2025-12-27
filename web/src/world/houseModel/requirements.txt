@@ -37,6 +37,7 @@
 2.4.2) The plot must contain exactly one region each for:
 2.4.2.1) `backyard` behind house (away from road)
 2.4.2.2) `houseregion` as the flat house region surface where the house goes
+2.4.2.2.1) `houseregion` must always be a region with type == "polygon", even if its outline could be represented as a rectangle
 2.4.2.3) `frontlawn_near` as the section of the front lawn closer to the house
 2.4.2.4) `frontlawn_far` as the section of the front lawn farther from the house and closer to the road
 2.4.2.5) `driveway_near` as the section of the driveway closer to the house
@@ -48,7 +49,7 @@
 
 2.5) First floor specifications (`firstFloor.ts`):
 2.5.1) No regions may overlap, and all regions together must cover the entire house region from the plot
-2.5.1.1) The first floor footprint is exactly the polygon/rectangle region in plot.regions where name === "houseregion"
+2.5.1.1) The first floor footprint is exactly the polygon region in plot.regions where name === "houseregion"
 2.5.2) The first floor must contain exactly one region each for:
 2.5.2.1) `foyer` as the interior entry area immediately inside the front door
 2.5.2.1.1) Must be connected to `walkway` from the plot (shared boundary length >= 1m)
@@ -68,7 +69,7 @@
 
 2.6) Second floor specifications (`secondFloor.ts`):
 2.6.1) No regions may overlap, and all regions together must cover the entire house region
-2.6.1.1) The second floor footprint is exactly the polygon/rectangle region in plot.regions where name === "houseregion"
+2.6.1.1) The second floor footprint is exactly the polygon region in plot.regions where name === "houseregion"
 2.6.2) The second floor must contain an appropriate number of distinct `bedroom` regions
 2.6.2.1) Minimum of ceil((number of occupants) / 2) and no more than min(3, ceil((number of occupants) / 2) + 1)
 2.6.3) The second floor must contain exactly one region each for:
