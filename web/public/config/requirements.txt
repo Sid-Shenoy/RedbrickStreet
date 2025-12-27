@@ -14,7 +14,7 @@ Non-functional requirements for this directory:
 1.4.1) All config files must be encoded as UTF-8
 1.4.2) If apostrophes/quotes are used, they must be ASCII ' and " only
 
-2) NPC requirements (characters.json)
+2) NPC requirements (`characters.json`)
 
 2.1) `characters.json` must store only a top-level array of NPC objects
 2.1.1) There must be 73 NPCs (player excluded)
@@ -50,7 +50,7 @@ Non-functional requirements for this directory:
 2.3.1) No two NPCs may share the same first name
 2.3.2) No two NPCs may share the same social media handle
 
-2.4) NPC residency constraints (cross-file with houses.json)
+2.4) NPC residency constraints (cross-file with `houses.json`)
 2.4.1) Every NPC must live in exactly one house
 2.4.2) Every NPC must appear in the occupants list of exactly one house
 
@@ -62,46 +62,43 @@ Non-functional requirements for this directory:
 
 Example of an NPC object from `characters.json`:
 ```
-    {
-        "id": 1,
-        "firstName": "Dorian",
-        "lastName": "Whitlock",
-        "gender": "M",
-        "accentLanguage": "Canadian",
-        "age": 38,
-        "career": "Accessibility engineer",
-        "religion": "Catholic",
-        "family": {
-            "spouse": 2,
-            "children": [
-                3,
-                4
-            ]
-        },
-        "personalityTraits": [
-            "measured",
-            "wry",
-            "particular"
-        ],
-        "interests": [
-            "stargazing",
-            "wood carving",
-            "kite building"
-        ],
-        "about": [
-            "I got into accessibility work because it feels like the most practical kind of empathy: make things usable, then make them better.",
-            "I keep a cheap pair of binoculars by the back door and I step outside at night like I'm checking on the street, but I'm really checking on the sky.",
-            "I like small crafts that require patience, like carving a spoon or sanding a piece until it finally feels right in your hand.",
-            "I don't talk a lot in groups, but if you ask me a specific question, you'll get a real answer and probably a quiet joke attached to it.",
-            "I want the street to feel steady and normal, like the kind of place where problems stay small because people notice each other."
-        ],
-        "socialMedia": {
-            "handle": "dorian_w78",
-            "bio": "accessibility work • small crafts • stars when the street is quiet • TO",
-            "followers": 436,
-            "following": 372
-        }
-    }
+{
+  "id": 1,
+  "firstName": "Dorian",
+  "lastName": "Whitlock",
+  "gender": "M",
+  "accentLanguage": "Canadian",
+  "age": 38,
+  "career": "Accessibility engineer",
+  "religion": "Catholic",
+  "family": {
+    "spouse": 2,
+    "children": [3, 4]
+  },
+  "personalityTraits": [
+    "measured",
+    "wry",
+    "particular"
+  ],
+  "interests": [
+    "stargazing",
+    "wood carving",
+    "kite building"
+  ],
+  "about": [
+    "I got into accessibility work because it feels like the most practical kind of empathy: make things usable, then make them better.",
+    "I keep a cheap pair of binoculars by the back door and I step outside at night like I'm checking on the street, but I'm really checking on the sky.",
+    "I like small crafts that require patience, like carving a spoon or sanding a piece until it finally feels right in your hand.",
+    "I don't talk a lot in groups, but if you ask me a specific question, you'll get a real answer and probably a quiet joke attached to it.",
+    "I want the street to feel steady and normal, like the kind of place where problems stay small because people notice each other."
+  ],
+  "socialMedia": {
+    "handle": "dorian_w78",
+    "bio": "accessibility work • small crafts • stars when the street is quiet • TO",
+    "followers": 436,
+    "following": 372
+  }
+}
 ```
 
 3) House requirements (`houses.json`)
@@ -152,15 +149,15 @@ Redbrick Street Specifications:
 
 Example of a house object from `houses.json`:
 ```
-  {
-    "houseNumber": 0,
-    "surname": "Whitlock",
-    "occupants": [1, 2, 3, 4],
-    "bounds": {
-      "x": 0,
-      "z": 0,
-      "xsize": 12,
-      "zsize": 30
-    }
+{
+  "houseNumber": 0,
+  "surname": "Whitlock",
+  "occupants": [1, 2, 3, 4],
+  "bounds": {
+    "x": 0,
+    "z": 0,
+    "xsize": 12,
+    "zsize": 30
   }
+}
 ```
