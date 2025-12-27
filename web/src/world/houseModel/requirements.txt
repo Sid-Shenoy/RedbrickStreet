@@ -387,17 +387,42 @@ Example of an output house object (after being loaded and updated):
   "model": {
     "seed": "redbrick-street/v0/house/0",
     "plot": {
-      "regions": [ /* Plot regions (exactly 8) */ ],
+      "regions": [
+        {
+          "name": "backyard",
+          "surface": "grass",
+          "type": "polygon",
+          "points": [
+            [0, 0],
+            [12, 0],
+            [12, 8.733541874913499 ],
+            [6.873786556411067, 8.733541874913499],
+            [6.873786556411067, 7.782772364048287],
+            [2.6011149613815348, 7.782772364048287],
+            [2.6011149613815348, 8.733541874913499],
+            [0, 8.733541874913499]
+          ]
+        },
+        {
+          "name": "houseregion",
+          "surface": "black",
+          "type": "polygon",
+          "points": [
+            /* ... */
+          ]
+        },
+        /* ... */
+      ],
       "construction": [],
       "objects": []
     },
     "firstFloor": {
-      "regions": [ /* First-floor regions: required + exactly 2 optional */ ],
+      "regions": [ /* ... */ ],
       "construction": [],
       "objects": []
     },
     "secondFloor": {
-      "regions": [ /* Second-floor regions: required + bedrooms + closets */ ],
+      "regions": [ /* ... */ ],
       "construction": [],
       "objects": []
     }
