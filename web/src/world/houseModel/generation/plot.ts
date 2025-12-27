@@ -34,7 +34,7 @@ function poly(name: string, surface: Region["surface"], pts: Array<[number, numb
  * Plot generator (deterministic, seeded).
  *
  * Constraints satisfied:
- * - Exactly 8 regions: backyard, houseregion, nearfrontlawn, edgefrontlawn, neardriveway, edgedriveway, sidewalk, walkway
+ * - Exactly 8 regions: backyard, houseregion, frontlawn_near, frontlawn_far, driveway_near, driveway_far, sidewalk, walkway
  * - Sidewalk is ALWAYS rectangle (0,25) to (xsize,26.5)
  * - No overlaps; regions fully cover the lot (lot-local: x in [0,xsize], z in [0,30])
  * - Walkway connects the sidewalk up to the house front (meets the porch/bump edge)
@@ -190,11 +190,11 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
 
     regions.push(poly("houseregion", "black", housePts));
 
-    // nearfrontlawn (L-shape if bump doesn't reach the far edge; otherwise rectangle)
+    // frontlawn_near (L-shape if bump doesn't reach the far edge; otherwise rectangle)
     const farGap = xsize - bumpRight;
     if (farGap > 0.35) {
       regions.push(
-        poly("nearfrontlawn", "grass", [
+        poly("frontlawn_near", "grass", [
           [xWalk1, zFrontBump],
           [xWalk1, Z_SIDEWALK_START],
           [xsize, Z_SIDEWALK_START],
@@ -204,20 +204,20 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
         ])
       );
     } else {
-      regions.push(rect("nearfrontlawn", "grass", xWalk1, zFrontBump, xsize, Z_SIDEWALK_START));
+      regions.push(rect("frontlawn_near", "grass", xWalk1, zFrontBump, xsize, Z_SIDEWALK_START));
     }
 
     // walkway
     regions.push(rect("walkway", "concrete_medium", xWalk0, zFrontBump, xWalk1, Z_SIDEWALK_START));
 
-    // edgefrontlawn (front strip beyond sidewalk, lawn side)
-    regions.push(rect("edgefrontlawn", "grass", xDrive1, Z_SIDEWALK_END, xsize, Z_LOT_END));
+    // frontlawn_far (front strip beyond sidewalk, lawn side)
+    regions.push(rect("frontlawn_far", "grass", xDrive1, Z_SIDEWALK_END, xsize, Z_LOT_END));
 
-    // neardriveway (driveway behind sidewalk)
-    regions.push(rect("neardriveway", "concrete_dark", xDrive0, zFrontMain, xDrive1, Z_SIDEWALK_START));
+    // driveway_near (driveway behind sidewalk)
+    regions.push(rect("driveway_near", "concrete_dark", xDrive0, zFrontMain, xDrive1, Z_SIDEWALK_START));
 
-    // edgedriveway (driveway beyond sidewalk)
-    regions.push(rect("edgedriveway", "concrete_dark", xDrive0, Z_SIDEWALK_END, xDrive1, Z_LOT_END));
+    // driveway_far (driveway beyond sidewalk)
+    regions.push(rect("driveway_far", "concrete_dark", xDrive0, Z_SIDEWALK_END, xDrive1, Z_LOT_END));
 
     // sidewalk (fixed)
     regions.push(rect("sidewalk", "concrete_light", 0, Z_SIDEWALK_START, xsize, Z_SIDEWALK_END));
@@ -275,11 +275,11 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
 
     regions.push(poly("houseregion", "black", housePts));
 
-    // nearfrontlawn (L-shape if bump doesn't reach the far edge; otherwise rectangle)
+    // frontlawn_near (L-shape if bump doesn't reach the far edge; otherwise rectangle)
     const farGap = bumpLeft; // distance from left boundary to bump
     if (farGap > 0.35) {
       regions.push(
-        poly("nearfrontlawn", "grass", [
+        poly("frontlawn_near", "grass", [
           [xWalk0, zFrontBump],
           [xWalk0, Z_SIDEWALK_START],
           [0, Z_SIDEWALK_START],
@@ -289,20 +289,20 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
         ])
       );
     } else {
-      regions.push(rect("nearfrontlawn", "grass", 0, zFrontBump, xWalk0, Z_SIDEWALK_START));
+      regions.push(rect("frontlawn_near", "grass", 0, zFrontBump, xWalk0, Z_SIDEWALK_START));
     }
 
     // walkway
     regions.push(rect("walkway", "concrete_medium", xWalk0, zFrontBump, xWalk1, Z_SIDEWALK_START));
 
-    // edgefrontlawn (front strip beyond sidewalk, lawn side)
-    regions.push(rect("edgefrontlawn", "grass", 0, Z_SIDEWALK_END, xDrive0, Z_LOT_END));
+    // frontlawn_far (front strip beyond sidewalk, lawn side)
+    regions.push(rect("frontlawn_far", "grass", 0, Z_SIDEWALK_END, xDrive0, Z_LOT_END));
 
-    // neardriveway (driveway behind sidewalk)
-    regions.push(rect("neardriveway", "concrete_dark", xDrive0, zFrontMain, xDrive1, Z_SIDEWALK_START));
+    // driveway_near (driveway behind sidewalk)
+    regions.push(rect("driveway_near", "concrete_dark", xDrive0, zFrontMain, xDrive1, Z_SIDEWALK_START));
 
-    // edgedriveway (driveway beyond sidewalk)
-    regions.push(rect("edgedriveway", "concrete_dark", xDrive0, Z_SIDEWALK_END, xDrive1, Z_LOT_END));
+    // driveway_far (driveway beyond sidewalk)
+    regions.push(rect("driveway_far", "concrete_dark", xDrive0, Z_SIDEWALK_END, xDrive1, Z_LOT_END));
 
     // sidewalk (fixed)
     regions.push(rect("sidewalk", "concrete_light", 0, Z_SIDEWALK_START, xsize, Z_SIDEWALK_END));
