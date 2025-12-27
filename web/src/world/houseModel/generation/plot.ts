@@ -21,12 +21,7 @@ function rect(name: string, surface: Region["surface"], x0: number, z0: number, 
 }
 
 function poly(name: string, surface: Region["surface"], pts: Array<[number, number]>): Region {
-  // Spec: polygon points are conceptually (p1, p2, ... pn, p1). Close if needed.
-  if (pts.length >= 3) {
-    const [fx, fz] = pts[0]!;
-    const [lx, lz] = pts[pts.length - 1]!;
-    if (fx !== lx || fz !== lz) pts = [...pts, [fx, fz]];
-  }
+  // Spec: polygons are NOT explicitly closed; closure is implied by the consumer.
   return { name, surface, type: "polygon", points: pts };
 }
 
