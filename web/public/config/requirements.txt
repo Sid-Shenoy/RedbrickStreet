@@ -129,7 +129,7 @@ Redbrick Street Specifications:
 3.4.1) Each house must include a bounds object (a single rectangle covering the full property footprint)
 3.4.2) This object must store numeric attributes representing size and position relative to the street
 3.4.2.1) From a bird's eye view, x represents offset from left, z represents offset from top
-3.4.2.2) For all houses, xsize is integer in [10, 16], zsize = 30
+3.4.2.2) For all houses, xsize is integer in [12, 16], zsize = 30
 
 3.5) Street geometry constraints (global zoning rules)
 3.5.1) House zones must all be 30 m wide (along z-axis):

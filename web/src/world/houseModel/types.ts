@@ -6,8 +6,12 @@ export type Surface =
   | "concrete_light"
   | "concrete_medium"
   | "concrete_dark"
+  | "wood_light"
   | "wood_medium"
-  | "tile_medium";
+  | "wood_dark"
+  | "tile_light"
+  | "tile_medium"
+  | "tile_dark";
 export type RegionType = "polygon" | "rectangle";
 
 export type RectPoints = [[number, number], [number, number]];
