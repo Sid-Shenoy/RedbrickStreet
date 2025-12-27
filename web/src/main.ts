@@ -9,6 +9,8 @@ import {
   Color3,
   Mesh,
   VertexData,
+  Ray,
+  AbstractMesh,
 } from "@babylonjs/core";
 
 import earcut from "earcut";
@@ -20,25 +22,66 @@ import { lotLocalToWorld } from "./world/houseModel/lotTransform";
 
 const STREET_SEED = "redbrick-street/v0";
 
-function makeMat(scene: Scene, name: string, color: Color3): StandardMaterial {
+// Vertical layout (meters)
+const PLOT_Y = 0.0;
+const FIRST_FLOOR_Y = 0.2;
+const SECOND_FLOOR_Y = 3.2;
+const CEILING_Y = 6.2;
+
+// Auto-step (meters)
+const MAX_STEP_UP = 0.5;
+const STEP_PROBE_DIST = 0.55;
+const STEP_NUDGE_FWD = 0.05;
+
+type RegionMeshKind = "floor" | "ceiling";
+
+function makeMat(scene: Scene, name: string, color: Color3, doubleSided = false): StandardMaterial {
   const m = new StandardMaterial(name, scene);
   m.diffuseColor = color;
   m.specularColor = new Color3(0.05, 0.05, 0.05);
+  m.backFaceCulling = !doubleSided; // doubleSided => render both sides
   return m;
 }
 
-function surfaceMaterial(scene: Scene) {
+function surfaceMaterial(scene: Scene, opts?: { doubleSided?: boolean }) {
+  const doubleSided = opts?.doubleSided ?? false;
+  const suf = doubleSided ? "_2s" : "";
+
   return {
-    black: makeMat(scene, "mat_black", new Color3(0.08, 0.08, 0.08)),
-    grass: makeMat(scene, "mat_grass", new Color3(0.18, 0.35, 0.18)),
-    concrete_light: makeMat(scene, "mat_conc_light", new Color3(0.75, 0.75, 0.75)),
-    concrete_medium: makeMat(scene, "mat_conc_med", new Color3(0.55, 0.55, 0.55)),
-    concrete_dark: makeMat(scene, "mat_conc_dark", new Color3(0.32, 0.32, 0.32)),
-    wood: makeMat(scene, "mat_wood", new Color3(0.45, 0.30, 0.18)),
-    tile: makeMat(scene, "mat_tile", new Color3(0.65, 0.65, 0.70)),
-    road: makeMat(scene, "mat_road", new Color3(0.12, 0.12, 0.12)),
-    wall: makeMat(scene, "mat_wall", new Color3(0.45, 0.20, 0.18)),
+    black: makeMat(scene, `mat_black${suf}`, new Color3(0.08, 0.08, 0.08), doubleSided),
+    grass: makeMat(scene, `mat_grass${suf}`, new Color3(0.18, 0.35, 0.18), doubleSided),
+    concrete_light: makeMat(scene, `mat_conc_light${suf}`, new Color3(0.75, 0.75, 0.75), doubleSided),
+    concrete_medium: makeMat(scene, `mat_conc_med${suf}`, new Color3(0.55, 0.55, 0.55), doubleSided),
+    concrete_dark: makeMat(scene, `mat_conc_dark${suf}`, new Color3(0.32, 0.32, 0.32), doubleSided),
+    wood: makeMat(scene, `mat_wood${suf}`, new Color3(0.45, 0.30, 0.18), doubleSided),
+    tile: makeMat(scene, `mat_tile${suf}`, new Color3(0.65, 0.65, 0.70), doubleSided),
+    road: makeMat(scene, `mat_road${suf}`, new Color3(0.12, 0.12, 0.12), doubleSided),
+    wall: makeMat(scene, `mat_wall${suf}`, new Color3(0.45, 0.20, 0.18), doubleSided),
   } as const;
+}
+
+function tagRegionMesh(mesh: AbstractMesh, kind: RegionMeshKind, layerTag: string, houseNumber: number, regionName: string) {
+  mesh.metadata = {
+    rbs: {
+      kind,
+      layer: layerTag,
+      houseNumber,
+      regionName,
+    },
+  };
+}
+
+function isFloorMesh(m: AbstractMesh): boolean {
+  if (m.name === "road") return true;
+  const md = m.metadata as { rbs?: { kind?: string } } | undefined;
+  return md?.rbs?.kind === "floor";
+}
+
+function pickFloorY(scene: Scene, x: number, z: number, originY: number, maxDist: number): number | null {
+  const ray = new Ray(new Vector3(x, originY, z), new Vector3(0, -1, 0), maxDist);
+  const hit = scene.pickWithRay(ray, isFloorMesh);
+  if (!hit?.hit || !hit.pickedPoint) return null;
+  return hit.pickedPoint.y;
 }
 
 // Rect region renderer (CreateGround)
@@ -46,7 +89,11 @@ function renderRectRegion(
   scene: Scene,
   house: HouseWithModel,
   region: Extract<Region, { type: "rectangle" }>,
-  mat: StandardMaterial
+  mat: StandardMaterial,
+  kind: RegionMeshKind,
+  layerTag: string,
+  baseY: number,
+  collisions: boolean
 ): Mesh {
   const [[x0, z0], [x1, z1]] = region.points;
 
@@ -63,15 +110,18 @@ function renderRectRegion(
   const height = Math.max(0.001, maxZ - minZ);
 
   const mesh = MeshBuilder.CreateGround(
-    `region_${house.houseNumber}_${region.name}`,
+    `region_${layerTag}_${house.houseNumber}_${region.name}`,
     { width, height, subdivisions: 1 },
     scene
   );
 
   mesh.position.x = minX + width / 2;
   mesh.position.z = minZ + height / 2;
+  mesh.position.y = baseY;
+
   mesh.material = mat;
-  mesh.checkCollisions = true;
+  mesh.checkCollisions = collisions;
+  tagRegionMesh(mesh, kind, layerTag, house.houseNumber, region.name);
 
   return mesh;
 }
@@ -81,7 +131,11 @@ function renderPolyRegion(
   scene: Scene,
   house: HouseWithModel,
   region: Extract<Region, { type: "polygon" }>,
-  mat: StandardMaterial
+  mat: StandardMaterial,
+  kind: RegionMeshKind,
+  layerTag: string,
+  baseY: number,
+  collisions: boolean
 ): Mesh {
   // If polygon is explicitly closed (last point == first), drop the last point for triangulation.
   const pts = region.points;
@@ -92,11 +146,12 @@ function renderPolyRegion(
       ? pts.slice(0, -1)
       : pts;
 
-  if (basePts.length < 3) {
-    const empty = new Mesh(`region_${house.houseNumber}_${region.name}`, scene);
-    empty.material = mat;
-    return empty;
-  }
+  const mesh = new Mesh(`region_${layerTag}_${house.houseNumber}_${region.name}`, scene);
+  mesh.material = mat;
+  mesh.checkCollisions = collisions;
+  tagRegionMesh(mesh, kind, layerTag, house.houseNumber, region.name);
+
+  if (basePts.length < 3) return mesh;
 
   // Convert to world-space XZ points
   const world = basePts.map(([lx, lz]) => lotLocalToWorld(house, lx, lz));
@@ -106,18 +161,15 @@ function renderPolyRegion(
   const positions: number[] = [];
   const uvs: number[] = [];
 
-  // Simple planar UVs (not used for flat colors, but keeps mesh valid for future)
   const uvScale = 0.1;
 
   for (const p of world) {
     coords2d.push(p.x, p.z);
-    positions.push(p.x, 0, p.z);
+    positions.push(p.x, baseY, p.z);
     uvs.push(p.x * uvScale, p.z * uvScale);
   }
 
   const indices = earcut(coords2d, undefined, 2);
-
-  const mesh = new Mesh(`region_${house.houseNumber}_${region.name}`, scene);
 
   const vd = new VertexData();
   vd.positions = positions;
@@ -130,14 +182,86 @@ function renderPolyRegion(
 
   vd.applyToMesh(mesh);
 
-  mesh.material = mat;
-  mesh.checkCollisions = true;
-
   return mesh;
 }
 
+function renderFloorLayer(
+  scene: Scene,
+  houses: HouseWithModel[],
+  mats: Record<string, StandardMaterial>,
+  layerTag: string,
+  getRegions: (h: HouseWithModel) => Region[],
+  baseY: number,
+  collisions: boolean
+) {
+  for (const house of houses) {
+    const regions = getRegions(house);
+
+    for (const region of regions) {
+      const mat = mats[region.surface];
+
+      if (region.type === "rectangle") {
+        renderRectRegion(scene, house, region, mat, "floor", layerTag, baseY, collisions);
+      } else {
+        renderPolyRegion(scene, house, region, mat, "floor", layerTag, baseY, collisions);
+      }
+    }
+  }
+}
+
+function renderCeilings(scene: Scene, houses: HouseWithModel[], ceilingMat: StandardMaterial) {
+  for (const house of houses) {
+    const hr = house.model.plot.regions.find((r) => r.name === "houseregion");
+    if (!hr) continue;
+
+    // Ceiling must be congruent with houseregion; render the same footprint at CEILING_Y.
+    if (hr.type === "polygon") {
+      renderPolyRegion(scene, house, hr, ceilingMat, "ceiling", "ceiling", CEILING_Y, false);
+    } else {
+      renderRectRegion(scene, house, hr, ceilingMat, "ceiling", "ceiling", CEILING_Y, false);
+    }
+  }
+}
+
+function setupAutoStep(scene: Scene, camera: UniversalCamera) {
+  scene.onBeforeRenderObservable.add(() => {
+    // Only attempt stepping when the player is actively trying to move.
+    const move = camera.cameraDirection;
+    if (move.lengthSquared() < 1e-8) return;
+
+    const dir = new Vector3(move.x, 0, move.z);
+    const len = Math.hypot(dir.x, dir.z);
+    if (len < 1e-6) return;
+    dir.x /= len;
+    dir.z /= len;
+
+    // Current floor height under player.
+    const curY = pickFloorY(scene, camera.position.x, camera.position.z, camera.position.y + 2.0, 30);
+    if (curY == null) return;
+
+    // Probe ahead. Start the ray below any "upper storey" ceilings (but above possible step height),
+    // so we don't accidentally hit the second floor when we're trying to step onto the first floor.
+    const probeX = camera.position.x + dir.x * STEP_PROBE_DIST;
+    const probeZ = camera.position.z + dir.z * STEP_PROBE_DIST;
+    const probeOriginY = curY + MAX_STEP_UP + 1.0;
+
+    const aheadY = pickFloorY(scene, probeX, probeZ, probeOriginY, 30);
+    if (aheadY == null) return;
+
+    const dy = aheadY - curY;
+    if (dy > 0.01 && dy <= MAX_STEP_UP + 1e-3) {
+      // Lift the camera to match the higher platform and give a tiny forward nudge so collisions
+      // don't keep us pinned on the edge.
+      camera.position.y += dy;
+      camera.position.x += dir.x * STEP_NUDGE_FWD;
+      camera.position.z += dir.z * STEP_NUDGE_FWD;
+    }
+  });
+}
+
 function renderStreet(scene: Scene, houses: HouseWithModel[]) {
-  const mats = surfaceMaterial(scene);
+  const mats = surfaceMaterial(scene); // normal (single-sided)
+  const matsDouble = surfaceMaterial(scene, { doubleSided: true }); // for viewing from below
 
   // Road: x 0..200, z 30..40 => width=200, height=10
   const road = MeshBuilder.CreateGround("road", { width: 200, height: 10 }, scene);
@@ -145,6 +269,7 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   road.position.z = 35;
   road.material = mats.road;
   road.checkCollisions = true;
+  road.metadata = { rbs: { kind: "floor", layer: "road" } };
 
   // Boundary wall around 200 x 70
   const wallH = 5;
@@ -167,18 +292,15 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     w.checkCollisions = true;
   }
 
-  // Plot regions only (2D)
-  for (const house of houses) {
-    for (const region of house.model.plot.regions) {
-      const mat = mats[region.surface];
+  // Plot + floors as stacked 2D layers
+  renderFloorLayer(scene, houses, mats, "plot", (h) => h.model.plot.regions, PLOT_Y, true);
+  renderFloorLayer(scene, houses, mats, "firstFloor", (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, true);
 
-      if (region.type === "rectangle") {
-        renderRectRegion(scene, house, region, mat);
-      } else {
-        renderPolyRegion(scene, house, region, mat);
-      }
-    }
-  }
+  // Second floor: double-sided so underside is visible while walking below.
+  renderFloorLayer(scene, houses, matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, false);
+
+  // Ceiling (congruent with houseregion) at 6.2m, double-sided so underside is visible.
+  renderCeilings(scene, houses, matsDouble.concrete_light);
 }
 
 async function boot() {
@@ -212,6 +334,8 @@ async function boot() {
   scene.onPointerDown = () => {
     canvas.requestPointerLock?.();
   };
+
+  setupAutoStep(scene, camera);
 
   // Load config + attach seeded models
   const { houses } = await loadStreetConfig();
