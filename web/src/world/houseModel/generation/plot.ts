@@ -190,9 +190,9 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
 
     regions.push(poly("houseregion", "black", housePts));
 
-    // frontlawn_near (L-shape if bump doesn't reach the far edge; otherwise rectangle)
+    // frontlawn_near (always cover the strip between zFrontMain and zFrontBump when bump stops short of lot edge)
     const farGap = xsize - bumpRight;
-    if (farGap > 0.35) {
+    if (farGap > EPS) {
       regions.push(
         poly("frontlawn_near", "grass", [
           [xWalk1, zFrontBump],
@@ -204,6 +204,7 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
         ])
       );
     } else {
+      // If the bump reaches the lot edge exactly, the strip has zero width; a rectangle avoids degenerate polys.
       regions.push(rect("frontlawn_near", "grass", xWalk1, zFrontBump, xsize, Z_SIDEWALK_START));
     }
 
@@ -275,9 +276,9 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
 
     regions.push(poly("houseregion", "black", housePts));
 
-    // frontlawn_near (L-shape if bump doesn't reach the far edge; otherwise rectangle)
+    // frontlawn_near (always cover the strip between zFrontMain and zFrontBump when bump stops short of lot edge)
     const farGap = bumpLeft; // distance from left boundary to bump
-    if (farGap > 0.35) {
+    if (farGap > EPS) {
       regions.push(
         poly("frontlawn_near", "grass", [
           [xWalk0, zFrontBump],
@@ -289,6 +290,7 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
         ])
       );
     } else {
+      // If the bump reaches the lot edge exactly, the strip has zero width; a rectangle avoids degenerate polys.
       regions.push(rect("frontlawn_near", "grass", 0, zFrontBump, xWalk0, Z_SIDEWALK_START));
     }
 

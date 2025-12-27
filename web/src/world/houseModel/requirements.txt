@@ -27,8 +27,9 @@
 2.3.2.1) Must belong to enum { black, grass, concrete_light, concrete_medium, concrete_dark, wood, tile })
 2.3.3) Shape type (must be either "polygon" or "rectangle")
 2.3.4) Shape coordinates
-2.3.4.1) [[min_x, min_z], [max_x, max_z]] for rectangle
-2.3.4.2) [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]] for polygon from points (p1, p2, ... pn, p1)
+2.3.4.1) A rectangle is represented as [[min_x, min_z], [max_x, max_z]]
+2.3.4.2) A polygon from points (p1, p2, ... pn, p1) is represented as [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]]
+2.3.4.2.1) Do not explicitly close polygons in house object (this is implied)
 2.3.4.3) All coordinates must be in lot-local space
 
 2.4) Plot specifications (`plot.ts`):
