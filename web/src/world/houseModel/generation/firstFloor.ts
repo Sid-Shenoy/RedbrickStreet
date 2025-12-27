@@ -703,16 +703,16 @@ export function generateFirstFloorModel(house: HouseConfig, ctx: HouseGenContext
 
   // Realistic default surfaces
   const surface: Record<string, Region["surface"]> = {
-    foyer: "wood",
-    hallway: "wood",
-    livingroom: "wood",
-    dining: "wood",
-    kitchen: "tile",
-    bathroom_small: "tile",
-    stairs: "wood",
+    foyer: "wood_medium",
+    hallway: "wood_medium",
+    livingroom: "wood_medium",
+    dining: "wood_medium",
+    kitchen: "tile_medium",
+    bathroom_small: "tile_medium",
+    stairs: "wood_medium",
     garage: "concrete_medium",
-    laundry: "tile",
-    pantry: "tile",
+    laundry: "tile_medium",
+    pantry: "tile_medium",
     utility: "concrete_light",
   };
 

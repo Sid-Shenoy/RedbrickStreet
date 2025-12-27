@@ -74,8 +74,12 @@ function surfaceMaterial(scene: Scene, opts?: { doubleSided?: boolean }) {
     concrete_light: makeTexMat(scene, `mat_conc_light${suf}`, "/assets/textures/surfaces/concrete_light.jpg", doubleSided),
     concrete_medium: makeTexMat(scene, `mat_conc_med${suf}`, "/assets/textures/surfaces/concrete_medium.jpg", doubleSided),
     concrete_dark: makeTexMat(scene, `mat_conc_dark${suf}`, "/assets/textures/surfaces/concrete_dark.jpg", doubleSided),
-    wood: makeTexMat(scene, `mat_wood${suf}`, "/assets/textures/surfaces/wood.jpg", doubleSided),
-    tile: makeTexMat(scene, `mat_tile${suf}`, "/assets/textures/surfaces/tile.jpg", doubleSided),
+    wood_light: makeTexMat(scene, `mat_wood_light${suf}`, "/assets/textures/surfaces/wood_light.jpg", doubleSided),
+    wood_medium: makeTexMat(scene, `mat_wood_medium${suf}`, "/assets/textures/surfaces/wood_medium.jpg", doubleSided),
+    wood_dark: makeTexMat(scene, `mat_wood_dark${suf}`, "/assets/textures/surfaces/wood_dark.jpg", doubleSided),
+    tile_light: makeTexMat(scene, `mat_tile_light${suf}`, "/assets/textures/surfaces/tile_light.jpg", doubleSided),
+    tile_medium: makeTexMat(scene, `mat_tile_medium${suf}`, "/assets/textures/surfaces/tile_medium.jpg", doubleSided),
+    tile_dark: makeTexMat(scene, `mat_tile_dark${suf}`, "/assets/textures/surfaces/tile_dark.jpg", doubleSided),
 
     // Not part of the Region surface enum, but still render with a real texture.
     road: makeTexMat(scene, `mat_road${suf}`, "/assets/textures/surfaces/concrete_dark.jpg", doubleSided),

@@ -773,17 +773,17 @@ export function generateSecondFloorModel(
   }
 
   const surface: Record<string, Region["surface"]> = {
-    hallway: "wood",
-    stairwell: "wood",
-    office: "wood",
-    bathroom_large: "tile",
-    bathroom_small: "tile",
-    bedroom1: "wood",
-    bedroom2: "wood",
-    bedroom3: "wood",
-    closet1: "wood",
-    closet2: "wood",
-    closet3: "wood",
+    hallway: "wood_medium",
+    stairwell: "wood_medium",
+    office: "wood_medium",
+    bathroom_large: "tile_medium",
+    bathroom_small: "tile_medium",
+    bedroom1: "wood_medium",
+    bedroom2: "wood_medium",
+    bedroom3: "wood_medium",
+    closet1: "wood_medium",
+    closet2: "wood_medium",
+    closet3: "wood_medium",
   };
 
   const regions: Region[] = [];
