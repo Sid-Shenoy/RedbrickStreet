@@ -6,6 +6,8 @@ import {
   Vector3,
   MeshBuilder,
   StandardMaterial,
+  Texture,
+  VertexBuffer,
   Color3,
   Mesh,
   VertexData,
@@ -21,6 +23,9 @@ import type { HouseWithModel, Region } from "./world/houseModel/types";
 import { lotLocalToWorld } from "./world/houseModel/lotTransform";
 
 const STREET_SEED = "redbrick-street/v0";
+
+// Surface texture scale: each texture image represents 0.5m x 0.5m.
+const SURFACE_TEX_METERS = 0.5;
 
 // Vertical layout (meters)
 const PLOT_Y = 0.0;
@@ -43,19 +48,39 @@ function makeMat(scene: Scene, name: string, color: Color3, doubleSided = false)
   return m;
 }
 
+function makeTexMat(scene: Scene, name: string, url: string, doubleSided = false): StandardMaterial {
+  const m = new StandardMaterial(name, scene);
+
+  const tex = new Texture(url, scene);
+  tex.wrapU = Texture.WRAP_ADDRESSMODE;
+  tex.wrapV = Texture.WRAP_ADDRESSMODE;
+  tex.anisotropicFilteringLevel = 8;
+
+  m.diffuseTexture = tex;
+  m.diffuseColor = new Color3(1, 1, 1); // do not tint textures
+  m.specularColor = new Color3(0.05, 0.05, 0.05);
+  m.backFaceCulling = !doubleSided;
+
+  return m;
+}
+
 function surfaceMaterial(scene: Scene, opts?: { doubleSided?: boolean }) {
   const doubleSided = opts?.doubleSided ?? false;
   const suf = doubleSided ? "_2s" : "";
 
   return {
-    black: makeMat(scene, `mat_black${suf}`, new Color3(0.08, 0.08, 0.08), doubleSided),
-    grass: makeMat(scene, `mat_grass${suf}`, new Color3(0.18, 0.35, 0.18), doubleSided),
-    concrete_light: makeMat(scene, `mat_conc_light${suf}`, new Color3(0.75, 0.75, 0.75), doubleSided),
-    concrete_medium: makeMat(scene, `mat_conc_med${suf}`, new Color3(0.55, 0.55, 0.55), doubleSided),
-    concrete_dark: makeMat(scene, `mat_conc_dark${suf}`, new Color3(0.32, 0.32, 0.32), doubleSided),
-    wood: makeMat(scene, `mat_wood${suf}`, new Color3(0.45, 0.30, 0.18), doubleSided),
-    tile: makeMat(scene, `mat_tile${suf}`, new Color3(0.65, 0.65, 0.70), doubleSided),
-    road: makeMat(scene, `mat_road${suf}`, new Color3(0.12, 0.12, 0.12), doubleSided),
+    black: makeTexMat(scene, `mat_black${suf}`, "/assets/textures/surfaces/black.jpg", doubleSided),
+    grass: makeTexMat(scene, `mat_grass${suf}`, "/assets/textures/surfaces/grass.jpg", doubleSided),
+    concrete_light: makeTexMat(scene, `mat_conc_light${suf}`, "/assets/textures/surfaces/concrete_light.jpg", doubleSided),
+    concrete_medium: makeTexMat(scene, `mat_conc_med${suf}`, "/assets/textures/surfaces/concrete_medium.jpg", doubleSided),
+    concrete_dark: makeTexMat(scene, `mat_conc_dark${suf}`, "/assets/textures/surfaces/concrete_dark.jpg", doubleSided),
+    wood: makeTexMat(scene, `mat_wood${suf}`, "/assets/textures/surfaces/wood.jpg", doubleSided),
+    tile: makeTexMat(scene, `mat_tile${suf}`, "/assets/textures/surfaces/tile.jpg", doubleSided),
+
+    // Not part of the Region surface enum, but still render with a real texture.
+    road: makeTexMat(scene, `mat_road${suf}`, "/assets/textures/surfaces/concrete_dark.jpg", doubleSided),
+
+    // No wall texture exists yet; keep as solid color for now.
     wall: makeMat(scene, `mat_wall${suf}`, new Color3(0.45, 0.20, 0.18), doubleSided),
   } as const;
 }
@@ -82,6 +107,26 @@ function pickFloorY(scene: Scene, x: number, z: number, originY: number, maxDist
   const hit = scene.pickWithRay(ray, isFloorMesh);
   if (!hit?.hit || !hit.pickedPoint) return null;
   return hit.pickedPoint.y;
+}
+
+/**
+ * Make surface textures repeat in real-world meters.
+ * Uses world-space XZ to generate UVs, so all regions share consistent texture scale and alignment.
+ */
+function applyWorldUVs(mesh: Mesh, metersPerTile: number) {
+  const pos = mesh.getVerticesData(VertexBuffer.PositionKind);
+  if (!pos) return;
+
+  const uvs = new Array((pos.length / 3) * 2);
+
+  for (let i = 0, j = 0; i < pos.length; i += 3, j += 2) {
+    const wx = pos[i]! + mesh.position.x;
+    const wz = pos[i + 2]! + mesh.position.z;
+    uvs[j] = wx / metersPerTile;
+    uvs[j + 1] = wz / metersPerTile;
+  }
+
+  mesh.setVerticesData(VertexBuffer.UVKind, uvs);
 }
 
 // Rect region renderer (CreateGround)
@@ -118,6 +163,9 @@ function renderRectRegion(
   mesh.position.x = minX + width / 2;
   mesh.position.z = minZ + height / 2;
   mesh.position.y = baseY;
+
+  // World-scaled UVs (0.5m tiles)
+  applyWorldUVs(mesh, SURFACE_TEX_METERS);
 
   mesh.material = mat;
   mesh.checkCollisions = collisions;
@@ -161,12 +209,12 @@ function renderPolyRegion(
   const positions: number[] = [];
   const uvs: number[] = [];
 
-  const uvScale = 0.1;
-
   for (const p of world) {
     coords2d.push(p.x, p.z);
     positions.push(p.x, baseY, p.z);
-    uvs.push(p.x * uvScale, p.z * uvScale);
+
+    // World-scaled UVs (0.5m tiles)
+    uvs.push(p.x / SURFACE_TEX_METERS, p.z / SURFACE_TEX_METERS);
   }
 
   const indices = earcut(coords2d, undefined, 2);
@@ -268,6 +316,7 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   road.position.x = 100;
   road.position.z = 35;
   road.material = mats.road;
+  applyWorldUVs(road, SURFACE_TEX_METERS);
   road.checkCollisions = true;
   road.metadata = { rbs: { kind: "floor", layer: "road" } };
 
