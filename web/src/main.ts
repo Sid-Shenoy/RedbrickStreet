@@ -33,6 +33,10 @@ const FIRST_FLOOR_Y = 0.2;
 const SECOND_FLOOR_Y = 3.2;
 const CEILING_Y = 6.2;
 
+// Boundary wall rendering (between regions)
+const BOUNDARY_WALL_H = 0.2;
+const BOUNDARY_WALL_T = 0.06;
+
 // Auto-step (meters)
 const MAX_STEP_UP = 0.5;
 const STEP_PROBE_DIST = 0.55;
@@ -275,6 +279,225 @@ function renderCeilings(scene: Scene, houses: HouseWithModel[], ceilingMat: Stan
   }
 }
 
+// -------- Boundary wall extraction/rendering (shared edges between regions) --------
+
+type Seg = { x0: number; z0: number; x1: number; z1: number };
+const WALL_EPS = 1e-6;
+
+function round6(v: number) {
+  return Math.round(v * 1e6) / 1e6;
+}
+
+function uniqSorted(vals: number[]): number[] {
+  const s = [...vals].sort((a, b) => a - b);
+  const out: number[] = [];
+  for (const v of s) {
+    if (out.length === 0) out.push(v);
+    else if (Math.abs(v - out[out.length - 1]!) > WALL_EPS) out.push(v);
+  }
+  return out;
+}
+
+function regionBoundarySegments(r: Region): Seg[] {
+  if (r.type === "rectangle") {
+    const [[ax, az], [bx, bz]] = r.points;
+    const x0 = Math.min(ax, bx);
+    const x1 = Math.max(ax, bx);
+    const z0 = Math.min(az, bz);
+    const z1 = Math.max(az, bz);
+    return [
+      { x0, z0, x1, z1: z0 }, // bottom
+      { x0: x1, z0, x1, z1 }, // right
+      { x0: x1, z0: z1, x1: x0, z1 }, // top
+      { x0, z0: z1, x1: x0, z1: z0 }, // left
+    ];
+  }
+
+  const pts = r.points;
+  const segs: Seg[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i]!;
+    const b = pts[(i + 1) % pts.length]!;
+    segs.push({ x0: a[0], z0: a[1], x1: b[0], z1: b[1] });
+  }
+  return segs;
+}
+
+function splitIntoAtomicSegments(segs: Seg[], xCuts: number[], zCuts: number[]): Seg[] {
+  const out: Seg[] = [];
+
+  for (const s of segs) {
+    const dx = s.x1 - s.x0;
+    const dz = s.z1 - s.z0;
+
+    // Horizontal
+    if (Math.abs(dz) <= WALL_EPS && Math.abs(dx) > WALL_EPS) {
+      const z = s.z0;
+      const xa = Math.min(s.x0, s.x1);
+      const xb = Math.max(s.x0, s.x1);
+
+      const xs = [xa, xb];
+      for (const x of xCuts) {
+        if (x > xa + WALL_EPS && x < xb - WALL_EPS) xs.push(x);
+      }
+      const ux = uniqSorted(xs);
+
+      for (let i = 0; i < ux.length - 1; i++) {
+        const x0 = ux[i]!;
+        const x1 = ux[i + 1]!;
+        if (x1 - x0 > WALL_EPS) out.push({ x0, z0: z, x1, z1: z });
+      }
+      continue;
+    }
+
+    // Vertical
+    if (Math.abs(dx) <= WALL_EPS && Math.abs(dz) > WALL_EPS) {
+      const x = s.x0;
+      const za = Math.min(s.z0, s.z1);
+      const zb = Math.max(s.z0, s.z1);
+
+      const zs = [za, zb];
+      for (const z of zCuts) {
+        if (z > za + WALL_EPS && z < zb - WALL_EPS) zs.push(z);
+      }
+      const uz = uniqSorted(zs);
+
+      for (let i = 0; i < uz.length - 1; i++) {
+        const z0 = uz[i]!;
+        const z1 = uz[i + 1]!;
+        if (z1 - z0 > WALL_EPS) out.push({ x0: x, z0, x1: x, z1 });
+      }
+      continue;
+    }
+
+    // Degenerate / non-axis-aligned (shouldn't happen by requirements); ignore.
+  }
+
+  return out;
+}
+
+function segKeyAtomic(s: Seg): string {
+  // Canonicalize orientation and endpoint order.
+  const dx = s.x1 - s.x0;
+  const dz = s.z1 - s.z0;
+
+  if (Math.abs(dz) <= WALL_EPS && Math.abs(dx) > WALL_EPS) {
+    const z = round6(s.z0);
+    const a = round6(Math.min(s.x0, s.x1));
+    const b = round6(Math.max(s.x0, s.x1));
+    return `h|${z}|${a}|${b}`;
+  }
+
+  if (Math.abs(dx) <= WALL_EPS && Math.abs(dz) > WALL_EPS) {
+    const x = round6(s.x0);
+    const a = round6(Math.min(s.z0, s.z1));
+    const b = round6(Math.max(s.z0, s.z1));
+    return `v|${x}|${a}|${b}`;
+  }
+
+  // Non-axis-aligned shouldn't happen; still return something stable.
+  return `na|${round6(s.x0)}|${round6(s.z0)}|${round6(s.x1)}|${round6(s.z1)}`;
+}
+
+function renderBoundaryWallsForLayer(
+  scene: Scene,
+  houses: HouseWithModel[],
+  getRegions: (h: HouseWithModel) => Region[],
+  baseY: number,
+  meshPrefix: string,
+  wallMat: StandardMaterial
+) {
+  for (const house of houses) {
+    const regions = getRegions(house);
+
+    // Build cut sets from ALL region vertices so we can split long edges into shared atomic segments.
+    const xVals: number[] = [0, house.bounds.xsize];
+    const zVals: number[] = [0, 30];
+
+    for (const r of regions) {
+      if (r.type === "rectangle") {
+        xVals.push(r.points[0][0], r.points[1][0]);
+        zVals.push(r.points[0][1], r.points[1][1]);
+      } else {
+        for (const [x, z] of r.points) {
+          xVals.push(x);
+          zVals.push(z);
+        }
+      }
+    }
+
+    const xCuts = uniqSorted(xVals);
+    const zCuts = uniqSorted(zVals);
+
+    // Count boundary atomic segments across all regions.
+    const segCount = new Map<string, { count: number; seg: Seg }>();
+
+    for (const r of regions) {
+      const boundary = regionBoundarySegments(r);
+      const atomic = splitIntoAtomicSegments(boundary, xCuts, zCuts);
+
+      for (const s of atomic) {
+        const key = segKeyAtomic(s);
+        const prev = segCount.get(key);
+        if (prev) prev.count += 1;
+        else segCount.set(key, { count: 1, seg: s });
+      }
+    }
+
+    // Shared between TWO regions => interior boundary (between rooms).
+    const shared = [...segCount.values()].filter((v) => v.count === 2);
+
+    let idx = 0;
+    for (const { seg } of shared) {
+      const p0 = lotLocalToWorld(house, seg.x0, seg.z0);
+      const p1 = lotLocalToWorld(house, seg.x1, seg.z1);
+
+      const dx = p1.x - p0.x;
+      const dz = p1.z - p0.z;
+
+      const isHoriz = Math.abs(dz) <= 1e-6 && Math.abs(dx) > 1e-6;
+      const isVert = Math.abs(dx) <= 1e-6 && Math.abs(dz) > 1e-6;
+      if (!isHoriz && !isVert) continue;
+
+      if (isHoriz) {
+        const x0 = Math.min(p0.x, p1.x);
+        const x1 = Math.max(p0.x, p1.x);
+        const len = Math.max(0.001, x1 - x0);
+
+        const box = MeshBuilder.CreateBox(`${meshPrefix}_wall_${house.houseNumber}_${idx++}`, {
+          width: len,
+          height: BOUNDARY_WALL_H,
+          depth: BOUNDARY_WALL_T,
+        }, scene);
+
+        box.position.x = (x0 + x1) * 0.5;
+        box.position.z = p0.z; // same as p1.z
+        box.position.y = baseY + BOUNDARY_WALL_H / 2;
+
+        box.material = wallMat;
+        box.checkCollisions = false; // visual only
+      } else {
+        const z0 = Math.min(p0.z, p1.z);
+        const z1 = Math.max(p0.z, p1.z);
+        const len = Math.max(0.001, z1 - z0);
+
+        const box = MeshBuilder.CreateBox(`${meshPrefix}_wall_${house.houseNumber}_${idx++}`, {
+          width: BOUNDARY_WALL_T,
+          height: BOUNDARY_WALL_H,
+          depth: len,
+        }, scene);
+
+        box.position.x = p0.x; // same as p1.x
+        box.position.z = (z0 + z1) * 0.5;
+        box.position.y = baseY + BOUNDARY_WALL_H / 2;
+
+        box.material = wallMat;
+        box.checkCollisions = false; // visual only
+      }
+    }
+  }
+}
+
 function setupAutoStep(scene: Scene, camera: UniversalCamera) {
   scene.onBeforeRenderObservable.add(() => {
     // Only attempt stepping when the player is actively trying to move.
@@ -349,8 +572,13 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   renderFloorLayer(scene, houses, mats, "plot", (h) => h.model.plot.regions, PLOT_Y, true);
   renderFloorLayer(scene, houses, mats, "firstFloor", (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, true);
 
+  // Boundary walls between rooms (white, 0.2m tall) for first & second floor
+  const boundaryWallMat = makeMat(scene, "mat_boundary_wall", new Color3(1, 1, 1), false);
+  renderBoundaryWallsForLayer(scene, houses, (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, "ff", boundaryWallMat);
+
   // Second floor: double-sided so underside is visible while walking below.
   renderFloorLayer(scene, houses, matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, false);
+  renderBoundaryWallsForLayer(scene, houses, (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, "sf", boundaryWallMat);
 
   // Ceiling (congruent with houseregion) at 6.2m, double-sided so underside is visible.
   renderCeilings(scene, houses, matsDouble.concrete_light);
