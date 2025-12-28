@@ -497,7 +497,7 @@ function ensureRequiredConnected(hn: number, regions: Region[]) {
     const cur = stack.pop()!;
     for (const nxt of reqIdx) {
       if (visited.has(nxt)) continue;
-      if (adj[cur]![nxt]! + EPS >= 0.6) {
+      if (adj[cur]![nxt]! + EPS >= 1.0) {
         visited.add(nxt);
         stack.push(nxt);
       }
@@ -772,49 +772,49 @@ function validateInterfacesAndConnectivityOrThrow(
     if (overlap + EPS < 2.5) throw new Error(`firstFloor: House ${hn} garage-driveway interface too short (len=${q(overlap, 3)}m)`);
   }
 
-  // Foyer front interface with walkway >= 0.8m
+  // Foyer front interface with walkway >= 1.0m
   {
     const f = regions[iFoyer]!;
     const fbb = f.type === "rectangle" ? rectFromRegion(f) : polyBounds(f.points);
     if (Math.abs(fbb.z1 - zFront) > 1e-2) throw new Error(`firstFloor: House ${hn} foyer must touch front boundary`);
 
     const overlap = Math.max(0, Math.min(fbb.x1, walkway.x1) - Math.max(fbb.x0, walkway.x0));
-    if (overlap + EPS < 0.8) throw new Error(`firstFloor: House ${hn} foyer-walkway interface too short (len=${q(overlap, 3)}m)`);
+    if (overlap + EPS < 1.0) throw new Error(`firstFloor: House ${hn} foyer-walkway interface too short (len=${q(overlap, 3)}m)`);
   }
 
   const adj = adjacencyLengths(regions);
   const adjLen = (a: number, b: number) => adj[a]![b]!;
 
-  // foyer with hallway OR livingroom (>= 0.8)
-  if (Math.max(adjLen(iFoyer, iHall), adjLen(iFoyer, iLiving)) + EPS < 0.8) {
-    throw new Error(`firstFloor: House ${hn} foyer must touch hallway or livingroom (>=0.8m)`);
+  // foyer with hallway OR livingroom (>= 1.0)
+  if (Math.max(adjLen(iFoyer, iHall), adjLen(iFoyer, iLiving)) + EPS < 1.0) {
+    throw new Error(`firstFloor: House ${hn} foyer must touch hallway or livingroom (>=1.0m)`);
   }
 
-  // hallway with stairs (>= 0.8)
-  if (adjLen(iHall, iStairs) + EPS < 0.8) throw new Error(`firstFloor: House ${hn} hallway must touch stairs (>=0.8m)`);
+  // hallway with stairs (>= 1.0)
+  if (adjLen(iHall, iStairs) + EPS < 1.0) throw new Error(`firstFloor: House ${hn} hallway must touch stairs (>=1.0m)`);
 
-  // bathroom_small with hallway (>= 0.6)
-  if (adjLen(iBath, iHall) + EPS < 0.6) throw new Error(`firstFloor: House ${hn} bathroom_small must touch hallway (>=0.6m)`);
+  // bathroom_small with hallway (>= 1.0)
+  if (adjLen(iBath, iHall) + EPS < 1.0) throw new Error(`firstFloor: House ${hn} bathroom_small must touch hallway (>=1.0m)`);
 
-  // kitchen with livingroom OR diningroom OR hallway (>=0.8)
+  // kitchen with livingroom OR diningroom OR hallway (>=1.0)
   const iDining = idxByName("diningroom");
   const kitchenOK =
-    adjLen(iKitchen, iLiving) + EPS >= 0.8 ||
-    adjLen(iKitchen, iHall) + EPS >= 0.8 ||
-    (iDining >= 0 && adjLen(iKitchen, iDining) + EPS >= 0.8);
+    adjLen(iKitchen, iLiving) + EPS >= 1.0 ||
+    adjLen(iKitchen, iHall) + EPS >= 1.0 ||
+    (iDining >= 0 && adjLen(iKitchen, iDining) + EPS >= 1.0);
   if (!kitchenOK) throw new Error(`firstFloor: House ${hn} kitchen adjacency constraint failed`);
 
-  // garage with hallway OR mudroom OR foyer (>=0.8)
+  // garage with hallway OR mudroom OR foyer (>=1.0)
   const iMud = idxByName("mudroom");
   const garageOK =
-    adjLen(iGarage, iHall) + EPS >= 0.8 ||
-    adjLen(iGarage, iFoyer) + EPS >= 0.8 ||
-    (iMud >= 0 && adjLen(iGarage, iMud) + EPS >= 0.8);
+    adjLen(iGarage, iHall) + EPS >= 1.0 ||
+    adjLen(iGarage, iFoyer) + EPS >= 1.0 ||
+    (iMud >= 0 && adjLen(iGarage, iMud) + EPS >= 1.0);
   if (!garageOK) throw new Error(`firstFloor: House ${hn} garage adjacency constraint failed`);
 
-  // diningroom if present: must touch kitchen OR livingroom (>=0.8)
+  // diningroom if present: must touch kitchen OR livingroom (>=1.0)
   if (iDining >= 0) {
-    if (Math.max(adjLen(iDining, iKitchen), adjLen(iDining, iLiving)) + EPS < 0.8) {
+    if (Math.max(adjLen(iDining, iKitchen), adjLen(iDining, iLiving)) + EPS < 1.0) {
       throw new Error(`firstFloor: House ${hn} diningroom adjacency constraint failed`);
     }
   }

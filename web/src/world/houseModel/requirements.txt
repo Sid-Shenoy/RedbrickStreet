@@ -157,7 +157,7 @@ Object 2)
 3.5.4) Room realism minimums (hard, to avoid "weird rooms")
 3.5.4.1) No region may have area < 2.0 m^2.
 3.5.4.2) No region may have a minimum bounding-box dimension < 1.0 m.
-3.5.4.3) Recommendation: avoid any region edge shorter than 0.8 m.
+3.5.4.3) Recommendation: avoid any region edge shorter than 1.0 m.
 
 3.6) Construction elements (doors only for now)
 
@@ -325,22 +325,23 @@ Example Door element (exterior):
 5.4.2.1) The `garage` region must touch the front boundary of `houseregion` and align with the plot driveway.
 5.4.2.1.1) It must share a boundary segment of length >= 2.5 m with plot `driveway_near` (along the house front edge).
 5.4.2.2) The `foyer` region must touch the front boundary of `houseregion` and align with the plot walkway.
-5.4.2.2.1) It must share a boundary segment of length >= 0.8 m with plot `walkway` (along the house front edge).
+5.4.2.2.1) It must share a boundary segment of length >= 1.0 m with plot `walkway` (along the house front edge).
 5.4.3) Interior connectivity (simple, hard)
-5.4.3.1) `foyer` must share a boundary segment length >= 0.8 m with `hallway` OR `livingroom`.
-5.4.3.2) `hallway` must share a boundary segment length >= 0.8 m with `stairs`.
-5.4.3.3) `bathroom_small` must share a boundary segment length >= 0.8 m with `hallway`.
-5.4.3.4) `kitchen` must share a boundary segment length >= 0.8 m with `livingroom` OR `diningroom` OR `hallway`.
-5.4.3.5) `garage` must share a boundary segment length >= 0.8 m with `hallway` OR `mudroom` OR `foyer` (representing an interior door).
+5.4.3.1) `foyer` must share a boundary segment length >= 1.0 m with `hallway` OR `livingroom`.
+5.4.3.2) `hallway` must share a boundary segment length >= 1.0 m with `stairs`.
+5.4.3.3) `bathroom_small` must share a boundary segment length >= 1.0 m with `hallway`.
+5.4.3.4) `kitchen` must share a boundary segment length >= 1.0 m with `livingroom` OR `diningroom` OR `hallway`.
+5.4.3.5) `garage` must share a boundary segment length >= 1.0 m with `hallway` OR `mudroom` OR `foyer` (representing an interior door).
 5.4.3.6) If present:
-5.4.3.6.1) `diningroom` must share a boundary segment length >= 0.8 m with `kitchen` OR `livingroom`.
-5.4.3.6.2) `mudroom` must share a boundary segment length >= 0.8 m with `garage` OR `hallway`.
-5.4.3.6.3) `pantry` must share a boundary segment length >= 0.8 m with `kitchen`.
-5.4.3.6.4) `laundry` should share a boundary segment length >= 0.8 m with `hallway` OR `mudroom`.
-5.4.3.6.5) `office` should share a boundary segment length >= 0.8 m with `hallway` OR `livingroom`.
+5.4.3.6.1) `diningroom` must share a boundary segment length >= 1.0 m with `kitchen` OR `livingroom`.
+5.4.3.6.2) `mudroom` must share a boundary segment length >= 1.0 m with `garage` OR `hallway`.
+5.4.3.6.3) `pantry` must share a boundary segment length >= 1.0 m with `kitchen`.
+5.4.3.6.4) `laundry` should share a boundary segment length >= 1.0 m with `hallway` OR `mudroom`.
+5.4.3.6.5) `office` should share a boundary segment length >= 1.0 m with `hallway` OR `livingroom`.
 5.4.3.7) Global connectivity (hard)
 5.4.3.7.1) Adjacency definition (for connectivity checks)
-5.4.3.7.1.1) Two regions A and B are considered "adjacent" if they share a boundary segment of length >= 0.8 m.
+5.4.3.7.1.1) Two regions A and B are considered "adjacent" if they share a boundary segment of length >= 1.0 m.
+5.4.3.7.1.2) A door may only be placed on a shared boundary segment of length >= 1.0 m (so the door opening is not forced to touch a corner).
 5.4.3.7.2) Required-room connectivity
 5.4.3.7.2.1) The subgraph formed by the required regions:
 5.4.3.7.2.1.1) garage
@@ -469,9 +470,9 @@ Example firstFloor output (with a couple extras):
 6.5.2) Stair arrival
 6.5.2.1) `hallway` must touch (share an edge segment with) the projection of a first-floor `stairs` rectangle.
 6.5.3) Connectivity
-6.5.3.1) Every `bedroom` must share a boundary segment length >= 0.8 m with `hallway`.
-6.5.3.2) Every bathroom (bathroom_small/bathroom_large) must share a boundary segment length >= 0.8 m with `hallway`.
-6.5.3.3) If present, `closet` should share a boundary segment length >= 0.8 m with a `bedroom` OR share a boundary segment length >= 0.8 m with `hallway`.
+6.5.3.1) Every `bedroom` must share a boundary segment length >= 1.0 m with `hallway`.
+6.5.3.2) Every bathroom (bathroom_small/bathroom_large) must share a boundary segment length >= 1.0 m with `hallway`.
+6.5.3.3) If present, `closet` should share a boundary segment length >= 1.0 m with a `bedroom` OR share a boundary segment length >= 1.0 m with `hallway`.
 
 6.6) Room size minimums (hard, realistic)
 
@@ -571,4 +572,4 @@ Example secondFloor output (3 bedrooms, all named "bedroom"):
 7.6.2) The error message must include:
 7.6.2.1) house number
 7.6.2.2) which required door could not be placed (e.g. "hallway->bathroom_small")
-7.6.2.3) the blocking reason (e.g. "no shared boundary segment >= 0.8m")
+7.6.2.3) the blocking reason (e.g. "no shared boundary segment >= 0.8 m")
