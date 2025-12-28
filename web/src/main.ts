@@ -622,6 +622,9 @@ async function boot() {
   const { houses } = await loadStreetConfig();
   const housesWithModel = houses.map((h) => attachHouseModel(h, STREET_SEED));
 
+  // Log all transformed houses (HouseConfig + generated model) as soon as config is loaded.
+  console.log("[RBS] Houses with models:", housesWithModel);
+
   renderStreet(scene, housesWithModel);
 
   engine.runRenderLoop(() => scene.render());

@@ -2,12 +2,11 @@
 
 1.1) Lot-local coordinate system
 
-1.1.1) All model geometry is expressed in lot-local coordinates unless explicitly stated otherwise.
+1.1.1) All house-model geometry is expressed in lot-local coordinates unless explicitly stated otherwise.
 1.1.2) Lot-local bounds:
 1.1.2.1) localX is within [0, xsize]
 1.1.2.2) localZ is within [0, zsize]
 1.1.2.3) For this project, zsize must be 30 for all houses
-
 1.1.3) Orientation rule (consistent "front" for both sides of street)
 1.1.3.1) The lot-local "front" edge is always localZ = zsize (30), regardless of which side of the street the house is on.
 1.1.3.2) The lot-local "back" edge is always localZ = 0.
@@ -38,43 +37,46 @@
 2.2.2.2) firstFloor
 2.2.2.3) secondFloor
 
-2.2.3) Preconditions and validation
-2.2.3.1) `house.bounds.zsize` must equal 30; otherwise generation must throw an Error.
-2.2.3.2) `house.bounds.xsize` must be >= 12.0; otherwise generation must throw an Error.
-2.2.3.3) `house.occupants.length` must be within [1, 5]; otherwise generation must throw an Error.
-2.2.3.4) The generator may throw if it cannot satisfy the constraints in this file.
-2.2.3.5) `makeHouseGenContext` must validate 2.2.3.1 through 2.2.3.3 and fail fast so all generation stages may assume these preconditions hold.
+2.3) Preconditions (minimal, pragmatic)
 
-2.3) Determinism contract
+2.3.1) `house.bounds.zsize` must equal 30; otherwise model generation must throw an Error.
+2.3.2) Validation may be staged:
+2.3.2.1) `makeHouseGenContext` must validate zsize=30.
+2.3.2.2) Each generation stage may validate additional inputs it relies on.
 
-2.3.1) Seed string
-2.3.1.1) The model seed string must be exactly:
-2.3.1.1.1) `${streetSeed}/house/${house.houseNumber}`
+2.4) Determinism contract
 
-2.3.2) Deterministic output requirement
-2.3.2.1) For a given tuple:
-2.3.2.1.1) streetSeed
-2.3.2.1.2) house.houseNumber
-2.3.2.1.3) house.bounds (x, z, xsize, zsize)
-2.3.2.1.4) house.occupants.length
-2.3.2.2) The generated `HouseModel` must be identical across runs.
+2.4.1) Seed string
+2.4.1.1) The model seed string must be exactly:
+2.4.1.1.1) `${streetSeed}/house/${house.houseNumber}`
+2.4.2) Deterministic output requirement
+2.4.2.1) For a given tuple:
+2.4.2.1.1) streetSeed
+2.4.2.1.2) house.houseNumber
+2.4.2.1.3) house.bounds (x, z, xsize, zsize)
+2.4.2.1.4) house.occupants.length
+2.4.2.2) The generated `HouseModel` must be identical across runs.
 
-2.4) Current modeling scope (no objects yet)
+2.5) Current modeling scope (this milestone)
 
-2.4.1) Each layer must contain:
-2.4.1.1) `regions` (fully generated)
-2.4.1.2) `construction` (currently empty)
-2.4.1.3) `objects` (currently empty)
-2.4.2) Construction items (walls/doors/windows/stairs) and movable objects are out of scope for the current implementation.
+2.5.1) Each layer must contain:
+2.5.1.1) `regions` (generated)
+2.5.1.2) `construction` (empty for now)
+2.5.1.3) `objects` (empty for now)
+2.5.2) `regions` represent navigable floor/ground surface "zones".
+2.5.3) Detailed walls/doors/windows/stairs geometry is out of scope for now and will be added later under `construction`.
 
-2.5) Failure behavior and error format
+2.6) Failure behavior and error format
 
-2.5.1) If constraints cannot be satisfied, generation must fail fast by throwing an Error.
-2.5.2) Errors should include a clear prefix indicating which stage failed
-2.5.2.1) Must be one of `plot: ...`, `firstFloor: ...`, `secondFloor: ...`
-2.5.3) Precondition validation errors thrown before entering a stage (e.g. invalid lot bounds)
-2.5.3.1) May omit the stage prefix
-2.5.3.2) Must still include the house number, the invalid value, and the expected value (or expected range)
+2.6.1) If constraints cannot be satisfied, generation must fail fast by throwing an Error.
+2.6.2) Errors thrown inside a stage should include a clear prefix indicating the stage:
+2.6.2.1) `plot: ...`
+2.6.2.2) `firstFloor: ...`
+2.6.2.3) `secondFloor: ...`
+2.6.3) Precondition validation errors thrown before entering a stage may omit the prefix, but must include:
+2.6.3.1) house number
+2.6.3.2) the invalid value
+2.6.3.3) the expected value (or expected range)
 
 3) House model data format (`types.ts`)
 
@@ -90,8 +92,8 @@
 
 3.2.1) A FloorModel must contain:
 3.2.1.1) `regions: Region[]`
-3.2.1.2) `construction: unknown[]` (currently empty)
-3.2.1.3) `objects: unknown[]` (currently empty)
+3.2.1.2) `construction: unknown[]` (empty for now)
+3.2.1.3) `objects: unknown[]` (empty for now)
 
 3.3) Region surface enum
 
@@ -101,136 +103,96 @@
 3.4) Region geometry format
 
 3.4.1) Each region must have:
-3.4.1.1) `name: string` (unique within the same layer)
+3.4.1.1) `name: string` (a semantic label; duplicates are allowed unless a layer explicitly forbids them)
 3.4.1.2) `type: "rectangle" | "polygon"`
 3.4.1.3) `points` in lot-local coordinates
-
 3.4.2) Rectangle format
 3.4.2.1) points: [[min_x, min_z], [max_x, max_z]]
-
 3.4.3) Polygon format
 3.4.3.1) points: [[p1_x, p1_z], [p2_x, p2_z], ... [pn_x, pn_z]]
 3.4.3.2) Polygons must not be explicitly closed (do not repeat the first point at the end); closure is implied by consumers.
+3.4.4) Finding regions by name (important for duplicates)
+3.4.4.1) If multiple regions share the same `name`, consumers must treat that name as a category.
+3.4.4.2) When a layer requires "a region named X", it means:
+3.4.4.2.1) at least one region exists where region.name === X
+
+Example region objects:
+
+Object 1)
+```
+{
+  "name": "garage",
+  "surface": "concrete_dark",
+  "type": "rectangle",
+  "points": [[0, 18.3], [3.4, 22.9]]
+}
+```
+
+Object 2)
+```
+{
+  "name": "houseregion",
+  "surface": "black",
+  "type": "polygon",
+  "points": [[0, 22.1], [13.6, 22.1], [13.6, 7.2], [0, 7.2]]
+}
+```
 
 3.5) Geometry invariants (all layers)
 
 3.5.1) Coordinate bounds
-3.5.1.1) All region coordinates must remain within lot-local bounds:
-3.5.1.1.1) x in [0, xsize] (allowing tiny floating tolerance)
-3.5.1.1.2) z in [0, 30] (allowing tiny floating tolerance)
-
-3.5.2) Shape constraints
-3.5.2.1) Region shapes must be axis-aligned rectangles or simple (non-self-intersecting) orthogonal polygons.
+3.5.1.1) All region coordinates must remain within lot-local bounds (tiny floating tolerance allowed):
+3.5.1.1.1) x in [0, xsize]
+3.5.1.1.2) z in [0, 30]
+3.5.2) Shape constraints (realistic + generator-friendly)
+3.5.2.1) Regions must be axis-aligned rectangles or simple (non-self-intersecting) orthogonal polygons.
 3.5.2.2) Polygon edges must be axis-aligned.
-3.5.2.3) Polygon point lists should be simplified (no redundant collinear vertices).
-3.5.2.4) Polygon boundary order
-3.5.2.4.1) Polygon points must be listed in boundary traversal order (clockwise or counter-clockwise).
-3.5.2.4.2) The consumer assumes closure between the last point and the first point.
-3.5.2.5) No-holes constraint
-3.5.2.5.1) Polygons must describe a single outer boundary with no interior holes.
-3.5.2.6) Axis-aligned vertex rule (normative)
-3.5.2.6.1) Each consecutive pair of polygon vertices must share x or share z (within tolerance).
-3.5.2.6.2) Polygons must not contain duplicate consecutive vertices.
-
-3.5.3) Partitioning constraints (within a single layer)
-3.5.3.1) Regions in the same layer must not overlap in area.
-3.5.3.2) Shared boundaries are allowed.
-3.5.3.3) Regions in the same layer must fully cover that layer's footprint.
-3.5.3.4) Each region should be a single connected area (no disjoint "islands" for the same region name).
-
-3.5.4) Minimum “no-sliver” invariant (firstFloor and secondFloor only)
+3.5.2.3) Polygon point lists should be simplified (no redundant collinear vertices, no duplicate consecutive vertices).
+3.5.3) Non-overlap
+3.5.3.1) Regions in the same layer must not overlap in area (shared edges/corners are allowed).
+3.5.4) Room realism minimums (hard, to avoid "weird rooms")
 3.5.4.1) No region may have area < 2.0 m^2.
-3.5.4.2) No region may have a boundary edge shorter than 0.9 m.
-3.5.4.3) No region may have a minimum bounding-box dimension < 1.0 m.
-3.5.4.4) Exceptions:
-3.5.4.4.1) The second-floor `closet` region may be as small as 1.8 m^2 and may have a minimum dimension of 0.9 m.
+3.5.4.2) No region may have a minimum bounding-box dimension < 1.0 m.
+3.5.4.3) Recommendation: avoid any region edge shorter than 0.8 m.
 
-3.6) Definitions for validation (normative)
+4) Plot layer specification (`generation/plot.ts`) (KEEP AS-IS FUNCTIONALLY)
 
-3.6.1) Overlap definition
-3.6.1.1) Two regions overlap if their intersection has non-zero area (shared edges or shared corners do not count as overlap).
+4.1) Intent
 
-3.6.2) Full coverage definition
-3.6.2.1) Let footprintArea be the area of the layer footprint.
-3.6.2.2) Let unionArea be the area of the union of all regions in the layer.
-3.6.2.3) The layer is considered fully covered if:
-3.6.2.3.1) abs(unionArea - footprintArea) <= max(0.75, footprintArea * 0.0015)
-
-3.6.3) Shared boundary length definition (for connectivity requirements)
-3.6.3.1) Two regions are considered "connected" if they share a boundary segment with length >= 0.9m.
-3.6.3.2) Shared boundary length is measured in lot-local meters along the region boundary.
-
-3.6.4) Footprint boundary, exterior contact, and "front edge" (normative)
-
-3.6.4.1) For a given layer, define the layer footprint:
-3.6.4.1.1) Plot layer: the full lot rectangle x in [0,xsize], z in [0,30]
-3.6.4.1.2) First floor layer: exactly the `houseregion` polygon footprint from the plot model
-3.6.4.1.3) Second floor layer: the first-floor footprint (3.6.4.1.2) with a single rectangular cutout removed,
-3.6.4.1.3.1) where the cutout rectangle is exactly congruent with the first-floor `stairs` rectangle region (see 6.5.2),
-3.6.4.1.3.2) producing a footprint that has exactly one interior hole (the stair opening).
-3.6.4.2) Let footprintOuterBoundary be the boundary polyline of the footprint's outer boundary.
-3.6.4.2.1) For the second floor, footprintOuterBoundary excludes the interior cutout boundary.
-3.6.4.3) Let footprintHoleBoundaries be the set of boundary polylines for any interior holes in the footprint.
-3.6.4.3.1) For the second floor, footprintHoleBoundaries contains exactly one rectangular boundary (the stair opening).
-3.6.4.4) A region "touches the exterior" if it shares a boundary segment with footprintOuterBoundary of length >= 0.9m.
-3.6.4.4.1) Sharing boundary with a hole boundary (footprintHoleBoundaries) does not count as exterior contact.
-3.6.4.5) Define frontZ(footprint) as the maximum z-coordinate attained anywhere on footprintOuterBoundary.
-3.6.4.6) Define frontBoundary(footprint) as the subset of footprintOuterBoundary segments whose points all have z == frontZ(footprint) (within tolerance).
-
-3.6.5) Cross-layer exterior interface length (plot <-> indoor) (normative)
-3.6.5.1) For any plot region P and indoor-floor region R, define:
-3.6.5.1.1) interfaceLen(P, R) = the total length of segments that lie on:
-3.6.5.1.1.1) the plot region boundary of P, AND
-3.6.5.1.1.2) the indoor region boundary of R, AND
-3.6.5.1.1.3) the shared footprintOuterBoundary where plot `houseregion` meets the outdoors (i.e., the `houseregion` outer boundary; hole boundaries do not apply here)
-3.6.5.2) P and R are considered "connected across layers" if interfaceLen(P,R) meets the required threshold for that rule.
-
-3.6.6) "Front exterior contact" (normative)
-3.6.6.1) A region has "front exterior contact" if it shares a boundary segment of length >= 0.9m with frontBoundary(footprint).
-3.6.6.2) A cross-layer interface is a "front interface" if all its segments lie on frontBoundary(footprint).
-
-4) Plot layer specification (`generation/plot.ts`)
-
-4.1) This file produces the outdoor plot partition and the building footprint polygon (`houseregion`) used by both floors.
+4.1.1) Produces:
+4.1.1.1) the outdoor plot partition (yard/driveway/sidewalk/etc.)
+4.1.1.2) the building footprint polygon (`houseregion`) used as the reference footprint for indoor floors
 
 4.2) Exported function
+
 4.2.1) Export: `generatePlotModel(house, ctx) -> FloorModel`
-4.2.2) Output:
-4.2.2.1) Must return a FloorModel where `construction` and `objects` are empty arrays.
-4.2.2.2) Must satisfy all constraints in section 4.
+4.2.2) Output must return a FloorModel where `construction` and `objects` are empty arrays.
 
-4.2.3) Inputs and dependencies (normative)
-4.2.3.1) Plot generation must use:
-4.2.3.1.1) `house.bounds` (xsize and fixed zsize=30)
-4.2.3.1.2) `house.occupants.length` (for footprint sizing guarantees)
-4.2.3.1.3) the deterministic per-house seed in `ctx.seed`
-4.2.3.2) Plot generation must produce the `houseregion` footprint polygon used as the exact footprint for both indoor floors.
+4.3) Plot footprint
 
-4.3) Plot footprint and coverage
 4.3.1) The plot footprint is the full lot rectangle:
 4.3.1.1) x in [0, xsize]
 4.3.1.2) z in [0, 30]
 4.3.2) The plot regions must form a non-overlapping partition of the plot footprint.
 
-4.4) Plot regions (exact set)
+4.4) Required plot regions (exact set)
+
 4.4.1) The plot must contain exactly 9 regions, exactly one each with the following names:
 4.4.1.1) backyard
 4.4.1.2) houseregion
-4.4.1.3) frontlawn_near (front lawn area between house front edge and sidewalk)
-4.4.1.4) frontlawn_far (lawn strip between sidewalk and curb)
-4.4.1.5) driveway_near (driveway area between house and sidewalk)
-4.4.1.6) driveway_far (driveway area between sidewalk and curb)
+4.4.1.3) frontlawn_near
+4.4.1.4) frontlawn_far
+4.4.1.5) driveway_near
+4.4.1.6) driveway_far
 4.4.1.7) sidewalk
-4.4.1.8) curb (curb strip at the road edge)
-4.4.1.9) walkway (pedestrian path from sidewalk to the house entry edge)
+4.4.1.8) curb
+4.4.1.9) walkway
 
 4.4.2) Required plot region types
 4.4.2.1) `sidewalk` and `curb` must be rectangles.
 4.4.2.2) `driveway_near` and `driveway_far` must be rectangles.
 4.4.2.3) `walkway` must be a rectangle.
-4.4.2.4) `houseregion` must be a polygon (even if it could be represented as a rectangle).
-4.4.2.5) All other regions may be rectangles or polygons as long as they remain orthogonal and satisfy coverage/no-overlap.
-
+4.4.2.4) `houseregion` must be a polygon.
 4.4.3) Required plot surfaces
 4.4.3.1) backyard: grass
 4.4.3.2) houseregion: black
@@ -242,142 +204,31 @@
 4.4.3.8) curb: concrete_light
 4.4.3.9) walkway: concrete_medium
 
-4.5) Sidewalk and curb fixed geometry
+4.5) Fixed geometry (must match `plot.ts`)
 
-4.5.1) Sidewalk width must be 1.5m and must sit 3.5m away from the road edge (measured from the sidewalk edge closest to the road).
-4.5.2) In lot-local coordinates, sidewalk must always be the rectangle:
-4.5.2.1) from (0, 25) to (xsize, 26.5)
-4.5.3) Curb width must be 0.2m and must sit directly at the road edge (lot-local front edge).
-4.5.4) In lot-local coordinates, curb must always be the rectangle:
-4.5.4.1) from (0, 29.8) to (xsize, 30)
+4.5.1) Sidewalk must always be:
+4.5.1.1) rectangle from (0, 25) to (xsize, 26.5)
+4.5.2) Curb must always be:
+4.5.2.1) rectangle from (0, 29.8) to (xsize, 30)
 
-4.6) Deterministic plot variation (allowed variation without prescribing implementation)
+4.6) Plot realism constraints (must match `plot.ts`)
 
-4.6.1) Driveway side
-4.6.1.1) Driveway side may be left or right.
-4.6.1.2) The choice must be deterministic from the house seed.
+4.6.1) Driveway width must be within [3.0, 3.8].
+4.6.2) Walkway width must be within [1.1, 1.8].
+4.6.3) frontGap = 25.0 - frontZ(houseregion) must be within [2.0, 4.5].
+4.6.4) The back-most edge of `houseregion` must be at localZ >= 6.0.
+4.6.5) `houseregion` must be orthogonal and have minimum area:
+4.6.5.1) >= 120.0 m^2 for households needing <= 2 bedrooms
+4.6.5.2) >= 135.0 m^2 for households needing 3 bedrooms
 
-4.6.2) Driveway side and width
+5) First floor specification (`generation/firstFloor.ts`) (MORE ROOMS WHEN FEASIBLE, STILL EASY)
 
-4.6.2.1) Driveway side must be chosen according to 4.6.1.
-4.6.2.2) The driveway side choice (4.6.1) and driveway width choice (4.6.2.3) must both be deterministic from the house seed.
-4.6.2.3) Driveway width
-4.6.2.3.1) Driveway width must be deterministic and realistic.
-4.6.2.3.2) Driveway width must be within [3.0, 3.8].
-4.6.2.4) Driveway rectangle placement (normative)
-4.6.2.4.1) Define zFront = frontZ(houseregion) (see 3.6.4.4).
-4.6.2.4.2) Define the driveway x-interval [dx0, dx1] as:
-4.6.2.4.2.1) If driveway side is left:  dx0 = 0,              dx1 = drivewayWidth
-4.6.2.4.2.2) If driveway side is right: dx0 = xsize - drivewayWidth, dx1 = xsize
-4.6.2.4.3) `driveway_near` must be exactly the rectangle:
-4.6.2.4.3.1) from (dx0, zFront) to (dx1, 25.0)
-4.6.2.4.4) `driveway_far` must be exactly the rectangle:
-4.6.2.4.4.1) from (dx0, 26.5) to (dx1, 29.8)
-4.6.2.5) Feasibility and visible lawn guarantee (normative)
-4.6.2.5.1) Let walkwayWidth be the chosen width in 4.6.3.
-4.6.2.5.2) Define remainingFrontLawnWidth = xsize - drivewayWidth - walkwayWidth.
-4.6.2.5.3) remainingFrontLawnWidth must be >= 0.9.
-4.6.2.5.4) The generator must fail fast (throw Error with prefix `plot: ...`) if it cannot satisfy 4.6.2.5.3.
+5.1) Intent
 
-4.6.3) Walkway width and placement
-4.6.3.1) Walkway width must be deterministic and realistic.
-4.6.3.2) Walkway width must be within [1.1, 1.8].
-4.6.3.3) Walkway placement (normative, prevents disconnected lawns)
-4.6.3.3.1) Define zFront = frontZ(houseregion) (see 3.6.4.4).
-4.6.3.3.2) Let drivewayWidth be the chosen width in 4.6.2.
-4.6.3.3.3) Define the walkway x-interval [wx0, wx1] as adjacent to the driveway on the inward side:
-4.6.3.3.3.1) If driveway side is left:  wx0 = drivewayWidth,           wx1 = drivewayWidth + walkwayWidth
-4.6.3.3.3.2) If driveway side is right: wx0 = xsize - drivewayWidth - walkwayWidth, wx1 = xsize - drivewayWidth
-4.6.3.3.4) `walkway` must be exactly the rectangle:
-4.6.3.3.4.1) from (wx0, zFront) to (wx1, 25.0)
-4.6.3.4) Non-overlap requirement (normative)
-4.6.3.4.1) The x-intervals [dx0, dx1] and [wx0, wx1] must be disjoint (within tolerance),
-4.6.3.4.2) but may share a boundary segment (i.e. wx0 == dx1 or wx1 == dx0 within tolerance).
-4.6.3.5) Connected lawn requirement (plot realism)
-4.6.3.5.1) Under the placement rules in 4.6.2 and 4.6.3, both `frontlawn_near` and `frontlawn_far`
-4.6.3.5.2) must each be representable as a single connected orthogonal region (no disjoint pieces).
-
-4.6.4) House footprint variation (realism + “enough space” guarantees)
-4.6.4.1) The `houseregion` footprint must be “mostly rectangular”:
-4.6.4.1.1) It must contain a single axis-aligned rectangular core `coreRect` that accounts for the majority of its area.
-4.6.4.1.1.1) Define `coreRect` as a rectangle from (coreX0, coreZ0) to (coreX1, coreZ1) in lot-local coordinates,
-4.6.4.1.1.2) with coreX0 < coreX1 and coreZ0 < coreZ1, and with `coreRect` fully contained in `houseregion`.
-4.6.4.1.1.3) The front edge of `coreRect` must coincide with the front edge of `houseregion`:
-4.6.4.1.1.3.1) coreZ1 == frontZ(houseregion) (within tolerance EPS).
-4.6.4.1.2) `houseregion` may include at most one orthogonal rectangular rear extension OR rear notch, defined relative to `coreRect`:
-4.6.4.1.2.1) Rear direction is toward smaller z (toward localZ = 0).
-4.6.4.1.2.2) Rear extension:
-4.6.4.1.2.2.1) `houseregion` is the union of `coreRect` and an axis-aligned rectangle `extRect`.
-4.6.4.1.2.2.2) `extRect` must share a boundary segment with the rear edge of `coreRect` (z == coreZ0) of length >= 3.0m.
-4.6.4.1.2.2.3) `extRect` must extend rearward: extRect.z1 == coreZ0 (within EPS) and extRect.z0 < coreZ0.
-4.6.4.1.2.2.4) Define extensionDepth = coreZ0 - extRect.z0, and extensionWidth = extRect.x1 - extRect.x0.
-4.6.4.1.2.3) Rear notch:
-4.6.4.1.2.3.1) `houseregion` is `coreRect` with an axis-aligned rectangle `notchRect` removed.
-4.6.4.1.2.3.2) `notchRect` must share a boundary segment with the rear edge of `coreRect` (z == coreZ0) of length >= 3.0m.
-4.6.4.1.2.3.3) `notchRect` must cut inward from the rear edge: notchRect.z0 == coreZ0 (within EPS) and notchRect.z1 > coreZ0.
-4.6.4.1.2.3.4) Define notchDepth = notchRect.z1 - coreZ0, and notchWidth = notchRect.x1 - notchRect.x0.
-4.6.4.1.3) No other bumps/notches are allowed.
-4.6.4.2) Minimum `houseregion` size constraints (guaranteeing space for sections 5 and 6):
-4.6.4.2.1) Let occ = house.occupants.length.
-4.6.4.2.2) Let minBedrooms = ceil(occ / 2). (Given 2.2.3.3, minBedrooms ∈ {1,2,3}.)
-4.6.4.2.3) Minimum houseregion area:
-4.6.4.2.3.1) If minBedrooms <= 2, `houseregion` area must be >= 120.0 m^2.
-4.6.4.2.3.2) If minBedrooms == 3, `houseregion` area must be >= 135.0 m^2.
-4.6.4.2.4) The rectangular core bounding box must satisfy:
-4.6.4.2.4.1) coreWidth >= 8.0
-4.6.4.2.4.2) coreDepth >= 14.0
-4.6.4.2.4.3) coreWidth upper bound
-4.6.4.2.4.3.1) coreWidth must be <= xsize.  (Driveway/walkway are front-zone pads and do not reserve full-depth side space.)
-4.6.4.2.4.4) Front hardscape feasibility (normative)
-4.6.4.2.4.4.1) Plot generation must place `driveway_near` and `walkway` using zFront = frontZ(houseregion)
-4.6.4.2.4.4.2) so that plot connectivity rules 4.7.2 and 4.7.3 are satisfiable without relying on corner-only contact.
-4.6.4.2.4.5) "Visible lawn strip" definition (normative)
-4.6.4.2.4.5.1) The "visible lawn strip on the opposite side" requirement in 4.6.2 is defined numerically as:
-4.6.4.2.4.5.2) remainingFrontLawnWidth = xsize - drivewayWidth - walkwayWidth (see 4.6.2.5),
-4.6.4.2.4.5.3) and remainingFrontLawnWidth must be >= 0.9.
-4.6.4.3) Front setback constraint (walkway length realism + connectivity)
-4.6.4.3.1) Let zFront = frontZ(houseregion) (see 3.6.4.4).
-4.6.4.3.2) Define frontGap = 25.0 - zFront. (25.0 is the sidewalk edge closest to the house; see 4.5.2.)
-4.6.4.3.3) The generator must ensure frontGap is within [2.0, 4.5].
-4.6.4.3.4) The generator must fail fast (throw Error with prefix `plot: ...`) if it cannot satisfy 4.6.4.3.3.
-4.6.4.4) Rear yard constraint (avoid “all house, no yard”)
-4.6.4.4.1) The back-most edge of `houseregion` must be at localZ >= 6.0.
-4.6.4.5) Optional rear extension/notch thickness constraints (prevents skinny slivers)
-4.6.4.5.1) If a rear extension is present:
-4.6.4.5.1.1) extensionDepth must be within [2.0, 5.0]
-4.6.4.5.1.2) extensionWidth must be >= 3.0
-4.6.4.5.2) If a rear notch is present:
-4.6.4.5.2.1) notchDepth must be within [1.8, 4.0]
-4.6.4.5.2.2) notchWidth must be >= 3.0
-4.6.4.6) Minimum outer edge length constraint (prevents micro-facets)
-4.6.4.6.1) No exterior edge of the `houseregion` polygon may be shorter than 1.25m.
-
-4.7) Plot connectivity requirements
-
-4.7.1) Walkway must touch sidewalk on the house-side sidewalk edge:
-4.7.1.1) `walkway` must be connected to `sidewalk` by shared boundary length >= 1.0m.
-4.7.1.2) The shared boundary in 4.7.1.1 must lie on the sidewalk edge at localZ == 25.0 (within tolerance).
-4.7.2) Walkway must touch the house at the front edge:
-4.7.2.1) `walkway` must be connected to the front edge of `houseregion` by shared boundary length >= 1.0m.
-4.7.2.2) The shared boundary in 4.7.2.1 must lie on frontBoundary(houseregion) (see 3.6.4.5).
-4.7.3) Driveway must touch the house at the front edge (garage-door realism):
-4.7.3.1) Let drivewayWidth = dx1 - dx0 (see 4.6.2.4.2 and 4.6.2.4.3).
-4.7.3.2) `driveway_near` must be connected to `houseregion` by shared boundary length >= drivewayWidth (within tolerance EPS).
-4.7.3.3) The shared boundary in 4.7.3.2 must lie on frontBoundary(houseregion) (see 3.6.4.5).
-4.7.3.4) Alignment requirement (hard):
-4.7.3.4.1) The shared boundary in 4.7.3.2 must cover the entire driveway front edge segment from (dx0, zFront) to (dx1, zFront) (within tolerance EPS).
-4.7.4) Driveway pad continuity (visual continuity, normative)
-4.7.4.1) `driveway_near` and `driveway_far` must have identical x-intervals (same minX and maxX within tolerance).
-4.7.4.2) `driveway_near` must be connected to `sidewalk` by shared boundary length >= 2.5m.
-4.7.4.2.1) The shared boundary in 4.7.4.2 must lie on the sidewalk edge at localZ == 25.0 (within tolerance).
-4.7.4.3) `driveway_far` must be connected to `sidewalk` by shared boundary length >= 2.5m.
-4.7.4.3.1) The shared boundary in 4.7.4.3 must lie on the sidewalk edge at localZ == 26.5 (within tolerance).
-4.7.4.4) `driveway_far` must be connected to `curb` by shared boundary length >= 2.5m.
-4.7.4.4.1) The shared boundary in 4.7.4.4 must lie on the curb edge at localZ == 29.8 (within tolerance).
-
-5) First floor specification (`generation/firstFloor.ts`)
-
-5.1) Partitions the `houseregion` footprint into ground-floor functional zones suitable for later object placement.
+5.1.1) Produces a believable first-floor layout as a set of rectangular zones suitable for navigation and later object placement.
+5.1.2) Zones represent walkable floor surfaces, not exact architectural construction.
+5.1.3) IMPORTANT: The first floor does NOT need to cover the entire `houseregion` footprint.
+5.1.3.1) Uncovered areas represent thickness of exterior walls, built-ins, or other non-walkable parts.
 
 5.2) Exported function
 
@@ -387,232 +238,205 @@
 5.2.2.2) `plot` must include `driveway_near` (rectangle) and `walkway` (rectangle).
 5.2.3) Output:
 5.2.3.1) Must return a FloorModel where `construction` and `objects` are empty arrays.
-5.2.3.2) Must satisfy all constraints in section 5.
 
-5.2.4) Inputs and dependencies (normative)
-5.2.4.1) First-floor generation must partition exactly the plot `houseregion` polygon footprint
-5.2.4.2) First-floor generation must use:
-5.2.4.2.1) plot `walkway` to establish the entry/foyer interface requirement
-5.2.4.2.2) plot `driveway_near` to establish the garage interface requirement
+5.3) Region set
 
-5.3) First floor footprint and coverage
-5.3.1) The first floor footprint is exactly the polygon region in `plot.regions` where name === "houseregion".
-5.3.2) First-floor regions must form a non-overlapping partition of the first-floor footprint.
+5.3.1) Required regions (must include at least one each):
+5.3.1.1) garage          (must be present)
+5.3.1.2) foyer
+5.3.1.3) hallway
+5.3.1.4) livingroom
+5.3.1.5) kitchen
+5.3.1.6) bathroom_small
+5.3.1.7) stairs
+5.3.2) Extra rooms (generate if feasible; 0..N allowed)
+5.3.2.1) diningroom
+5.3.2.2) mudroom
+5.3.2.3) pantry
+5.3.2.4) laundry
+5.3.2.5) office
+5.3.2.6) closet
+5.3.2.7) storage
+5.3.3) "If feasible" means:
+5.3.3.1) all required rooms still meet constraints, and
+5.3.3.2) the extra room meets its minimum size constraints (5.5.5), and
+5.3.3.3) it can be placed without overlap and within `houseregion`
 
-5.4) Required regions (exact set)
-5.4.1) The first floor must contain exactly one region each with the following names:
-5.4.1.1) foyer
-5.4.1.2) garage
-5.4.1.3) livingroom
-5.4.1.4) kitchen
-5.4.1.5) dining
-5.4.1.6) bathroom_small
-5.4.1.7) stairs
-5.4.1.8) hallway
+5.4) Placement and realism constraints (hard)
 
-5.4.2) Required region type constraints
-5.4.2.1) `stairs` must be a rectangle region.
-5.4.2.2) `stairs` must be strictly interior to the first-floor footprint:
-5.4.2.2.1) The closed `stairs` rectangle (including its boundary) must be fully contained in the interior of the first-floor footprint
-5.4.2.2.2) (the plot `houseregion` polygon).
-5.4.2.2.3) The `stairs` rectangle boundary must not intersect the first-floor footprintOuterBoundary (no shared edges and no corner-touch),
-5.4.2.2.4) within tolerance EPS.
-5.4.2.2.5) If 5.4.2.2 cannot be satisfied, first-floor generation must fail fast by throwing an Error with prefix `firstFloor: ...`
-5.4.2.2.6) that includes the house number and the `stairs` rectangle coordinates.
+5.4.1) All first-floor rectangles must lie fully within the `houseregion` polygon (boundary-touching allowed).
+5.4.2) Required exterior interfaces (for believable entry)
+5.4.2.1) The `garage` region must touch the front boundary of `houseregion` and align with the plot driveway.
+5.4.2.1.1) It must share a boundary segment of length >= 2.5 m with plot `driveway_near` (along the house front edge).
+5.4.2.2) The `foyer` region must touch the front boundary of `houseregion` and align with the plot walkway.
+5.4.2.2.1) It must share a boundary segment of length >= 0.8 m with plot `walkway` (along the house front edge).
+5.4.3) Interior connectivity (simple, hard)
+5.4.3.1) `foyer` must share a boundary segment length >= 0.8 m with `hallway` OR `livingroom`.
+5.4.3.2) `hallway` must share a boundary segment length >= 0.8 m with `stairs`.
+5.4.3.3) `bathroom_small` must share a boundary segment length >= 0.6 m with `hallway`.
+5.4.3.4) `kitchen` must share a boundary segment length >= 0.8 m with `livingroom` OR `diningroom` OR `hallway`.
+5.4.3.5) `garage` must share a boundary segment length >= 0.8 m with `hallway` OR `mudroom` OR `foyer` (representing an interior door).
+5.4.3.6) If present:
+5.4.3.6.1) `diningroom` must share a boundary segment length >= 0.8 m with `kitchen` OR `livingroom`.
+5.4.3.6.2) `mudroom` must share a boundary segment length >= 0.6 m with `garage` OR `hallway`.
+5.4.3.6.3) `pantry` must share a boundary segment length >= 0.6 m with `kitchen`.
+5.4.3.6.4) `laundry` should share a boundary segment length >= 0.6 m with `hallway` OR `mudroom`.
+5.4.3.6.5) `office` should share a boundary segment length >= 0.6 m with `hallway` OR `livingroom`.
+5.4.3.7) Global connectivity (hard)
+5.4.3.7.1) Adjacency definition (for connectivity checks)
+5.4.3.7.1.1) Two regions A and B are considered "adjacent" if they share a boundary segment of length >= 0.6 m.
+5.4.3.7.2) Required-room connectivity
+5.4.3.7.2.1) The subgraph formed by the required regions:
+5.4.3.7.2.1.1) garage
+5.4.3.7.2.1.2) foyer
+5.4.3.7.2.1.3) hallway
+5.4.3.7.2.1.4) livingroom
+5.4.3.7.2.1.5) kitchen
+5.4.3.7.2.1.6) bathroom_small
+5.4.3.7.2.1.7) stairs
+5.4.3.7.2.2) must be a single connected component under the adjacency definition in 5.4.3.7.1.
+5.4.4) Room size minimums (hard, realistic)
+5.4.4.1) garage: area >= 18.0, minDim >= 3.0
+5.4.4.2) livingroom: area >= 16.0, minDim >= 3.2
+5.4.4.3) kitchen: area >= 10.0, minDim >= 2.6
+5.4.4.4) foyer: area >= 5.0, minDim >= 1.8
+5.4.4.5) hallway: area >= 6.0, minDim >= 1.0
+5.4.4.6) bathroom_small: area >= 2.6, minDim >= 1.4
+5.4.4.7) stairs: area >= 3.6, minDim >= 1.0
+5.4.5) Extra room minimums (hard if that room is present)
+5.4.5.1) diningroom: area >= 10.0, minDim >= 2.6
+5.4.5.2) mudroom: area >= 4.0, minDim >= 1.6
+5.4.5.3) pantry: area >= 2.5, minDim >= 1.2
+5.4.5.4) laundry: area >= 4.0, minDim >= 1.6
+5.4.5.5) office: area >= 8.0, minDim >= 2.4
+5.4.5.6) closet: area >= 2.0, minDim >= 1.0
+5.4.5.7) storage: area >= 3.0, minDim >= 1.2
 
-5.5) Optional regions (exactly 2)
-5.5.1) The first floor must contain exactly 2 distinct optional regions.
-5.5.2) `laundry` must always be included.
-5.5.3) Exactly one of { pantry, utility } must be included (never both).
-5.5.4) The choice of pantry vs utility must be deterministic from the house seed and may depend on available space.
+5.5) Suggested surfaces (recommended defaults)
 
-5.6) First floor connectivity constraints
+5.5.1) garage: concrete_dark
+5.5.2) foyer: any wood
+5.5.3) hallway: any wood
+5.5.4) livingroom: any wood
+5.5.5) kitchen: any tile
+5.5.6) bathroom_small: any tile
+5.5.7) stairs: wood_medium
+5.5.8) diningroom: any wood
+5.5.9) mudroom: any tile
+5.5.10) pantry: any tile
+5.5.11) laundry: any tile
+5.5.12) office: any wood
+5.5.13) closet: any wood
+5.5.14) storage: concrete_medium
 
-5.6.1) Entry realism (walkway -> foyer only)
-5.6.1.1) `foyer` must be connected across layers to plot `walkway` by interfaceLen(walkway, foyer) >= 1.0m (see 3.6.5).
-5.6.1.2) The interface in 5.6.1.1 must be a front interface (see 3.6.6).
-5.6.1.3) No first-floor region other than `foyer` may have interfaceLen(walkway, region) >= 0.5m.
-5.6.2) Garage realism (driveway -> garage only)
-5.6.2.1) `garage` must be connected across layers to plot `driveway_near` by interfaceLen(driveway_near, garage) >= 2.5m (see 3.6.5).
-5.6.2.2) The interface in 5.6.2.1 must be a front interface (see 3.6.6).
-5.6.2.3) No first-floor region other than `garage` may have interfaceLen(driveway_near, region) >= 1.0m.
-5.6.3) Interior circulation (prevents "walk-through bathrooms" and weird access)
-5.6.3.1) `foyer` must be connected to `hallway` by shared boundary length >= 1.0m.
-5.6.3.2) `hallway` must be connected to `stairs` by shared boundary length >= 1.0m.
-5.6.3.3) `bathroom_small` must be connected to `hallway` by shared boundary length >= 1.0m.
-5.6.3.4) `laundry` must be connected to `hallway` by shared boundary length >= 1.0m.
-5.6.3.5) The optional `pantry` or `utility` region must be connected to `kitchen` by shared boundary length >= 0.9m.
-5.6.3.6) `garage` must be connected to (`laundry` OR `hallway`) by shared boundary length >= 1.0m.
-5.6.4) Core living constraints
-5.6.4.1) `livingroom` must be connected to `foyer` by shared boundary length >= 1.0m.
-5.6.4.2) `dining` must be connected to `kitchen` by shared boundary length >= 1.0m.
-5.6.4.3) `kitchen` must be connected to (`hallway` OR `livingroom` OR `foyer`) by shared boundary length >= 1.0m.
-5.6.5) Global connectivity (prevents isolated rooms)
-5.6.5.1) The first-floor region adjacency graph must be connected (using the "connected" definition in 3.6.3).
+Example firstFloor output (with a couple extras):
+```
+{
+  "regions": [
+    { "name": "garage", "surface": "concrete_dark", "type": "rectangle", "points": [[0.0, 17.8], [3.4, 22.4]] },
+    { "name": "foyer", "surface": "wood_light", "type": "rectangle", "points": [[3.6, 20.6], [6.0, 22.4]] },
+    { "name": "hallway", "surface": "wood_light", "type": "rectangle", "points": [[3.6, 12.0], [6.0, 20.6]] },
+    { "name": "stairs", "surface": "wood_medium", "type": "rectangle", "points": [[6.0, 14.5], [7.2, 18.5]] },
+    { "name": "livingroom", "surface": "wood_medium", "type": "rectangle", "points": [[7.2, 12.0], [12.8, 19.2]] },
+    { "name": "diningroom", "surface": "wood_medium", "type": "rectangle", "points": [[7.2, 19.2], [12.8, 22.4]] },
+    { "name": "kitchen", "surface": "tile_medium", "type": "rectangle", "points": [[6.0, 7.6], [12.8, 12.0]] },
+    { "name": "pantry", "surface": "tile_light", "type": "rectangle", "points": [[5.0, 9.2], [6.0, 11.4]] },
+    { "name": "bathroom_small", "surface": "tile_light", "type": "rectangle", "points": [[3.6, 16.8], [5.2, 18.4]] }
+  ],
+  "construction": [],
+  "objects": []
+}
+```
 
-5.7) First floor minimum room sizes (realism + anti-sliver)
-5.7.1) Each first-floor region must satisfy the global no-sliver invariants (3.5.4).
-5.7.2) Minimum sizes by room (area in m^2, and minimum bounding-box dimension in m):
-5.7.2.1) foyer: area >= 6.0 and minDim >= 2.0
-5.7.2.2) garage: area >= 20.0 and minDim >= 3.2
-5.7.2.3) livingroom: area >= 20.0 and minDim >= 3.5
-5.7.2.4) kitchen: area >= 12.0 and minDim >= 3.0
-5.7.2.5) dining: area >= 10.0 and minDim >= 2.8
-5.7.2.6) bathroom_small: area >= 3.0 and minDim >= 1.6
-5.7.2.7) stairs: rectangle area >= 4.0, and the shorter side must be within [1.0, 1.4]
-5.7.2.8) hallway: area >= 8.0 and minDim >= 1.1
-5.7.2.9) laundry: area >= 5.0 and minDim >= 1.8
-5.7.2.10) pantry: area >= 3.0 and minDim >= 1.4
-5.7.2.11) utility: area >= 3.0 and minDim >= 1.4
+6) Second floor specification (`generation/secondFloor.ts`) (MORE ROOMS WHEN FEASIBLE, NO NUMBERED BEDROOMS)
 
-6) Second floor specification (`generation/secondFloor.ts`)
+6.1) Intent
 
-6.1) Partitions the same footprint into upstairs zones, enforcing stairwell congruence and bedroom/closet counts based on occupancy.
+6.1.1) Produces a believable upstairs layout for bedrooms and bathrooms.
+6.1.2) Regions represent walkable zones and do not need to perfectly cover the footprint.
+6.1.3) The second floor may be smaller than the first floor footprint, as long as it remains believable.
 
 6.2) Exported function
 
 6.2.1) Export: `generateSecondFloorModel(house, ctx, plot, firstFloor) -> FloorModel`
 6.2.2) Inputs:
 6.2.2.1) `plot` must include a region named `houseregion` (type polygon).
-6.2.2.2) `firstFloor` must include a region named `stairs` (type rectangle).
+6.2.2.2) `firstFloor` must include at least one region named `stairs` (type rectangle).
 6.2.3) Output:
 6.2.3.1) Must return a FloorModel where `construction` and `objects` are empty arrays.
-6.2.3.2) Must satisfy all constraints in section 6.
 
-6.2.4.2) Second-floor generation must use:
-6.2.4.2.1) `firstFloor.regions.stairs` to define a congruent stair opening cutout (a void) in the second-floor footprint
-6.2.4.2.2) `house.occupants.length` to determine bedroom bounds and choose a deterministic bedroom count
+6.3) Bedroom count guidance (simple)
 
-6.3) Second floor footprint and coverage
-6.3.1) The second floor footprint is the first-floor footprint (`houseregion`) with the first-floor `stairs` rectangle removed as a cutout (void).
-6.3.1.1) The cutout rectangle coordinates must exactly match the first-floor `stairs` region rectangle coordinates (in lot-local space).
-6.3.2) Second-floor regions must form a non-overlapping partition of the second-floor footprint.
+6.3.1) Let occ = house.occupants.length.
+6.3.2) Recommended minimum bedrooms = ceil(occ / 2).
+6.3.3) Recommended maximum bedrooms = min(4, recommended minimum bedrooms + 1).
+6.3.4) Each generated bedroom region must have:
+6.3.4.1) name exactly `bedroom`
+6.3.4.2) (i.e., multiple regions will share the same name)
 
-6.4) Bedroom count constraints
-6.4.1) Let occ = house.occupants.length.
-6.4.2) Minimum bedrooms = ceil(occ / 2).
-6.4.3) Maximum bedrooms = min(3, minimum bedrooms + 1).
-6.4.4) The generator must deterministically choose a bedroom count within [minBedrooms, maxBedrooms].
-6.4.5) Bedroom regions must be named:
-6.4.5.1) bedroom1, bedroom2, bedroom3 (up to the chosen bedroom count)
+6.4) Region set
 
-6.5) Required regions (exact set)
-6.5.1) The second floor must contain exactly one region each with the following names:
-6.5.1.1) office
-6.5.1.2) bathroom_large
-6.5.1.3) bathroom_small
-6.5.1.4) hallway
-6.5.1.5) closet
+6.4.1) Required regions (must include at least one each):
+6.4.1.1) hallway
+6.4.1.2) bathroom_large (at least one)
+6.4.1.3) bathroom_small (at least one)
+6.4.1.4) bedroom (at least one; may be multiple, per 6.3)
+6.4.2) Extra rooms (generate if feasible; 0..N allowed)
+6.4.2.1) bathroom_small (additional; beyond the required one)
+6.4.2.2) closet (may be multiple)
+6.4.2.3) laundry
+6.4.2.4) office
+6.4.2.5) storage (may be multiple)
+6.4.3) "If feasible" means:
+6.4.3.1) all required rooms still meet constraints, and
+6.4.3.2) the extra room meets its minimum size constraints (6.7.2), and
+6.4.3.3) it can be placed without overlap and within `houseregion`
 
-6.5.2) Stair opening cutout (void) congruence requirement
-6.5.2.1) The second floor must NOT include a region named `stairwell`.
-6.5.2.2) Instead, second-floor generation must treat the first-floor `stairs` rectangle as a stair opening cutout (void) removed from the second-floor footprint (see 6.3.1).
-6.5.2.3) The cutout rectangle coordinates must exactly match the first-floor `stairs` rectangle coordinates (in lot-local space).
-6.5.2.4) No second-floor region may overlap the cutout area with non-zero area (shared boundaries are allowed).
+6.5) Placement and connectivity (hard)
 
-6.6) Closet capacity constraint (single region, variable capacity)
-6.6.1) The second floor must include exactly one region named `closet`.
-6.6.2) Closet capacity must be deterministic and represent between 1 and 3 “closet units”.
-6.6.3) The `closet` region must be a single connected orthogonal shape with no holes.
-6.6.4) The chosen closet capacity must be reflected by closet area:
-6.6.4.1) For capacity = 1: closet area >= 1.8
-6.6.4.2) For capacity = 2: closet area >= 3.6
-6.6.4.3) For capacity = 3: closet area >= 5.4
+6.5.1) All second-floor rectangles must lie fully within the `houseregion` polygon (boundary-touching allowed).
+6.5.2) Stair arrival
+6.5.2.1) `hallway` must touch (share an edge segment with) the projection of a first-floor `stairs` rectangle.
+6.5.3) Connectivity
+6.5.3.1) Every `bedroom` must share a boundary segment length >= 0.6 m with `hallway`.
+6.5.3.2) Every bathroom (bathroom_small/bathroom_large) must share a boundary segment length >= 0.6 m with `hallway`.
+6.5.3.3) If present, `closet` should touch a `bedroom` OR touch `hallway`.
 
-6.7) Second floor connectivity constraints
+6.6) Room size minimums (hard, realistic)
 
-6.7.1) Hallway must border the stair opening cutout:
-6.7.1.1) Let stairCutout be the rectangular cutout defined in 6.5.2.
-6.7.1.2) `hallway` must share a boundary segment with stairCutout of length >= 1.0m.
-6.7.2) Hallway access (prevents walk-through bedrooms/bathrooms)
-6.7.2.1) For each generated bedroom region `bedroomN`, `hallway` must be connected to `bedroomN` by shared boundary length >= 0.9m.
-6.7.2.2) `hallway` must be connected to `office` by shared boundary length >= 0.9m.
-6.7.2.3) `hallway` must be connected to `bathroom_large` by shared boundary length >= 0.9m.
-6.7.2.4) `hallway` must be connected to `bathroom_small` by shared boundary length >= 0.9m.
-6.7.2.5) `hallway` must be connected to `closet` by shared boundary length >= 0.9m.
-6.7.3) Global connectivity (prevents isolated rooms)
-6.7.3.1) The second-floor region adjacency graph must be connected (using the "connected" definition in 3.6.3).
+6.6.1) Required-room minimums
+6.6.1.1) bedroom (each): area >= 10.0, minDim >= 2.6
+6.6.1.2) hallway: area >= 5.0, minDim >= 1.0
+6.6.1.3) bathroom_small: area >= 3.2, minDim >= 1.6
+6.6.1.4) bathroom_large: area >= 5.0, minDim >= 2.0
+6.6.2) Extra-room minimums (hard if that room is present)
+6.6.2.1) closet: area >= 2.0, minDim >= 1.0
+6.6.2.2) laundry: area >= 4.0, minDim >= 1.6
+6.6.2.3) office: area >= 7.0, minDim >= 2.2
+6.6.2.4) storage: area >= 3.0, minDim >= 1.2
 
-6.8) Second floor minimum room sizes (realism + anti-sliver)
-6.8.1) Each second-floor region must satisfy the global no-sliver invariants (3.5.4).
-6.8.2) Minimum sizes by room (area in m^2, and minimum bounding-box dimension in m):
-6.8.2.1) bedroomN: area >= 12.0 and minDim >= 3.0
-6.8.2.2) office: area >= 7.5 and minDim >= 2.5
-6.8.2.3) bathroom_large: area >= 7.0 and minDim >= 2.2
-6.8.2.4) bathroom_small: area >= 4.0 and minDim >= 1.8
-6.8.2.5) hallway: area >= 8.0 and minDim >= 1.1
-6.8.2.6) closet: area >= 1.8 and minDim >= 0.9
+6.7) Suggested surfaces (recommended defaults)
 
-Example of an input house object (from `web/public/config/houses.json`):
+6.7.1) hallway: any wood
+6.7.2) bedroom: any wood
+6.7.3) bathroom_small/bathroom_large: any tile
+6.7.4) closet: any wood
+6.7.5) laundry: any tile
+6.7.6) office: any wood
+6.7.7) storage: concrete_medium
+
+Example secondFloor output (3 bedrooms, all named "bedroom"):
 ```
 {
-  "houseNumber": 0,
-  "surname": "Whitlock",
-  "occupants": [1, 2, 3, 4],
-  "bounds": {
-    "x": 0,
-    "z": 0,
-    "xsize": 12,
-    "zsize": 30
-  }
-}
-```
-
-Example of an output house object (after being loaded and updated):
-(Note: polygons are not explicitly closed in data; closure is implied.)
-```
-{
-  "houseNumber": 0,
-  "surname": "Whitlock",
-  "occupants": [1, 2, 3, 4],
-  "bounds": {
-    "x": 0,
-    "z": 0,
-    "xsize": 12,
-    "zsize": 30
-  },
-  "model": {
-    "seed": "redbrick-street/v0/house/0",
-    "plot": {
-      "regions": [
-        {
-          "name": "backyard",
-          "surface": "grass",
-          "type": "polygon",
-          "points": [
-            [0, 0],
-            [12, 0],
-            [12, 8.733541874913499 ],
-            [6.873786556411067, 8.733541874913499],
-            [6.873786556411067, 7.782772364048287],
-            [2.6011149613815348, 7.782772364048287],
-            [2.6011149613815348, 8.733541874913499],
-            [0, 8.733541874913499]
-          ]
-        },
-        {
-          "name": "houseregion",
-          "surface": "black",
-          "type": "polygon",
-          "points": [
-            /* ... */
-          ]
-        },
-        /* ... */
-      ],
-      "construction": [],
-      "objects": []
-    },
-    "firstFloor": {
-      "regions": [ /* ... */ ],
-      "construction": [],
-      "objects": []
-    },
-    "secondFloor": {
-      "regions": [ /* ... */ ],
-      "construction": [],
-      "objects": []
-    }
-  }
+  "regions": [
+    { "name": "hallway", "surface": "wood_medium", "type": "rectangle", "points": [[5.8, 14.5], [7.6, 20.0]] },
+    { "name": "bathroom_large", "surface": "tile_light", "type": "rectangle", "points": [[7.6, 16.0], [10.0, 18.4]] },
+    { "name": "bathroom_small", "surface": "tile_medium", "type": "rectangle", "points": [[5.8, 20.0], [7.6, 22.2]] },
+    { "name": "bedroom", "surface": "wood_medium", "type": "rectangle", "points": [[7.6, 12.0], [13.0, 16.0]] },
+    { "name": "bedroom", "surface": "wood_medium", "type": "rectangle", "points": [[7.6, 18.4], [13.0, 22.2]] },
+    { "name": "bedroom", "surface": "wood_medium", "type": "rectangle", "points": [[3.0, 18.4], [5.8, 22.2]] }
+  ],
+  "construction": [],
+  "objects": []
 }
 ```
