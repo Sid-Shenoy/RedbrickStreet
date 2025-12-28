@@ -28,10 +28,10 @@ const STREET_SEED = "redbrick-street/v0";
 const SURFACE_TEX_METERS = 0.5;
 
 // Vertical layout (meters)
-const PLOT_Y = 0.0;
-const FIRST_FLOOR_Y = 0.2;
-const SECOND_FLOOR_Y = 3.2;
-const CEILING_Y = 6.2;
+const PLOT_Y = 0.2;
+const FIRST_FLOOR_Y = 0.4;
+const SECOND_FLOOR_Y = 3.4;
+const CEILING_Y = 6.4;
 
 // Boundary wall rendering (between regions + along exterior edges)
 const BOUNDARY_WALL_H = 0.2;
@@ -132,6 +132,25 @@ function applyWorldUVs(mesh: Mesh, metersPerTile: number) {
     const wz = pos[i + 2]! + mesh.position.z;
     uvs[j] = wx / metersPerTile;
     uvs[j + 1] = wz / metersPerTile;
+  }
+
+  mesh.setVerticesData(VertexBuffer.UVKind, uvs);
+}
+
+/**
+ * World-space UVs for vertical meshes: uses world X/Y so textures tile in meters.
+ */
+function applyWorldUVsXY(mesh: Mesh, metersPerTile: number) {
+  const pos = mesh.getVerticesData(VertexBuffer.PositionKind);
+  if (!pos) return;
+
+  const uvs = new Array((pos.length / 3) * 2);
+
+  for (let i = 0, j = 0; i < pos.length; i += 3, j += 2) {
+    const wx = pos[i]! + mesh.position.x;
+    const wy = pos[i + 1]! + mesh.position.y;
+    uvs[j] = wx / metersPerTile;
+    uvs[j + 1] = wy / metersPerTile;
   }
 
   mesh.setVerticesData(VertexBuffer.UVKind, uvs);
@@ -278,6 +297,44 @@ function renderCeilings(scene: Scene, houses: HouseWithModel[], ceilingMat: Stan
     } else {
       renderRectRegion(scene, house, hr, ceilingMat, "ceiling", "ceiling", CEILING_Y, false);
     }
+  }
+}
+
+function renderCurbFaces(scene: Scene, houses: HouseWithModel[], mats: ReturnType<typeof surfaceMaterial>) {
+  // Plot is raised to PLOT_Y, but the road remains at y=0.0.
+  // Add a thin vertical face along the lot front edge so the curb doesn't look like it's floating.
+  const faceH = PLOT_Y;
+  if (faceH <= 0) return;
+
+  for (const house of houses) {
+    const xsize = house.bounds.xsize;
+
+    // Front edge in lot-local coordinates is always localZ=30.
+    const p0 = lotLocalToWorld(house, 0, 30);
+    const p1 = lotLocalToWorld(house, xsize, 30);
+
+    const minX = Math.min(p0.x, p1.x);
+    const maxX = Math.max(p0.x, p1.x);
+    const width = Math.max(0.001, maxX - minX);
+
+    const frontZ = p0.z; // same as p1.z
+
+    // A single vertical face at the lot front edge (no thickness, avoids top-face UV mismatch).
+    const face = MeshBuilder.CreatePlane(
+      `curb_face_${house.houseNumber}`,
+      { width, height: faceH, sideOrientation: Mesh.DOUBLESIDE },
+      scene
+    );
+
+    face.position.x = minX + width / 2;
+    face.position.y = faceH / 2;
+    face.position.z = frontZ;
+
+    // World-scaled UVs (0.5m tiles) using X/Y for vertical surfaces.
+    applyWorldUVsXY(face, SURFACE_TEX_METERS);
+
+    face.material = mats.concrete_light;
+    face.checkCollisions = false; // visual only
   }
 }
 
@@ -568,6 +625,9 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   applyWorldUVs(road, SURFACE_TEX_METERS);
   road.checkCollisions = true;
   road.metadata = { rbs: { kind: "floor", layer: "road" } };
+
+  // Add a vertical curb face so the raised plot meets the road visually.
+  renderCurbFaces(scene, houses, mats);
 
   // Boundary wall around 200 x 70
   const wallH = 5;
