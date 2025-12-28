@@ -2,6 +2,7 @@ import type { HouseConfig } from "../../types/config";
 
 export type Surface =
   | "black"
+  | "brick"
   | "grass"
   | "concrete_light"
   | "concrete_medium"

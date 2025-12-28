@@ -74,6 +74,7 @@ function surfaceMaterial(scene: Scene, opts?: { doubleSided?: boolean }) {
 
   return {
     black: makeTexMat(scene, `mat_black${suf}`, "/assets/textures/surfaces/black.jpg", doubleSided),
+    brick: makeTexMat(scene, `mat_brick${suf}`, "/assets/textures/surfaces/brick.jpg", doubleSided),
     grass: makeTexMat(scene, `mat_grass${suf}`, "/assets/textures/surfaces/grass.jpg", doubleSided),
     concrete_light: makeTexMat(scene, `mat_conc_light${suf}`, "/assets/textures/surfaces/concrete_light.jpg", doubleSided),
     concrete_medium: makeTexMat(scene, `mat_conc_med${suf}`, "/assets/textures/surfaces/concrete_medium.jpg", doubleSided),
@@ -151,6 +152,50 @@ function applyWorldUVsXY(mesh: Mesh, metersPerTile: number) {
     const wy = pos[i + 1]! + mesh.position.y;
     uvs[j] = wx / metersPerTile;
     uvs[j + 1] = wy / metersPerTile;
+  }
+
+  mesh.setVerticesData(VertexBuffer.UVKind, uvs);
+}
+
+/**
+ * World-space UVs for axis-aligned boxes (no rotation):
+ * - Vertical faces tile in meters using (X,Y) or (Z,Y) depending on face normal.
+ * - Top/bottom faces tile using (X,Z).
+ */
+function applyWorldBoxUVs(mesh: Mesh, metersPerTile: number) {
+  const pos = mesh.getVerticesData(VertexBuffer.PositionKind);
+  const nrm = mesh.getVerticesData(VertexBuffer.NormalKind);
+  if (!pos || !nrm) return;
+
+  const uvs = new Array((pos.length / 3) * 2);
+
+  for (let i = 0, j = 0; i < pos.length; i += 3, j += 2) {
+    const wx = pos[i]! + mesh.position.x;
+    const wy = pos[i + 1]! + mesh.position.y;
+    const wz = pos[i + 2]! + mesh.position.z;
+
+    const nx = nrm[i]!;
+    const ny = nrm[i + 1]!;
+    const nz = nrm[i + 2]!;
+
+    const ax = Math.abs(nx);
+    const ay = Math.abs(ny);
+    const az = Math.abs(nz);
+
+    // Decide which face we're on by dominant normal axis.
+    if (ax >= ay && ax >= az) {
+      // ±X face => YZ plane: tile along Z and Y
+      uvs[j] = wz / metersPerTile;
+      uvs[j + 1] = wy / metersPerTile;
+    } else if (az >= ax && az >= ay) {
+      // ±Z face => XY plane: tile along X and Y
+      uvs[j] = wx / metersPerTile;
+      uvs[j + 1] = wy / metersPerTile;
+    } else {
+      // ±Y face (top/bottom) => XZ plane: tile along X and Z
+      uvs[j] = wx / metersPerTile;
+      uvs[j + 1] = wz / metersPerTile;
+    }
   }
 
   mesh.setVerticesData(VertexBuffer.UVKind, uvs);
@@ -646,7 +691,8 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   wallEast.position.set(200 - wallT / 2, wallH / 2, 35);
 
   for (const w of [wallNorth, wallSouth, wallWest, wallEast]) {
-    w.material = mats.wall;
+    w.material = mats.brick;
+    applyWorldBoxUVs(w, SURFACE_TEX_METERS);
     w.checkCollisions = true;
   }
 

@@ -98,7 +98,7 @@
 3.3) Region surface enum
 
 3.3.1) Each region must have a `surface` in:
-3.3.1.1) { black, grass, concrete_light, concrete_medium, concrete_dark, wood_light, wood_medium, wood_dark, tile_light, tile_medium, tile_dark, void }
+3.3.1.1) { black, brick, grass, concrete_light, concrete_medium, concrete_dark, wood_light, wood_medium, wood_dark, tile_light, tile_medium, tile_dark, void }
 
 3.4) Region geometry format
 
