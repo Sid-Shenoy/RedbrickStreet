@@ -33,7 +33,7 @@ const FIRST_FLOOR_Y = 0.2;
 const SECOND_FLOOR_Y = 3.2;
 const CEILING_Y = 6.2;
 
-// Boundary wall rendering (between regions)
+// Boundary wall rendering (between regions + along exterior edges)
 const BOUNDARY_WALL_H = 0.2;
 const BOUNDARY_WALL_T = 0.06;
 
@@ -264,7 +264,6 @@ function renderFloorLayer(
         renderPolyRegion(scene, house, region, mat, "floor", layerTag, baseY, collisions);
       }
     }
-    
   }
 }
 
@@ -282,7 +281,7 @@ function renderCeilings(scene: Scene, houses: HouseWithModel[], ceilingMat: Stan
   }
 }
 
-// -------- Boundary wall extraction/rendering (shared edges between regions) --------
+// -------- Boundary wall extraction/rendering (shared edges + exterior edges) --------
 
 type Seg = { x0: number; z0: number; x1: number; z1: number };
 const WALL_EPS = 1e-6;
@@ -411,13 +410,13 @@ function renderBoundaryWallsForLayer(
   wallMat: StandardMaterial
 ) {
   for (const house of houses) {
-    const regions = getRegions(house).filter((r) => r.surface !== "void");
+    const allRegions = getRegions(house);
 
-    // Build cut sets from ALL region vertices so we can split long edges into shared atomic segments.
+    // Build cut sets from ALL region vertices (including void) so we can split long edges into shared atomic segments.
     const xVals: number[] = [0, house.bounds.xsize];
     const zVals: number[] = [0, 30];
 
-    for (const r of regions) {
+    for (const r of allRegions) {
       if (r.type === "rectangle") {
         xVals.push(r.points[0][0], r.points[1][0]);
         zVals.push(r.points[0][1], r.points[1][1]);
@@ -432,26 +431,38 @@ function renderBoundaryWallsForLayer(
     const xCuts = uniqSorted(xVals);
     const zCuts = uniqSorted(zVals);
 
-    // Count boundary atomic segments across all regions.
-    const segCount = new Map<string, { count: number; seg: Seg }>();
+    // Count atomic segments across all regions, tracking void vs non-void ownership.
+    const segStats = new Map<string, { nonVoid: number; void: number; seg: Seg }>();
 
-    for (const r of regions) {
+    for (const r of allRegions) {
       const boundary = regionBoundarySegments(r);
       const atomic = splitIntoAtomicSegments(boundary, xCuts, zCuts);
 
+      const isVoid = r.surface === "void";
+
       for (const s of atomic) {
         const key = segKeyAtomic(s);
-        const prev = segCount.get(key);
-        if (prev) prev.count += 1;
-        else segCount.set(key, { count: 1, seg: s });
+        const prev = segStats.get(key);
+        if (prev) {
+          if (isVoid) prev.void += 1;
+          else prev.nonVoid += 1;
+        } else {
+          segStats.set(key, { nonVoid: isVoid ? 0 : 1, void: isVoid ? 1 : 0, seg: s });
+        }
       }
     }
 
-    // Shared between TWO regions => interior boundary (between rooms).
-    const shared = [...segCount.values()].filter((v) => v.count === 2);
+    // Interior wall segments: shared by exactly two non-void regions (room separators).
+    const interior = [...segStats.values()].filter((v) => v.nonVoid === 2);
+
+    // Exterior edge segments: owned by exactly one non-void region AND not adjacent to a void opening.
+    // This draws short walls along the outer boundary of the generated floor footprint (house edges).
+    const exterior = [...segStats.values()].filter((v) => v.nonVoid === 1 && v.void === 0);
+
+    const allToRender = [...interior, ...exterior];
 
     let idx = 0;
-    for (const { seg } of shared) {
+    for (const { seg } of allToRender) {
       const p0 = lotLocalToWorld(house, seg.x0, seg.z0);
       const p1 = lotLocalToWorld(house, seg.x1, seg.z1);
 
@@ -467,11 +478,15 @@ function renderBoundaryWallsForLayer(
         const x1 = Math.max(p0.x, p1.x);
         const len = Math.max(0.001, x1 - x0);
 
-        const box = MeshBuilder.CreateBox(`${meshPrefix}_wall_${house.houseNumber}_${idx++}`, {
-          width: len,
-          height: BOUNDARY_WALL_H,
-          depth: BOUNDARY_WALL_T,
-        }, scene);
+        const box = MeshBuilder.CreateBox(
+          `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
+          {
+            width: len,
+            height: BOUNDARY_WALL_H,
+            depth: BOUNDARY_WALL_T,
+          },
+          scene
+        );
 
         box.position.x = (x0 + x1) * 0.5;
         box.position.z = p0.z; // same as p1.z
@@ -484,11 +499,15 @@ function renderBoundaryWallsForLayer(
         const z1 = Math.max(p0.z, p1.z);
         const len = Math.max(0.001, z1 - z0);
 
-        const box = MeshBuilder.CreateBox(`${meshPrefix}_wall_${house.houseNumber}_${idx++}`, {
-          width: BOUNDARY_WALL_T,
-          height: BOUNDARY_WALL_H,
-          depth: len,
-        }, scene);
+        const box = MeshBuilder.CreateBox(
+          `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
+          {
+            width: BOUNDARY_WALL_T,
+            height: BOUNDARY_WALL_H,
+            depth: len,
+          },
+          scene
+        );
 
         box.position.x = p0.x; // same as p1.x
         box.position.z = (z0 + z1) * 0.5;
@@ -575,7 +594,7 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   renderFloorLayer(scene, houses, mats, "plot", (h) => h.model.plot.regions, PLOT_Y, true);
   renderFloorLayer(scene, houses, mats, "firstFloor", (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, true);
 
-  // Boundary walls between rooms (white, 0.2m tall) for first & second floor
+  // Boundary walls between rooms AND along exterior edges (white, 0.2m tall) for first & second floor
   const boundaryWallMat = makeMat(scene, "mat_boundary_wall", new Color3(1, 1, 1), false);
   renderBoundaryWallsForLayer(scene, houses, (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, "ff", boundaryWallMat);
 
