@@ -11,7 +11,8 @@ export type Surface =
   | "wood_dark"
   | "tile_light"
   | "tile_medium"
-  | "tile_dark";
+  | "tile_dark"
+  | "void";
 export type RegionType = "polygon" | "rectangle";
 
 export type RectPoints = [[number, number], [number, number]];

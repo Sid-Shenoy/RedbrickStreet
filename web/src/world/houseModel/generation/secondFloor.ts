@@ -1,50 +1,24 @@
 // web/src/world/houseModel/generation/secondFloor.ts
 import type { HouseConfig } from "../../../types/config";
-import type { FloorModel, Region, Surface, PolyPoints } from "../types";
+import type { FloorModel, PolyPoints, Region, Surface } from "../types";
 import type { HouseGenContext } from "./context";
 import { makeRng } from "../../../utils/seededRng";
-
-/**
- * SECOND FLOOR (BELIEVABLE + ROBUST)
- *
- * Goals (per requirements.txt):
- * - Bedrooms + bathrooms upstairs with simple connectivity via a hallway.
- * - Bedrooms are all named exactly "bedroom" (no numbered bedrooms).
- * - Hallway must touch the projection of the first-floor "stairs" rectangle.
- * - All second-floor rectangles must lie fully within the plot "houseregion" polygon.
- * - No need to perfectly cover the footprint; second floor may be smaller.
- *
- * Design:
- * - Use the "wide band" of the houseregion (the full-width rectangle in front of the rear notch/extension),
- *   which plot.ts guarantees exists.
- * - Place a long hallway strip (wood) adjacent to the stairs in X (sharing an edge segment),
- *   spanning the wide band depth.
- * - Place rooms on one side of the hallway (opposite the stair-side when possible), as Z-slices that all touch
- *   the hallway by sharing a vertical boundary segment (>= 0.6m by construction).
- * - Optionally carve closets from the *outer* edge of some bedrooms (closets then touch the bedroom).
- * - Deterministic retries: if an attempt cannot satisfy hard constraints, retry with a deterministic attempt seed.
- */
 
 const EPS = 1e-6;
 const MAX_ATTEMPTS = 10;
 
-// Leave a small perimeter margin so upstairs feels smaller than the footprint (and avoids boundary tolerance issues).
-const OUTER_MARGIN_X = 0.4;
-const OUTER_MARGIN_Z = 0.4;
-
 type Rect = { x0: number; x1: number; z0: number; z1: number };
+type Side = "left" | "right";
 
 function q(v: number, digits = 3): number {
   const f = 10 ** digits;
   return Math.round(v * f) / f;
 }
-function ceilQ(v: number, digits = 3): number {
-  const f = 10 ** digits;
-  return Math.ceil((v - 1e-12) * f) / f;
-}
+
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
+
 function rectNorm(ax: number, az: number, bx: number, bz: number): Rect {
   const x0 = Math.min(ax, bx);
   const x1 = Math.max(ax, bx);
@@ -52,6 +26,7 @@ function rectNorm(ax: number, az: number, bx: number, bz: number): Rect {
   const z1 = Math.max(az, bz);
   return { x0: q(x0), x1: q(x1), z0: q(z0), z1: q(z1) };
 }
+
 function rectW(r: Rect) {
   return r.x1 - r.x0;
 }
@@ -65,34 +40,6 @@ function rectMinDim(r: Rect) {
   return Math.min(rectW(r), rectD(r));
 }
 
-function pickWood(rng: ReturnType<typeof makeRng>): Surface {
-  return rng.pick(["wood_light", "wood_medium", "wood_dark"] as const);
-}
-function pickTile(rng: ReturnType<typeof makeRng>): Surface {
-  return rng.pick(["tile_light", "tile_medium", "tile_dark"] as const);
-}
-
-function rectToRegion(name: string, surface: Surface, r: Rect): Region {
-  return {
-    name,
-    surface,
-    type: "rectangle",
-    points: [
-      [r.x0, r.z0],
-      [r.x1, r.z1],
-    ],
-  };
-}
-
-function getRegionByName(f: FloorModel, name: string): Region | undefined {
-  return f.regions.find((r) => r.name === name);
-}
-
-function rectFromRegion(r: Extract<Region, { type: "rectangle" }>): Rect {
-  const [[x0, z0], [x1, z1]] = r.points;
-  return rectNorm(x0, z0, x1, z1);
-}
-
 function uniqSorted(vals: number[]): number[] {
   const s = [...vals].sort((a, b) => a - b);
   const out: number[] = [];
@@ -101,6 +48,21 @@ function uniqSorted(vals: number[]): number[] {
     else if (Math.abs(v - out[out.length - 1]!) > 1e-3) out.push(v);
   }
   return out;
+}
+
+function polyBounds(points: PolyPoints): Rect {
+  let minx = Infinity,
+    maxx = -Infinity,
+    minz = Infinity,
+    maxz = -Infinity;
+  for (const [x, z] of points) {
+    minx = Math.min(minx, x);
+    maxx = Math.max(maxx, x);
+    minz = Math.min(minz, z);
+    maxz = Math.max(maxz, z);
+  }
+  if (!isFinite(minx)) return rectNorm(0, 0, 0, 0);
+  return rectNorm(minx, minz, maxx, maxz);
 }
 
 function pointOnSegAxisAligned(
@@ -162,474 +124,552 @@ function rectInsidePoly(r: Rect, poly: PolyPoints): boolean {
   );
 }
 
-type HouseShape =
-  | { kind: "rect"; x0: number; x1: number; z0: number; z1: number; zWideMin: number }
-  | { kind: "rearMod"; x0: number; x1: number; z0: number; z1: number; zWideMin: number };
-
-function inferWideBandShape(hn: number, poly: PolyPoints): HouseShape {
-  let xMin = Infinity,
-    xMax = -Infinity,
-    zMin = Infinity,
-    zMax = -Infinity;
-
-  for (const [x, z] of poly) {
-    xMin = Math.min(xMin, x);
-    xMax = Math.max(xMax, x);
-    zMin = Math.min(zMin, z);
-    zMax = Math.max(zMax, z);
-  }
-
-  xMin = q(xMin, 3);
-  xMax = q(xMax, 3);
-  zMin = q(zMin, 3);
-  zMax = q(zMax, 3);
-
-  const zVals = uniqSorted(poly.map((p) => q(p[1], 3)));
-
-  // plot.ts guarantees: houseregion is either a rectangle OR rectangle + one rear extension/notch -> 2 or 3 unique z's.
-  if (zVals.length === 2) {
-    return { kind: "rect", x0: xMin, x1: xMax, z0: zMin, z1: zMax, zWideMin: zMin };
-  }
-  if (zVals.length === 3) {
-    // The "wide band" starts at the middle z where the footprint is full width.
-    return { kind: "rearMod", x0: xMin, x1: xMax, z0: zMin, z1: zMax, zWideMin: zVals[1]! };
-  }
-
-  throw new Error(`secondFloor: House ${hn} unexpected houseregion z-profile (unique z count=${zVals.length})`);
+function rectToRegion(name: string, surface: Surface, r: Rect): Region {
+  return {
+    name,
+    surface,
+    type: "rectangle",
+    points: [
+      [r.x0, r.z0],
+      [r.x1, r.z1],
+    ],
+  };
 }
 
-type SegType = "bedroom" | "bathroom_small" | "bathroom_large" | "laundry" | "office";
+function getRegionByName(f: FloorModel, name: string): Region | undefined {
+  return f.regions.find((r) => r.name === name);
+}
+
+function rectFromRegion(r: Extract<Region, { type: "rectangle" }>): Rect {
+  const [[x0, z0], [x1, z1]] = r.points;
+  return rectNorm(x0, z0, x1, z1);
+}
 
 type RoomMin = { area: number; minDim: number };
-const MINS: Record<SegType | "hallway" | "closet", RoomMin> = {
-  hallway: { area: 5.0, minDim: 1.0 },
 
+const REQUIRED_MINS: Record<string, RoomMin> = {
   bedroom: { area: 10.0, minDim: 2.6 },
+  hallway: { area: 5.0, minDim: 1.0 },
   bathroom_small: { area: 3.2, minDim: 1.6 },
   bathroom_large: { area: 5.0, minDim: 2.0 },
+};
 
+const EXTRA_MINS: Record<string, RoomMin> = {
   closet: { area: 2.0, minDim: 1.0 },
   laundry: { area: 4.0, minDim: 1.6 },
   office: { area: 7.0, minDim: 2.2 },
+  storage: { area: 3.0, minDim: 1.2 },
 };
 
-function minDepthFor(type: keyof typeof MINS, width: number): number {
-  const min = MINS[type];
-  // Ensure both minDim and area, with a small buffer so rounding doesn't undercut constraints.
-  const byArea = ceilQ((min.area + 0.2) / Math.max(0.001, width), 3);
-  return q(Math.max(min.minDim + 0.05, byArea), 3);
+function minDepthForRoom(room: keyof typeof REQUIRED_MINS | keyof typeof EXTRA_MINS, width: number): number {
+  const min = (REQUIRED_MINS as Record<string, RoomMin>)[room] ?? (EXTRA_MINS as Record<string, RoomMin>)[room];
+  const byArea = (min.area + 0.25) / Math.max(0.001, width);
+  return Math.max(min.minDim + 0.05, byArea);
 }
 
-function ensureMinRect(hn: number, label: string, r: Rect, min: RoomMin) {
+function checkRectMin(hn: number, name: string, r: Rect) {
+  const min = (REQUIRED_MINS as Record<string, RoomMin>)[name] ?? (EXTRA_MINS as Record<string, RoomMin>)[name];
+  if (!min) return;
+
   const a = rectArea(r);
   const md = rectMinDim(r);
   if (a + EPS < min.area || md + EPS < min.minDim) {
     throw new Error(
-      `secondFloor: House ${hn} ${label} too small (area=${q(a, 3)} min=${min.area}, minDim=${q(md, 3)} min=${min.minDim})`
+      `secondFloor: House ${hn} ${name} too small (area=${q(a, 3)} min=${min.area}, minDim=${q(md, 3)} min=${min.minDim})`
     );
   }
 }
 
-function overlap1D(a0: number, a1: number, b0: number, b1: number): number {
-  return Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+function pickWood(rng: ReturnType<typeof makeRng>): Surface {
+  return rng.pick(["wood_light", "wood_medium", "wood_dark"] as const);
+}
+function pickTile(rng: ReturnType<typeof makeRng>): Surface {
+  return rng.pick(["tile_light", "tile_medium", "tile_dark"] as const);
 }
 
-function generateAttempt(
-  house: HouseConfig,
-  ctx: HouseGenContext,
-  plot: FloorModel,
-  firstFloor: FloorModel,
-  attempt: number
-): FloorModel {
+function surfaceForRoom(name: string, woodA: Surface, woodB: Surface, tileA: Surface, tileB: Surface): Surface {
+  if (name === "hallway") return woodA;
+  if (name === "bedroom") return woodB;
+  if (name === "bathroom_small" || name === "bathroom_large") return tileA;
+  if (name === "closet") return woodA;
+  if (name === "laundry") return tileB;
+  if (name === "office") return woodB;
+  if (name === "storage") return "concrete_medium";
+  return woodA;
+}
+
+// plot.ts guarantee: houseregion is rect OR rect with one rear modification (extension OR notch).
+type HouseShape =
+  | { kind: "rect"; x0: number; x1: number; z0: number; z1: number; zWideMin: number }
+  | { kind: "extension"; x0: number; x1: number; z0: number; z1: number; zWideMin: number; extX0: number; extX1: number }
+  | { kind: "notch"; x0: number; x1: number; z0: number; z1: number; zWideMin: number; notchX0: number; notchX1: number };
+
+function inferHouseShape(hn: number, poly: PolyPoints): HouseShape {
+  const bb = polyBounds(poly);
+  const xMin = bb.x0;
+  const xMax = bb.x1;
+  const zMin = bb.z0;
+  const zMax = bb.z1;
+
+  const zVals = uniqSorted(poly.map((p) => q(p[1], 3)));
+
+  if (zVals.length === 2) {
+    return { kind: "rect", x0: xMin, x1: xMax, z0: zMin, z1: zMax, zWideMin: zMin };
+  }
+  if (zVals.length !== 3) {
+    throw new Error(`secondFloor: House ${hn} unexpected houseregion z-profile (unique z count=${zVals.length})`);
+  }
+
+  const zLow = zVals[0]!;
+  const zMid = zVals[1]!;
+  const xsAtLow = uniqSorted(poly.filter((p) => Math.abs(p[1] - zLow) <= 1e-3).map((p) => q(p[0], 3)));
+
+  const hasXMin = xsAtLow.some((x) => Math.abs(x - xMin) <= 1e-3);
+  const hasXMax = xsAtLow.some((x) => Math.abs(x - xMax) <= 1e-3);
+
+  if (hasXMin && hasXMax) {
+    // Notch: rear edge spans full width, with an indentation (missing center) up to zMid.
+    if (xsAtLow.length < 4) {
+      throw new Error(`secondFloor: House ${hn} notch inference failed (xsAtLow.length=${xsAtLow.length})`);
+    }
+    const notchX0 = xsAtLow[1]!;
+    const notchX1 = xsAtLow[xsAtLow.length - 2]!;
+    return {
+      kind: "notch",
+      x0: xMin,
+      x1: xMax,
+      z0: zLow,
+      z1: zMax,
+      zWideMin: zMid,
+      notchX0: q(notchX0, 3),
+      notchX1: q(notchX1, 3),
+    };
+  }
+
+  // Extension: rear edge is narrower, with a bump-out reaching zLow.
+  if (xsAtLow.length < 2) {
+    throw new Error(`secondFloor: House ${hn} extension inference failed (xsAtLow.length=${xsAtLow.length})`);
+  }
+  const extX0 = xsAtLow[0]!;
+  const extX1 = xsAtLow[xsAtLow.length - 1]!;
+  return {
+    kind: "extension",
+    x0: xMin,
+    x1: xMax,
+    z0: zLow,
+    z1: zMax,
+    zWideMin: zMid,
+    extX0: q(extX0, 3),
+    extX1: q(extX1, 3),
+  };
+}
+
+function sharedEdgeLen(a: Rect, b: Rect): number {
+  // Returns length of shared boundary segment if rectangles touch; else 0.
+  // Touch along vertical edge
+  if (Math.abs(a.x1 - b.x0) <= 1e-6 || Math.abs(b.x1 - a.x0) <= 1e-6) {
+    const z0 = Math.max(a.z0, b.z0);
+    const z1 = Math.min(a.z1, b.z1);
+    return Math.max(0, z1 - z0);
+  }
+  // Touch along horizontal edge
+  if (Math.abs(a.z1 - b.z0) <= 1e-6 || Math.abs(b.z1 - a.z0) <= 1e-6) {
+    const x0 = Math.max(a.x0, b.x0);
+    const x1 = Math.min(a.x1, b.x1);
+    return Math.max(0, x1 - x0);
+  }
+  return 0;
+}
+
+function packStripOrThrow(
+  hn: number,
+  housePoly: PolyPoints,
+  rng: ReturnType<typeof makeRng>,
+  strip: Rect,
+  roomNamesFrontToBack: string[],
+  surfaces: { woodA: Surface; woodB: Surface; tileA: Surface; tileB: Surface }
+): Region[] {
+  const w = rectW(strip);
+  const z0 = strip.z0;
+  const z1 = strip.z1;
+  const depth = z1 - z0;
+
+  if (w + EPS < 1.0 || depth + EPS < 2.0) return [];
+
+  const mins = roomNamesFrontToBack.map((nm) => {
+    const key = nm as keyof typeof REQUIRED_MINS | keyof typeof EXTRA_MINS;
+    return q(minDepthForRoom(key, w), 3);
+  });
+
+  const minSum = mins.reduce((a, b) => a + b, 0);
+  if (minSum + EPS > depth) {
+    throw new Error(`secondFloor: House ${hn} strip packing failed (minSum=${q(minSum, 3)} > depth=${q(depth, 3)})`);
+  }
+
+  let slack = depth - minSum;
+
+  // Distribute slack across all but last room.
+  const depths: number[] = [];
+  for (let i = 0; i < roomNamesFrontToBack.length; i++) {
+    const minD = mins[i]!;
+    if (i === roomNamesFrontToBack.length - 1) {
+      depths.push(q(minD + slack, 3));
+      slack = 0;
+    } else {
+      const give = q(rng.float(0, slack * 0.6), 3);
+      depths.push(q(minD + give, 3));
+      slack = q(slack - give, 3);
+    }
+  }
+
+  // Build rectangles from front (high z) to back (low z).
+  const out: Region[] = [];
+  let zTop = z1;
+
+  for (let i = 0; i < roomNamesFrontToBack.length; i++) {
+    const nm = roomNamesFrontToBack[i]!;
+    const d = depths[i]!;
+    const zBot = q(zTop - d, 3);
+
+    const r = rectNorm(strip.x0, zBot, strip.x1, zTop);
+
+    // Inside houseregion
+    if (!rectInsidePoly(r, housePoly)) throw new Error(`secondFloor: House ${hn} room '${nm}' not inside houseregion`);
+
+    // Global mins (requirements 3.5.4)
+    if (rectArea(r) + EPS < 2.0) throw new Error(`secondFloor: House ${hn} room '${nm}' violates global min area`);
+    if (rectMinDim(r) + EPS < 1.0) throw new Error(`secondFloor: House ${hn} room '${nm}' violates global min dimension`);
+
+    // Room mins
+    checkRectMin(hn, nm, r);
+
+    out.push(
+      rectToRegion(nm, surfaceForRoom(nm, surfaces.woodA, surfaces.woodB, surfaces.tileA, surfaces.tileB), r)
+    );
+
+    zTop = zBot;
+  }
+
+  // Tight rounding: ensure final zTop ~= z0
+  if (Math.abs(zTop - z0) > 0.02) {
+    // Small drift is acceptable for a "zones" model, but keep it tight.
+    throw new Error(`secondFloor: House ${hn} strip rounding drift too large (drift=${q(Math.abs(zTop - z0), 3)})`);
+  }
+
+  return out;
+}
+
+function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: Rect, hallway: Rect, regions: Region[]) {
+  // Hallway mins
+  checkRectMin(hn, "hallway", hallway);
+
+  // Hallway must touch stairs projection along an edge segment >= 0.6m
+  const touchLen = sharedEdgeLen(hallway, stairs);
+  if (touchLen + EPS < 0.6) {
+    throw new Error(`secondFloor: House ${hn} hallway must touch stairs projection (>=0.6m), got ${q(touchLen, 3)}m`);
+  }
+
+  // Required regions
+  const has = (nm: string) => regions.some((r) => r.name === nm);
+  if (!has("hallway")) throw new Error(`secondFloor: House ${hn} missing required region 'hallway'`);
+  if (!has("bathroom_large")) throw new Error(`secondFloor: House ${hn} missing required region 'bathroom_large'`);
+  if (!has("bathroom_small")) throw new Error(`secondFloor: House ${hn} missing required region 'bathroom_small'`);
+  if (!has("bedroom")) throw new Error(`secondFloor: House ${hn} missing required region 'bedroom'`);
+
+  // All rectangles must be inside houseregion (6.5.1)
+  for (const r of regions) {
+    if (r.type !== "rectangle") continue;
+    const rr = rectFromRegion(r);
+    if (!rectInsidePoly(rr, housePoly)) throw new Error(`secondFloor: House ${hn} region '${r.name}' not inside houseregion`);
+  }
+
+  // Connectivity constraints (6.5.3): every bedroom & bathroom touches hallway (>=0.6m edge).
+  const hallIdx = regions.findIndex((r) => r.name === "hallway");
+  if (hallIdx < 0) throw new Error(`secondFloor: House ${hn} missing hallway index`);
+
+  const hallRect = hallway;
+
+  for (const r of regions) {
+    if (r.type !== "rectangle") continue;
+    if (r.name !== "bedroom" && r.name !== "bathroom_small" && r.name !== "bathroom_large") continue;
+    const rr = rectFromRegion(r);
+    const len = sharedEdgeLen(rr, hallRect);
+    if (len + EPS < 0.6) {
+      throw new Error(`secondFloor: House ${hn} '${r.name}' must touch hallway (>=0.6m), got ${q(len, 3)}m`);
+    }
+  }
+
+  // Closets: we generate 1..2 and they touch hallway by construction (strip adjacency).
+}
+
+function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorModel, firstFloor: FloorModel, attempt: number): FloorModel {
   const hn = house.houseNumber;
   const rng = makeRng(`${ctx.seed}/secondFloor/${attempt}`);
 
   const hr = getRegionByName(plot, "houseregion");
   if (!hr || hr.type !== "polygon") throw new Error(`secondFloor: House ${hn} plot missing houseregion polygon`);
 
-  const shape = inferWideBandShape(hn, hr.points);
+  const stairsR = getRegionByName(firstFloor, "stairs");
+  if (!stairsR || stairsR.type !== "rectangle") throw new Error(`secondFloor: House ${hn} firstFloor missing stairs rectangle`);
 
-  // Second floor uses only the wide band (full-width rectangle in front of rear modification).
-  const usable = rectNorm(
-    shape.x0 + OUTER_MARGIN_X,
-    shape.zWideMin + OUTER_MARGIN_Z,
-    shape.x1 - OUTER_MARGIN_X,
-    shape.z1 - OUTER_MARGIN_Z
+  const stairs = rectFromRegion(stairsR);
+
+  // Shape inference for wide band (matches plot.ts guarantees)
+  const shape = inferHouseShape(hn, hr.points);
+  const bb = polyBounds(hr.points);
+
+  // Inset for walls; keep modest so we still use space.
+  const inset = q(clamp(rng.float(0.25, 0.45), 0.22, 0.55), 3);
+
+  const usableWide = rectNorm(
+    bb.x0 + inset,
+    shape.zWideMin + inset,
+    bb.x1 - inset,
+    bb.z1 - inset
   );
 
-  if (rectW(usable) + EPS < 6.5 || rectD(usable) + EPS < 8.5) {
-    throw new Error(`secondFloor: House ${hn} insufficient upstairs usable area (w=${q(rectW(usable), 3)}, d=${q(rectD(usable), 3)})`);
+  if (rectW(usableWide) + EPS < 7.0 || rectD(usableWide) + EPS < 8.0) {
+    throw new Error(`secondFloor: House ${hn} insufficient usableWide footprint`);
   }
 
-  const stairs = getRegionByName(firstFloor, "stairs");
-  if (!stairs || stairs.type !== "rectangle") throw new Error(`secondFloor: House ${hn} firstFloor missing stairs rectangle`);
-  const stairsR = rectFromRegion(stairs);
+  // -------- Hallway placement: adjacent to stairs (share a vertical edge) --------
+  const houseCx = (bb.x0 + bb.x1) * 0.5;
+  const stairsCx = (stairs.x0 + stairs.x1) * 0.5;
 
-  const hall1 = getRegionByName(firstFloor, "hallway");
-  const hall1R = hall1 && hall1.type === "rectangle" ? rectFromRegion(hall1) : null;
+  const prefer: Side = stairsCx < houseCx ? "right" : "left";
+  const availLeft = stairs.x0 - usableWide.x0;
+  const availRight = usableWide.x1 - stairs.x1;
 
-  // Determine which side the first-floor hallway touches the stairs on (for realism).
-  const stairsLeftOfHall = hall1R ? Math.abs(hall1R.x0 - stairsR.x1) <= 2e-2 : stairsR.x1 <= (usable.x0 + usable.x1) * 0.5;
-  const stairsRightOfHall = hall1R ? Math.abs(hall1R.x1 - stairsR.x0) <= 2e-2 : stairsR.x0 >= (usable.x0 + usable.x1) * 0.5;
-
-  // Create second-floor hallway rectangle adjacent to stairs in X, spanning most of usable depth.
-  const hallWBase = hall1R ? clamp(rectW(hall1R), 1.0, 1.8) : clamp(rng.float(1.1, 1.6), 1.0, 1.8);
+  const baseHallW = q(clamp(rng.float(1.35, 2.05), 1.0, 2.3), 3);
 
   let hall: Rect | null = null;
 
-  const tryHall = (side: "rightOfStairs" | "leftOfStairs"): Rect | null => {
-    const w = q(hallWBase, 3);
-    if (side === "rightOfStairs") {
-      const x0 = q(stairsR.x1, 3);
-      const x1 = q(x0 + w, 3);
-      const r = rectNorm(x0, usable.z0, x1, usable.z1);
-      if (r.x1 <= usable.x1 + EPS && r.x0 >= usable.x0 - EPS) return r;
-      return null;
+  const tryPlaceHall = (side: Side): Rect | null => {
+    if (side === "right") {
+      const w = Math.min(baseHallW, availRight);
+      if (w + EPS < 1.0) return null;
+      const r = rectNorm(stairs.x1, usableWide.z0, stairs.x1 + w, usableWide.z1);
+      return rectInsidePoly(r, hr.points) ? r : null;
     } else {
-      const x1 = q(stairsR.x0, 3);
-      const x0 = q(x1 - w, 3);
-      const r = rectNorm(x0, usable.z0, x1, usable.z1);
-      if (r.x0 >= usable.x0 - EPS && r.x1 <= usable.x1 + EPS) return r;
-      return null;
+      const w = Math.min(baseHallW, availLeft);
+      if (w + EPS < 1.0) return null;
+      const r = rectNorm(stairs.x0 - w, usableWide.z0, stairs.x0, usableWide.z1);
+      return rectInsidePoly(r, hr.points) ? r : null;
     }
   };
 
-  if (stairsLeftOfHall) hall = tryHall("rightOfStairs");
-  if (!hall && stairsRightOfHall) hall = tryHall("leftOfStairs");
+  hall = tryPlaceHall(prefer) ?? tryPlaceHall(prefer === "left" ? "right" : "left");
+  if (!hall) throw new Error(`secondFloor: House ${hn} could not place hallway adjacent to stairs`);
 
-  // Fallback: choose whichever side fits and has room.
-  if (!hall) {
-    const right = tryHall("rightOfStairs");
-    const left = tryHall("leftOfStairs");
-    if (right && left) {
-      // Prefer the one with larger remaining room-zone width.
-      const roomWRight = usable.x1 - right.x1;
-      const roomWLeft = left.x0 - usable.x0;
-      hall = roomWRight >= roomWLeft ? right : left;
-    } else {
-      hall = right ?? left;
-    }
+  // Ensure hallway actually touches stairs with enough overlap (>=0.6m) before proceeding.
+  const hallTouchLen = sharedEdgeLen(hall, stairs);
+  if (hallTouchLen + EPS < 0.6) {
+    throw new Error(`secondFloor: House ${hn} hallway-stairs touch too short (len=${q(hallTouchLen, 3)}m)`);
   }
 
-  if (!hall) throw new Error(`secondFloor: House ${hn} cannot place hallway adjacent to stairs within usable band`);
+  const leftStrip = rectNorm(usableWide.x0, usableWide.z0, hall.x0, usableWide.z1);
+  const rightStrip = rectNorm(hall.x1, usableWide.z0, usableWide.x1, usableWide.z1);
 
-  // Hallway must be inside houseregion polygon.
-  if (!rectInsidePoly(hall, hr.points)) {
-    throw new Error(`secondFloor: House ${hn} hallway not inside houseregion`);
-  }
+  const wLeft = rectW(leftStrip);
+  const wRight = rectW(rightStrip);
 
-  // Hallway must touch stairs projection (share an edge segment).
-  const touchesByRightEdge = Math.abs(hall.x0 - stairsR.x1) <= 1e-3;
-  const touchesByLeftEdge = Math.abs(hall.x1 - stairsR.x0) <= 1e-3;
-  const touchZ = overlap1D(hall.z0, hall.z1, stairsR.z0, stairsR.z1);
-
-  if (!(touchesByRightEdge || touchesByLeftEdge) || touchZ + EPS < 0.6) {
-    throw new Error(
-      `secondFloor: House ${hn} hallway must touch stairs projection (touchZ=${q(touchZ, 3)}m)`
-    );
-  }
-
-  // Hallway mins
-  ensureMinRect(hn, "hallway", hall, MINS.hallway);
-
-  // Choose room-side zone(s). Prefer the side *opposite* the stairs if it is wide enough.
-  const leftZone = rectNorm(usable.x0, usable.z0, hall.x0, usable.z1);
-  const rightZone = rectNorm(hall.x1, usable.z0, usable.x1, usable.z1);
-
-  const stairsOnLeft = touchesByRightEdge; // hall.x0 == stairs.x1 => stairs is left of hall
-  const stairsOnRight = touchesByLeftEdge; // hall.x1 == stairs.x0 => stairs is right of hall
-
-  const canUseLeft = rectW(leftZone) + EPS >= 2.6;
-  const canUseRight = rectW(rightZone) + EPS >= 2.6;
-
-  let roomZone: Rect | null = null;
-  let roomSide: "left" | "right" = "right";
-
-  const preferOpposite = (stairsOnLeft && canUseRight) || (stairsOnRight && canUseLeft);
-
-  if (preferOpposite) {
-    if (stairsOnLeft) {
-      roomZone = rightZone;
-      roomSide = "right";
-    } else {
-      roomZone = leftZone;
-      roomSide = "left";
-    }
-  } else if (canUseLeft && canUseRight) {
-    // Prefer wider zone.
-    const wL = rectW(leftZone);
-    const wR = rectW(rightZone);
-    roomZone = wR >= wL ? rightZone : leftZone;
-    roomSide = wR >= wL ? "right" : "left";
-  } else if (canUseRight) {
-    roomZone = rightZone;
-    roomSide = "right";
-  } else if (canUseLeft) {
-    roomZone = leftZone;
-    roomSide = "left";
-  }
-
-  if (!roomZone) throw new Error(`secondFloor: House ${hn} cannot fit any room zone with width >= 2.6m`);
-
-  // Bedroom count guidance
-  const occ = house.occupants.length;
-  const bedMin = Math.ceil(occ / 2);
-  const bedMax = Math.min(4, bedMin + 1);
-  let nBedrooms = rng.int(bedMin, bedMax);
-
-  // Optional extras (only if depth allows)
-  let includeLaundry = rng.bool(occ >= 3 ? 0.45 : 0.2);
-  let includeOffice = rng.bool(occ <= 2 ? 0.25 : 0.12);
-
+  // Materials
   const woodA = pickWood(rng);
   const woodB = pickWood(rng);
   const tileA = pickTile(rng);
   const tileB = pickTile(rng);
 
-  const roomW = rectW(roomZone);
-  const totalDepth = rectD(roomZone);
+  // Bedroom count guidance (6.3): recommended range; we try to hit it but will remain robust.
+  const occ = house.occupants.length;
+  const minBeds = Math.ceil(occ / 2);
+  const maxBeds = Math.min(4, minBeds + 1);
+  let targetBeds = rng.int(minBeds, maxBeds);
 
-  const buildSegPlan = (beds: number, laundry: boolean, office: boolean): SegType[] => {
-    // Produce Z-slice plan from rear (low z) to front (high z).
-    // Keep bathroom_large closer to the front by placing it late in the sequence.
-    const segs: SegType[] = [];
+  const canBedLeft = wLeft + EPS >= REQUIRED_MINS.bedroom.minDim;
+  const canBedRight = wRight + EPS >= REQUIRED_MINS.bedroom.minDim;
 
-    if (beds <= 1) {
-      // Single-bedroom layouts: baths + bedroom near front.
-      segs.push("bathroom_small");
-      if (laundry) segs.push("laundry");
-      if (office) segs.push("office");
-      segs.push("bathroom_large");
-      segs.push("bedroom");
-      return segs;
-    }
+  if (!canBedLeft && !canBedRight) {
+    throw new Error(`secondFloor: House ${hn} cannot place any bedrooms (strip widths too small)`);
+  }
 
-    // Reserve a front bedroom
-    let rem = beds - 1;
+  // Decide bed distribution across strips (try to use both sides to reduce unused space).
+  let bedsL = 0;
+  let bedsR = 0;
 
-    // Rear cluster: at least one bedroom.
-    segs.push("bedroom");
-    rem--;
-
-    // Optional extra rear bedroom if we have many bedrooms.
-    if (rem >= 2 && rng.bool(0.55)) {
-      segs.push("bedroom");
-      rem--;
-    }
-
-    // Landing-adjacent bath
-    segs.push("bathroom_small");
-    if (laundry) segs.push("laundry");
-    if (office) segs.push("office");
-
-    // Remaining bedrooms before the large bath/front suite
-    while (rem > 0) {
-      segs.push("bedroom");
-      rem--;
-    }
-
-    segs.push("bathroom_large");
-    segs.push("bedroom"); // front reserved
-    return segs;
+  const wideSide: Side = wLeft >= wRight ? "left" : "right";
+  const assignToWide = () => {
+    if (wideSide === "left") bedsL++;
+    else bedsR++;
+  };
+  const assignToNarrow = () => {
+    if (wideSide === "left") bedsR++;
+    else bedsL++;
   };
 
-  const tryPlanFit = (beds: number, laundry: boolean, office: boolean): { plan: SegType[]; depths: number[] } | null => {
-    const plan = buildSegPlan(beds, laundry, office);
-    const mins = plan.map((t) => minDepthFor(t, roomW));
-    const sumMin = mins.reduce((a, b) => a + b, 0);
-
-    if (sumMin + EPS > totalDepth) return null;
-
-    // Distribute slack primarily into bedrooms for realism.
-    let slack = totalDepth - sumMin;
-
-    const depths = mins.slice();
-
-    const bedroomIdx = plan.map((t, i) => (t === "bedroom" ? i : -1)).filter((i) => i >= 0);
-    const otherIdx = plan.map((t, i) => (t !== "bedroom" ? i : -1)).filter((i) => i >= 0);
-
-    // Give bathrooms a little slack sometimes (not always boxy).
-    for (const i of otherIdx) {
-      if (slack <= 1e-6) break;
-      const t = plan[i]!;
-      const p = t === "bathroom_small" || t === "bathroom_large" ? 0.35 : 0.2;
-      if (!rng.bool(p)) continue;
-      const add = Math.min(slack, rng.float(0.0, 0.6));
-      depths[i]! = q(depths[i]! + add, 3);
-      slack = q(slack - add, 3);
+  if (canBedLeft && canBedRight) {
+    if (targetBeds === 1) {
+      assignToWide();
+    } else if (targetBeds === 2) {
+      bedsL = 1;
+      bedsR = 1;
+    } else if (targetBeds === 3) {
+      assignToWide();
+      assignToWide();
+      assignToNarrow();
+    } else {
+      // 4
+      bedsL = 2;
+      bedsR = 2;
     }
-
-    // Distribute remaining slack among bedrooms.
-    for (let k = 0; k < bedroomIdx.length; k++) {
-      if (slack <= 1e-6) break;
-      const i = bedroomIdx[k]!;
-      const remaining = bedroomIdx.length - k;
-      const maxAdd = Math.min(2.0, slack); // don't over-bloat
-      const add = remaining > 1 ? rng.float(0, maxAdd * 0.7) : maxAdd;
-      depths[i]! = q(depths[i]! + add, 3);
-      slack = q(slack - add, 3);
-    }
-
-    // Put any leftover slack into the last segment so total matches exactly.
-    if (slack > 1e-6) {
-      depths[depths.length - 1]! = q(depths[depths.length - 1]! + slack, 3);
-    }
-
-    // Final sanity: all depths must stay >= their minima after rounding.
-    for (let i = 0; i < depths.length; i++) {
-      if (depths[i]! + EPS < mins[i]!) return null;
-    }
-
-    return { plan, depths };
-  };
-
-  // Fit planner with deterministic degradation if needed.
-  let fit = tryPlanFit(nBedrooms, includeLaundry, includeOffice);
-  if (!fit && includeLaundry) {
-    includeLaundry = false;
-    fit = tryPlanFit(nBedrooms, includeLaundry, includeOffice);
-  }
-  if (!fit && includeOffice) {
-    includeOffice = false;
-    fit = tryPlanFit(nBedrooms, includeLaundry, includeOffice);
-  }
-  while (!fit && nBedrooms > bedMin) {
-    nBedrooms--;
-    fit = tryPlanFit(nBedrooms, includeLaundry, includeOffice);
-  }
-  if (!fit) {
-    throw new Error(
-      `secondFloor: House ${hn} cannot fit required rooms in available depth (depth=${q(totalDepth, 3)}m, roomW=${q(roomW, 3)}m)`
-    );
+  } else if (canBedLeft) {
+    bedsL = targetBeds;
+  } else {
+    bedsR = targetBeds;
   }
 
-  const { plan, depths } = fit;
+  // Attempt-dependent extras: earlier attempts pack more rooms; later attempts simplify.
+  const allowOffice = attempt < 5 ? rng.bool(0.55) : false;
+  const allowLaundry = attempt < 7 ? rng.bool(0.45) : false;
+  const allowStorage = attempt < 9;
+  const allowSecondCloset = attempt < 7 ? rng.bool(0.55) : false;
 
-  // Build regions: hallway + room slices (+ optional closets).
+  // Bathrooms: place large on the side with more beds (or wider), small on the other if feasible.
+  const bedHeavy: Side = bedsL >= bedsR ? "left" : "right";
+  const bathLargeSide: Side = (bedHeavy === "left" && wLeft + EPS >= 2.0) || wRight + EPS < 2.0 ? "left" : "right";
+  const bathSmallSide: Side =
+    bathLargeSide === "left"
+      ? (wRight + EPS >= 1.6 ? "right" : "left")
+      : (wLeft + EPS >= 1.6 ? "left" : "right");
+
   const regions: Region[] = [];
+
+  // Hallway region (required)
   regions.push(rectToRegion("hallway", woodA, hall));
 
-  let zCur = roomZone.z0;
+  // Build per-strip room lists (front->back) and pack each strip to fully cover it.
+  let closetsPlanned = 0;
 
-  const hallwayEdgeX = roomSide === "right" ? hall.x1 : hall.x0; // rooms start at this edge
+  const buildStripPlan = (side: Side): string[] => {
+    const w = side === "left" ? wLeft : wRight;
+    const beds = side === "left" ? bedsL : bedsR;
 
-  for (let i = 0; i < plan.length; i++) {
-    const t = plan[i]!;
-    const d = depths[i]!;
-    const z0 = q(zCur, 3);
-    const z1 = q(zCur + d, 3);
-    zCur = z1;
+    const plan: string[] = [];
 
-    // Base room spans from hallway edge to outer boundary.
-    let base: Rect;
-    if (roomSide === "right") {
-      // roomZone.x0 is hall.x1 by construction
-      base = rectNorm(roomZone.x0, z0, roomZone.x1, z1);
-    } else {
-      // roomZone.x1 is hall.x0 by construction
-      base = rectNorm(roomZone.x0, z0, roomZone.x1, z1);
+    // Always try to keep a bedroom toward the front if we have any on this side.
+    if (beds > 0) plan.push("bedroom");
+
+    // Optional office near front if there's room and this side is wide.
+    if (allowOffice && w + EPS >= EXTRA_MINS.office.minDim && rng.bool(0.6)) plan.push("office");
+
+    // Bathrooms (mid-pack)
+    if (side === bathLargeSide) plan.push("bathroom_large");
+    if (side === bathSmallSide) plan.push("bathroom_small");
+
+    // Guarantee 1 closet overall; aim for 1..2 closets total.
+    if (closetsPlanned === 0 && w + EPS >= EXTRA_MINS.closet.minDim) {
+      plan.push("closet");
+      closetsPlanned++;
+    } else if (allowSecondCloset && closetsPlanned < 2 && w + EPS >= EXTRA_MINS.closet.minDim && rng.bool(0.55)) {
+      plan.push("closet");
+      closetsPlanned++;
     }
 
-    // Validate inside houseregion polygon (hard).
-    if (!rectInsidePoly(base, hr.points)) {
-      throw new Error(`secondFloor: House ${hn} room '${t}' not inside houseregion`);
-    }
+    // Optional laundry (often near bath)
+    if (allowLaundry && w + EPS >= EXTRA_MINS.laundry.minDim && rng.bool(0.5)) plan.push("laundry");
 
-    // Validate that this slice touches hallway with >= 0.6m segment (hard for bedrooms/bathrooms).
-    const touchesHall =
-      roomSide === "right"
-        ? Math.abs(base.x0 - hallwayEdgeX) <= 1e-3
-        : Math.abs(base.x1 - hallwayEdgeX) <= 1e-3;
+    // Remaining bedrooms (rear)
+    const remainingBeds = Math.max(0, beds - (beds > 0 ? 1 : 0));
+    for (let i = 0; i < remainingBeds; i++) plan.push("bedroom");
 
-    const touchLen = overlap1D(base.z0, base.z1, hall.z0, hall.z1);
-    if ((t === "bedroom" || t === "bathroom_small" || t === "bathroom_large") && (!touchesHall || touchLen + EPS < 0.6)) {
-      throw new Error(`secondFloor: House ${hn} ${t} must touch hallway (touchLen=${q(touchLen, 3)}m)`);
-    }
+    // Storage is a safe “filler” room if we can afford it.
+    if (allowStorage && w + EPS >= EXTRA_MINS.storage.minDim && rng.bool(0.6)) plan.push("storage");
 
-    // Assign surface
-    const surface: Surface =
-      t === "bedroom" ? woodB : t === "bathroom_small" || t === "bathroom_large" ? tileA : t === "laundry" ? tileB : woodB;
+    return plan;
+  };
 
-    // Optionally carve a closet from the *outer* edge of some bedrooms.
-    if (t === "bedroom") {
-      const allowCloset = rng.bool(0.35) && rectW(base) >= 3.9 && rectD(base) >= 2.6;
+  const planL = wLeft + EPS >= 1.0 ? buildStripPlan("left") : [];
+  const planR = wRight + EPS >= 1.0 ? buildStripPlan("right") : [];
 
-      if (allowCloset) {
-        const closetW = q(clamp(rng.float(1.0, 1.6), 1.0, Math.min(1.8, rectW(base) - 2.6)), 3);
+  // Ensure we planned at least 1 closet and no more than 2
+  if (closetsPlanned === 0) {
+    // Force a closet on whichever strip can take it (prefer narrower).
+    const preferClosetSide: Side = wLeft <= wRight ? "left" : "right";
+    if (preferClosetSide === "left" && wLeft + EPS >= 1.0) planL.push("closet");
+    else if (wRight + EPS >= 1.0) planR.push("closet");
+    else throw new Error(`secondFloor: House ${hn} could not place required closet`);
+    closetsPlanned = 1;
+  }
+  if (closetsPlanned > 2) {
+    throw new Error(`secondFloor: House ${hn} planned too many closets (${closetsPlanned})`);
+  }
 
-        // Closet must be on the outer edge so the bedroom still touches hallway.
-        let closet: Rect;
-        let bed: Rect;
+  // Pack strips (this fills the usable wide band and eliminates large unused areas).
+  const stripSurfaces = { woodA, woodB, tileA, tileB };
 
-        if (roomSide === "right") {
-          // hallway is at x0; outer edge is at x1
-          closet = rectNorm(base.x1 - closetW, base.z0, base.x1, base.z1);
-          bed = rectNorm(base.x0, base.z0, base.x1 - closetW, base.z1);
-        } else {
-          // hallway is at x1; outer edge is at x0
-          closet = rectNorm(base.x0, base.z0, base.x0 + closetW, base.z1);
-          bed = rectNorm(base.x0 + closetW, base.z0, base.x1, base.z1);
-        }
+  const leftRooms = wLeft + EPS >= 1.0 ? packStripOrThrow(hn, hr.points, rng, leftStrip, planL, stripSurfaces) : [];
+  const rightRooms = wRight + EPS >= 1.0 ? packStripOrThrow(hn, hr.points, rng, rightStrip, planR, stripSurfaces) : [];
 
-        // Validate mins after carving.
-        ensureMinRect(hn, "bedroom", bed, MINS.bedroom);
-        ensureMinRect(hn, "closet", closet, MINS.closet);
+  regions.push(...leftRooms, ...rightRooms);
 
-        regions.push(rectToRegion("bedroom", woodB, bed));
-        regions.push(rectToRegion("closet", woodA, closet));
-        continue;
+  // -------- Use rear modification band (below zWideMin) to reduce unused space --------
+  // These are extra rooms (office/laundry/storage). They are not required to touch hallway, but stay inside houseregion.
+  const rearTop = q(shape.zWideMin + inset, 3);
+  const rearBot = q(shape.z0 + inset, 3);
+
+  if (rearTop - rearBot + EPS >= 1.8) {
+    const tryRearRoom = (rr: Rect) => {
+      // Prefer office, then laundry, then storage.
+      const w = rectW(rr);
+      const d = rectD(rr);
+
+      const tryKinds: Array<keyof typeof EXTRA_MINS> = ["office", "laundry", "storage"];
+      for (const k of tryKinds) {
+        const min = EXTRA_MINS[k];
+        if (w + EPS < min.minDim || d + EPS < min.minDim) continue;
+        if (rectArea(rr) + EPS < min.area) continue;
+        if (!rectInsidePoly(rr, hr.points)) continue;
+
+        regions.push(rectToRegion(k, surfaceForRoom(k, woodA, woodB, tileA, tileB), rr));
+        return true;
       }
+      return false;
+    };
 
-      // No closet
-      ensureMinRect(hn, "bedroom", base, MINS.bedroom);
-      regions.push(rectToRegion("bedroom", woodB, base));
-      continue;
+    if (shape.kind === "extension") {
+      const rr = rectNorm(shape.extX0 + inset, rearBot, shape.extX1 - inset, rearTop);
+      if (rectW(rr) + EPS >= 1.2 && rectD(rr) + EPS >= 1.2) {
+        tryRearRoom(rr);
+      }
+    } else if (shape.kind === "notch") {
+      const leftWing = rectNorm(shape.x0 + inset, rearBot, shape.notchX0 - inset, rearTop);
+      const rightWing = rectNorm(shape.notchX1 + inset, rearBot, shape.x1 - inset, rearTop);
+
+      const wings: Rect[] = [];
+      if (rectW(leftWing) > 0.2 && rectD(leftWing) > 0.2) wings.push(leftWing);
+      if (rectW(rightWing) > 0.2 && rectD(rightWing) > 0.2) wings.push(rightWing);
+
+      // Try to add up to 2 rear rooms, but don't add closets here (we already enforce 1..2 closets above).
+      let added = 0;
+      for (const wng of wings) {
+        if (added >= 2) break;
+        if (tryRearRoom(wng)) added++;
+      }
     }
-
-    // Bathrooms / laundry / office
-    ensureMinRect(hn, t, base, MINS[t]);
-    regions.push(rectToRegion(t, surface, base));
   }
 
-  // Final required-set checks (hard)
-  const hasHall = regions.some((r) => r.name === "hallway");
-  const hasBed = regions.some((r) => r.name === "bedroom");
-  const hasBL = regions.some((r) => r.name === "bathroom_large");
-  const hasBS = regions.some((r) => r.name === "bathroom_small");
+  // Final validation: required set + touch/connectivity
+  validateSecondFloorOrThrow(hn, hr.points, stairs, hall, regions);
 
-  if (!hasHall || !hasBed || !hasBL || !hasBS) {
-    throw new Error(`secondFloor: House ${hn} missing required regions after generation`);
-  }
-
-  // Ensure all rectangles are within lot-local bounds and within houseregion.
-  for (const r of regions) {
-    if (r.type !== "rectangle") continue;
-    const bb = rectFromRegion(r);
-
-    if (bb.x0 < -EPS || bb.x1 > ctx.xsize + EPS || bb.z0 < -EPS || bb.z1 > 30 + EPS) {
-      throw new Error(`secondFloor: House ${hn} region '${r.name}' out of lot bounds`);
-    }
-    if (!rectInsidePoly(bb, hr.points)) {
-      throw new Error(`secondFloor: House ${hn} region '${r.name}' not inside houseregion`);
-    }
-    // Global mins from requirements (all layers)
-    const a = rectArea(bb);
-    const md = rectMinDim(bb);
-    if (a + EPS < 2.0) throw new Error(`secondFloor: House ${hn} region '${r.name}' violates global min area (area=${q(a, 3)})`);
-    if (md + EPS < 1.0) throw new Error(`secondFloor: House ${hn} region '${r.name}' violates global min dimension (minDim=${q(md, 3)})`);
+  // Enforce “1 to 2 closets” in the final output (user request).
+  const closetCount = regions.filter((r) => r.name === "closet").length;
+  if (closetCount < 1 || closetCount > 2) {
+    throw new Error(`secondFloor: House ${hn} closet count ${closetCount} out of desired range [1,2]`);
   }
 
   return { regions, construction: [], objects: [] };
 }
 
-// -------------------- Public API --------------------
-
-export function generateSecondFloorModel(
-  house: HouseConfig,
-  ctx: HouseGenContext,
-  plot: FloorModel,
-  firstFloor: FloorModel
-): FloorModel {
+export function generateSecondFloorModel(house: HouseConfig, ctx: HouseGenContext, plot: FloorModel, firstFloor: FloorModel): FloorModel {
   const hn = house.houseNumber;
 
   let lastErr: unknown = null;
@@ -643,6 +683,5 @@ export function generateSecondFloorModel(
   }
 
   if (lastErr instanceof Error) throw lastErr;
-
   throw new Error(`secondFloor: House ${hn} failed to generate a valid model after ${MAX_ATTEMPTS} attempts`);
 }

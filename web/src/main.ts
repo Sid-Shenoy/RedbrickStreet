@@ -254,6 +254,8 @@ function renderFloorLayer(
     const regions = getRegions(house);
 
     for (const region of regions) {
+      if (region.surface === "void") continue;
+
       const mat = mats[region.surface];
 
       if (region.type === "rectangle") {
@@ -262,6 +264,7 @@ function renderFloorLayer(
         renderPolyRegion(scene, house, region, mat, "floor", layerTag, baseY, collisions);
       }
     }
+    
   }
 }
 
@@ -408,7 +411,7 @@ function renderBoundaryWallsForLayer(
   wallMat: StandardMaterial
 ) {
   for (const house of houses) {
-    const regions = getRegions(house);
+    const regions = getRegions(house).filter((r) => r.surface !== "void");
 
     // Build cut sets from ALL region vertices so we can split long edges into shared atomic segments.
     const xVals: number[] = [0, house.bounds.xsize];

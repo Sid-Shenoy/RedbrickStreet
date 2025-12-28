@@ -1,2 +1,3 @@
 web\public\config\characters.json
 web\public\config\houses.json
+web\src\world\houseModel\generation\plot.ts
