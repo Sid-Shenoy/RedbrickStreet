@@ -497,10 +497,10 @@ function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: R
   // Hallway mins
   checkRectMin(hn, "hallway", hallway);
 
-  // Hallway must touch stairs projection along an edge segment >= 0.6m
+  // Hallway must touch stairs projection along an edge segment >= 1.0m
   const touchLen = sharedEdgeLen(hallway, stairs);
-  if (touchLen + EPS < 0.6) {
-    throw new Error(`secondFloor: House ${hn} hallway must touch stairs projection (>=0.6m), got ${q(touchLen, 3)}m`);
+  if (touchLen + EPS < 1.0) {
+    throw new Error(`secondFloor: House ${hn} hallway must touch stairs projection (>=1.0m), got ${q(touchLen, 3)}m`);
   }
 
   // Required regions
@@ -517,7 +517,7 @@ function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: R
     if (!rectInsidePoly(rr, housePoly)) throw new Error(`secondFloor: House ${hn} region '${r.name}' not inside houseregion`);
   }
 
-  // Connectivity constraints (6.5.3): every bedroom & bathroom touches hallway (>=0.6m edge).
+  // Connectivity constraints (6.5.3): every bedroom & bathroom touches hallway (>=1.0m edge).
   // NOTE: We intentionally check against the "main" hallway rectangle placed adjacent to stairs; this keeps validation simple and robust.
   const hallRect = hallway;
 
@@ -527,8 +527,8 @@ function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: R
     if (r.name !== "bedroom" && r.name !== "bathroom_small" && r.name !== "bathroom_large") continue;
     const rr = rectFromRegion(r);
     const len = sharedEdgeLen(rr, hallRect);
-    if (len + EPS < 0.6) {
-      throw new Error(`secondFloor: House ${hn} '${r.name}' must touch hallway (>=0.6m), got ${q(len, 3)}m`);
+    if (len + EPS < 1.0) {
+      throw new Error(`secondFloor: House ${hn} '${r.name}' must touch hallway (>=1.0m), got ${q(len, 3)}m`);
     }
   }
 
@@ -594,9 +594,9 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
   hall = tryPlaceHall(prefer) ?? tryPlaceHall(prefer === "left" ? "right" : "left");
   if (!hall) throw new Error(`secondFloor: House ${hn} could not place hallway adjacent to stairs`);
 
-  // Ensure hallway actually touches stairs with enough overlap (>=0.6m) before proceeding.
+  // Ensure hallway actually touches stairs with enough overlap (>=1.0m) before proceeding.
   const hallTouchLen = sharedEdgeLen(hall, stairs);
-  if (hallTouchLen + EPS < 0.6) {
+  if (hallTouchLen + EPS < 1.0) {
     throw new Error(`secondFloor: House ${hn} hallway-stairs touch too short (len=${q(hallTouchLen, 3)}m)`);
   }
 
