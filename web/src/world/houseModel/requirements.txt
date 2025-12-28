@@ -36,6 +36,8 @@
 2.2.2.1) plot
 2.2.2.2) firstFloor
 2.2.2.3) secondFloor
+2.2.3) Post-processing stages (must run after rooms are generated):
+2.2.3.1) doors (adds Door elements into `firstFloor.construction` and `secondFloor.construction`; `plot.construction` remains empty)
 
 2.3) Preconditions (minimal, pragmatic)
 
@@ -61,10 +63,11 @@
 
 2.5.1) Each layer must contain:
 2.5.1.1) `regions` (generated)
-2.5.1.2) `construction` (empty for now)
+2.5.1.2) `construction` (doors only; other construction types later)
 2.5.1.3) `objects` (empty for now)
 2.5.2) `regions` represent navigable floor/ground surface "zones".
-2.5.3) Detailed walls/doors/windows/stairs geometry is out of scope for now and will be added later under `construction`.
+2.5.3) `construction` currently contains only `Door` elements (section 3.6, section 7).
+2.5.4) Detailed walls/windows/stairs geometry is out of scope for now and will be added later under `construction`.
 
 2.6) Failure behavior and error format
 
@@ -73,6 +76,7 @@
 2.6.2.1) `plot: ...`
 2.6.2.2) `firstFloor: ...`
 2.6.2.3) `secondFloor: ...`
+2.6.2.4) `doors: ...`
 2.6.3) Precondition validation errors thrown before entering a stage may omit the prefix, but must include:
 2.6.3.1) house number
 2.6.3.2) the invalid value
@@ -92,7 +96,7 @@
 
 3.2.1) A FloorModel must contain:
 3.2.1.1) `regions: Region[]`
-3.2.1.2) `construction: unknown[]` (empty for now)
+3.2.1.2) `construction: ConstructionElement[]`
 3.2.1.3) `objects: unknown[]` (empty for now)
 
 3.3) Region surface enum
@@ -154,6 +158,57 @@ Object 2)
 3.5.4.1) No region may have area < 2.0 m^2.
 3.5.4.2) No region may have a minimum bounding-box dimension < 1.0 m.
 3.5.4.3) Recommendation: avoid any region edge shorter than 0.8 m.
+
+3.6) Construction elements (doors only for now)
+
+3.6.1) `ConstructionElement` union
+3.6.1.1) `construction` must be an array of `ConstructionElement`.
+3.6.1.2) For this milestone, the only allowed `ConstructionElement` is `Door`.
+
+3.6.2) Door format (axis-aligned wall opening)
+
+3.6.2.1) A `Door` must have:
+3.6.2.1.1) `kind: "door"`
+3.6.2.1.2) `aRegion: number` (index into the containing layer's `regions` array)
+3.6.2.1.3) `bRegion: number | null`
+3.6.2.1.3.1) `bRegion` is the index of the adjacent region across the door (interior door), OR
+3.6.2.1.3.2) `bRegion = null` for an exterior door (door opens to outside of the footprint)
+3.6.2.1.4) `hinge: [x, z]` (lot-local coordinates, on the wall line)
+3.6.2.1.5) `end: [x, z]` (lot-local coordinates, on the same wall line)
+
+3.6.2.2) Door geometry invariants (hard)
+3.6.2.2.1) `hinge` and `end` must be on the same axis-aligned wall line:
+3.6.2.2.1.1) either `hinge[0] === end[0]` (vertical wall) OR
+3.6.2.2.1.2) `hinge[1] === end[1]` (horizontal wall)
+3.6.2.2.2) Door width must be exactly 0.8 m (tiny tolerance allowed):
+3.6.2.2.2.1) `distance(hinge, end) === 0.8`
+3.6.2.2.3) Both points must lie within lot-local bounds (same tolerance rules as regions):
+3.6.2.2.3.1) x in [0, xsize]
+3.6.2.2.3.2) z in [0, 30]
+3.6.2.2.4) For interior doors (`bRegion !== null`), the door segment must lie fully on a boundary segment shared by region `aRegion` and region `bRegion`.
+3.6.2.2.5) For exterior doors (`bRegion === null`), the door segment must lie fully on the exterior boundary of region `aRegion` (i.e., on the boundary between the interior footprint and the outside).
+
+Example Door element (interior):
+```
+{
+  "kind": "door",
+  "aRegion": 3,
+  "bRegion": 4,
+  "hinge": [7.0, 12.6],
+  "end": [7.8, 12.6]
+}
+```
+
+Example Door element (exterior):
+```
+{
+  "kind": "door",
+  "aRegion": 1,
+  "bRegion": null,
+  "hinge": [5.2, 22.1],
+  "end": [6.0, 22.1]
+}
+```
 
 4) Plot layer specification (`generation/plot.ts`) (KEEP AS-IS FUNCTIONALLY)
 
@@ -274,18 +329,18 @@ Object 2)
 5.4.3) Interior connectivity (simple, hard)
 5.4.3.1) `foyer` must share a boundary segment length >= 0.8 m with `hallway` OR `livingroom`.
 5.4.3.2) `hallway` must share a boundary segment length >= 0.8 m with `stairs`.
-5.4.3.3) `bathroom_small` must share a boundary segment length >= 0.6 m with `hallway`.
+5.4.3.3) `bathroom_small` must share a boundary segment length >= 0.8 m with `hallway`.
 5.4.3.4) `kitchen` must share a boundary segment length >= 0.8 m with `livingroom` OR `diningroom` OR `hallway`.
 5.4.3.5) `garage` must share a boundary segment length >= 0.8 m with `hallway` OR `mudroom` OR `foyer` (representing an interior door).
 5.4.3.6) If present:
 5.4.3.6.1) `diningroom` must share a boundary segment length >= 0.8 m with `kitchen` OR `livingroom`.
-5.4.3.6.2) `mudroom` must share a boundary segment length >= 0.6 m with `garage` OR `hallway`.
-5.4.3.6.3) `pantry` must share a boundary segment length >= 0.6 m with `kitchen`.
-5.4.3.6.4) `laundry` should share a boundary segment length >= 0.6 m with `hallway` OR `mudroom`.
-5.4.3.6.5) `office` should share a boundary segment length >= 0.6 m with `hallway` OR `livingroom`.
+5.4.3.6.2) `mudroom` must share a boundary segment length >= 0.8 m with `garage` OR `hallway`.
+5.4.3.6.3) `pantry` must share a boundary segment length >= 0.8 m with `kitchen`.
+5.4.3.6.4) `laundry` should share a boundary segment length >= 0.8 m with `hallway` OR `mudroom`.
+5.4.3.6.5) `office` should share a boundary segment length >= 0.8 m with `hallway` OR `livingroom`.
 5.4.3.7) Global connectivity (hard)
 5.4.3.7.1) Adjacency definition (for connectivity checks)
-5.4.3.7.1.1) Two regions A and B are considered "adjacent" if they share a boundary segment of length >= 0.6 m.
+5.4.3.7.1.1) Two regions A and B are considered "adjacent" if they share a boundary segment of length >= 0.8 m.
 5.4.3.7.2) Required-room connectivity
 5.4.3.7.2.1) The subgraph formed by the required regions:
 5.4.3.7.2.1.1) garage
@@ -414,9 +469,9 @@ Example firstFloor output (with a couple extras):
 6.5.2) Stair arrival
 6.5.2.1) `hallway` must touch (share an edge segment with) the projection of a first-floor `stairs` rectangle.
 6.5.3) Connectivity
-6.5.3.1) Every `bedroom` must share a boundary segment length >= 0.6 m with `hallway`.
-6.5.3.2) Every bathroom (bathroom_small/bathroom_large) must share a boundary segment length >= 0.6 m with `hallway`.
-6.5.3.3) If present, `closet` should touch a `bedroom` OR touch `hallway`.
+6.5.3.1) Every `bedroom` must share a boundary segment length >= 0.8 m with `hallway`.
+6.5.3.2) Every bathroom (bathroom_small/bathroom_large) must share a boundary segment length >= 0.8 m with `hallway`.
+6.5.3.3) If present, `closet` should share a boundary segment length >= 0.8 m with a `bedroom` OR share a boundary segment length >= 0.8 m with `hallway`.
 
 6.6) Room size minimums (hard, realistic)
 
@@ -456,3 +511,64 @@ Example secondFloor output (3 bedrooms, all named "bedroom"):
   "objects": []
 }
 ```
+
+7) Door generation stage (`generation/doors.ts`) (ADD DOORS INTO `construction`)
+
+7.1) Intent
+
+7.1.1) Add door openings to the already-generated room layouts.
+7.1.2) Doors are represented as simple wall segments (hinge->end) suitable for rendering as:
+7.1.2.1) a gap in the wall at floor height, plus
+7.1.2.2) a standard overhead lintel/opening treatment (not stored in JSON; same for all doors)
+
+7.2) Exported function
+
+7.2.1) Export: `generateDoors(house, ctx, plot, firstFloor, secondFloor) -> { firstFloorDoors: Door[]; secondFloorDoors: Door[] }`
+7.2.2) The function must not modify `regions` in any layer.
+7.2.3) The returned door arrays must be written into:
+7.2.3.1) `firstFloor.construction`
+7.2.3.2) `secondFloor.construction`
+7.2.3.3) `plot.construction` must remain `[]`
+
+7.3) Determinism
+
+7.3.1) Door generation must be deterministic under the seed contract (2.4).
+7.3.2) For the same inputs (house bounds, occupant count, and the generated room regions), door placement must be identical across runs.
+
+7.4) Door placement rules (hard)
+
+7.4.1) All generated doors must satisfy the `Door` format + invariants defined in section 3.6.
+7.4.2) Each door must lie fully on an existing axis-aligned boundary segment:
+7.4.2.1) interior doors: on a segment shared by exactly two regions (aRegion and bRegion)
+7.4.2.2) exterior doors: on a segment on the exterior boundary of the indoor footprint (bRegion = null)
+7.4.3) Door width must be exactly 0.8 m (hinge->end length).
+7.4.4) Every door must reference regions by index, not by name (to handle duplicate names like `bedroom`).
+
+7.5) Required doors (hard)
+
+7.5.1) First floor doors (minimum set)
+7.5.1.1) A front exterior door must exist:
+7.5.1.1.1) `aRegion` must be the region containing the entry (`foyer`)
+7.5.1.1.2) `bRegion` must be `null`
+7.5.1.1.3) the door segment must lie on the front boundary of the indoor footprint and align with the plot `walkway` overlap area
+7.5.1.2) For each first-floor connectivity requirement that implies a passage between two regions, exactly one interior door must exist on their shared boundary, including:
+7.5.1.2.1) `foyer` with (`hallway` OR `livingroom`) depending on which adjacency exists in the generated layout
+7.5.1.2.2) `hallway` with `stairs`
+7.5.1.2.3) `hallway` with `bathroom_small`
+7.5.1.2.4) `kitchen` with (`livingroom` OR `diningroom` OR `hallway`) depending on which adjacency exists
+7.5.1.2.5) `garage` with (`hallway` OR `mudroom` OR `foyer`) depending on which adjacency exists
+7.5.1.3) If optional rooms exist and the first-floor spec requires/encourages connectivity for them, door(s) should be generated on the relevant shared boundaries (subject to feasibility).
+
+7.5.2) Second floor doors (minimum set)
+7.5.2.1) Every `bedroom` region must have exactly one interior door connecting it to the second-floor `hallway`.
+7.5.2.2) Every bathroom region (`bathroom_small`, `bathroom_large`) must have exactly one interior door connecting it to the second-floor `hallway`.
+7.5.2.3) If `closet` exists and touches `hallway` or a `bedroom`, generate an interior door on the corresponding shared boundary when feasible.
+
+7.6) Failure behavior
+
+7.6.1) If required doors cannot be placed while satisfying section 3.6 invariants, the stage must fail fast by throwing an Error prefixed with:
+7.6.1.1) `doors: ...`
+7.6.2) The error message must include:
+7.6.2.1) house number
+7.6.2.2) which required door could not be placed (e.g. "hallway->bathroom_small")
+7.6.2.3) the blocking reason (e.g. "no shared boundary segment >= 0.8m")
