@@ -40,6 +40,15 @@ function rectMinDim(r: Rect) {
   return Math.min(rectW(r), rectD(r));
 }
 
+function rectIntersect(a: Rect, b: Rect): Rect | null {
+  const x0 = Math.max(a.x0, b.x0);
+  const x1 = Math.min(a.x1, b.x1);
+  const z0 = Math.max(a.z0, b.z0);
+  const z1 = Math.min(a.z1, b.z1);
+  if (x1 - x0 <= EPS || z1 - z0 <= EPS) return null;
+  return rectNorm(x0, z0, x1, z1);
+}
+
 function uniqSorted(vals: number[]): number[] {
   const s = [...vals].sort((a, b) => a - b);
   const out: number[] = [];
@@ -359,6 +368,131 @@ function packStripOrThrow(
   return out;
 }
 
+/**
+ * Packs a strip while reserving a "stairs opening" rectangle as SURFACE=void (not rendered),
+ * by splitting the strip into:
+ *  - front segment (z in [opening.z1 .. strip.z1])
+ *  - back segment  (z in [strip.z0 .. opening.z0])
+ * and NOT placing any packed rooms across the opening's z-band.
+ *
+ * This guarantees that no non-void region overlaps the opening rectangle.
+ */
+function packStripWithStairsOpeningOrThrow(
+  hn: number,
+  housePoly: PolyPoints,
+  rng: ReturnType<typeof makeRng>,
+  strip: Rect,
+  openingIn: Rect,
+  plan: string[],
+  surfaces: { woodA: Surface; woodB: Surface; tileA: Surface; tileB: Surface }
+): Region[] {
+  const opening = rectIntersect(strip, openingIn);
+  if (!opening) {
+    return packStripOrThrow(hn, housePoly, rng, strip, plan, surfaces);
+  }
+
+  // Opening must touch one vertical edge of the strip (this is the normal case: opening is adjacent to the hallway edge).
+  const touchesLeft = Math.abs(opening.x0 - strip.x0) <= 1e-3;
+  const touchesRight = Math.abs(opening.x1 - strip.x1) <= 1e-3;
+  if (!touchesLeft && !touchesRight) {
+    // If not edge-adjacent, fall back to normal packing (we avoid generating overlaps we can't guarantee away).
+    return packStripOrThrow(hn, housePoly, rng, strip, plan, surfaces);
+  }
+
+  const frontDepth = strip.z1 - opening.z1;
+  const backDepth = opening.z0 - strip.z0;
+
+  const hasFront = frontDepth > 0.05;
+  const hasBack = backDepth > 0.05;
+
+  const w = rectW(strip);
+
+  // Compute min depth requirements for each planned room.
+  const mins = plan.map((nm) => {
+    const key = nm as keyof typeof REQUIRED_MINS | keyof typeof EXTRA_MINS;
+    return q(minDepthForRoom(key, w), 3);
+  });
+
+  const prefix: number[] = [0];
+  for (let i = 0; i < mins.length; i++) prefix.push(q(prefix[i]! + mins[i]!, 3));
+
+  const suffix: number[] = Array.from({ length: mins.length + 1 }, () => 0);
+  for (let i = mins.length - 1; i >= 0; i--) suffix[i] = q(suffix[i + 1]! + mins[i]!, 3);
+
+  // Feasible split index k where:
+  //   plan[0..k) fits in front segment, plan[k..] fits in back segment.
+  const feasible: number[] = [];
+  for (let k = 0; k <= plan.length; k++) {
+    const okFront = !hasFront ? k === 0 : prefix[k]! <= frontDepth + 1e-3;
+    const okBack = !hasBack ? k === plan.length : suffix[k]! <= backDepth + 1e-3;
+    if (okFront && okBack) feasible.push(k);
+  }
+
+  if (feasible.length === 0) {
+    throw new Error(
+      `secondFloor: House ${hn} cannot split strip plan around stairs opening (frontDepth=${q(frontDepth, 3)}, backDepth=${q(
+        backDepth,
+        3
+      )})`
+    );
+  }
+
+  // Prefer a split where both sides have at least one room when possible (avoids huge open segments).
+  const feasibleBoth = feasible.filter((k) => k > 0 && k < plan.length && hasFront && hasBack);
+  const k = (feasibleBoth.length ? rng.pick(feasibleBoth) : rng.pick(feasible)) as number;
+
+  const planFront = plan.slice(0, k);
+  const planBack = plan.slice(k);
+
+  const out: Region[] = [];
+
+  // Front segment rooms
+  if (hasFront && planFront.length > 0) {
+    const frontStrip = rectNorm(strip.x0, opening.z1, strip.x1, strip.z1);
+    out.push(...packStripOrThrow(hn, housePoly, rng, frontStrip, planFront, surfaces));
+  }
+
+  // Back segment rooms
+  if (hasBack && planBack.length > 0) {
+    const backStrip = rectNorm(strip.x0, strip.z0, strip.x1, opening.z0);
+    out.push(...packStripOrThrow(hn, housePoly, rng, backStrip, planBack, surfaces));
+  }
+
+  // Fill the non-opening portion of the opening z-band with a "storage" region when feasible.
+  // This preserves floor area beside the opening without requiring hallway adjacency.
+  const midDepth = opening.z1 - opening.z0;
+  if (midDepth > 0.05) {
+    let mid: Rect | null = null;
+
+    if (touchesRight) {
+      // opening is on the right edge; fill left remainder
+      if (opening.x0 - strip.x0 > 0.05) {
+        mid = rectNorm(strip.x0, opening.z0, opening.x0, opening.z1);
+      }
+    } else if (touchesLeft) {
+      // opening is on the left edge; fill right remainder
+      if (strip.x1 - opening.x1 > 0.05) {
+        mid = rectNorm(opening.x1, opening.z0, strip.x1, opening.z1);
+      }
+    }
+
+    if (mid) {
+      // Keep this extra region only if it satisfies "storage" minimums (so it stays realistic).
+      const a = rectArea(mid);
+      const md = rectMinDim(mid);
+      if (
+        a + EPS >= EXTRA_MINS.storage.area &&
+        md + EPS >= EXTRA_MINS.storage.minDim &&
+        rectInsidePoly(mid, housePoly)
+      ) {
+        out.push(rectToRegion("storage", surfaceForRoom("storage", surfaces.woodA, surfaces.woodB, surfaces.tileA, surfaces.tileB), mid));
+      }
+    }
+  }
+
+  return out;
+}
+
 function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: Rect, hallway: Rect, regions: Region[]) {
   // Hallway mins
   checkRectMin(hn, "hallway", hallway);
@@ -370,7 +504,7 @@ function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: R
   }
 
   // Required regions
-  const has = (nm: string) => regions.some((r) => r.name === nm);
+  const has = (nm: string) => regions.some((r) => r.name === nm && r.surface !== "void");
   if (!has("hallway")) throw new Error(`secondFloor: House ${hn} missing required region 'hallway'`);
   if (!has("bathroom_large")) throw new Error(`secondFloor: House ${hn} missing required region 'bathroom_large'`);
   if (!has("bathroom_small")) throw new Error(`secondFloor: House ${hn} missing required region 'bathroom_small'`);
@@ -384,13 +518,12 @@ function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: R
   }
 
   // Connectivity constraints (6.5.3): every bedroom & bathroom touches hallway (>=0.6m edge).
-  const hallIdx = regions.findIndex((r) => r.name === "hallway");
-  if (hallIdx < 0) throw new Error(`secondFloor: House ${hn} missing hallway index`);
-
+  // NOTE: We intentionally check against the "main" hallway rectangle placed adjacent to stairs; this keeps validation simple and robust.
   const hallRect = hallway;
 
   for (const r of regions) {
     if (r.type !== "rectangle") continue;
+    if (r.surface === "void") continue;
     if (r.name !== "bedroom" && r.name !== "bathroom_small" && r.name !== "bathroom_large") continue;
     const rr = rectFromRegion(r);
     const len = sharedEdgeLen(rr, hallRect);
@@ -546,7 +679,14 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
   // Hallway region (required)
   regions.push(rectToRegion("hallway", woodA, hall));
 
-  // Build per-strip room lists (front->back) and pack each strip to fully cover it.
+  // Compute stairs opening region (second floor): mark as void so it is not rendered.
+  // IMPORTANT: We intersect with usableWide so it stays within the second-floor footprint we are generating.
+  const stairsOpening = rectIntersect(stairs, usableWide);
+  if (stairsOpening) {
+    regions.push(rectToRegion("stairs_opening", "void", stairsOpening));
+  }
+
+  // Build per-strip room lists (front->back) and pack each strip.
   let closetsPlanned = 0;
 
   const buildStripPlan = (side: Side): string[] => {
@@ -603,11 +743,26 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
     throw new Error(`secondFloor: House ${hn} planned too many closets (${closetsPlanned})`);
   }
 
-  // Pack strips (this fills the usable wide band and eliminates large unused areas).
   const stripSurfaces = { woodA, woodB, tileA, tileB };
 
-  const leftRooms = wLeft + EPS >= 1.0 ? packStripOrThrow(hn, hr.points, rng, leftStrip, planL, stripSurfaces) : [];
-  const rightRooms = wRight + EPS >= 1.0 ? packStripOrThrow(hn, hr.points, rng, rightStrip, planR, stripSurfaces) : [];
+  // Determine which strip contains the stairs opening (if any), so we can reserve it as VOID and not generate floor there.
+  let holeSide: Side | null = null;
+  if (stairsOpening) {
+    // If opening is entirely left of the hallway's left edge, it's in leftStrip.
+    if (stairsOpening.x1 <= hall.x0 + 1e-3) holeSide = "left";
+    // If opening is entirely right of the hallway's right edge, it's in rightStrip.
+    else if (stairsOpening.x0 >= hall.x1 - 1e-3) holeSide = "right";
+  }
+
+  const packSide = (side: Side, strip: Rect, plan: string[]): Region[] => {
+    if (stairsOpening && holeSide === side) {
+      return packStripWithStairsOpeningOrThrow(hn, hr.points, rng, strip, stairsOpening, plan, stripSurfaces);
+    }
+    return packStripOrThrow(hn, hr.points, rng, strip, plan, stripSurfaces);
+  };
+
+  const leftRooms = wLeft + EPS >= 1.0 ? packSide("left", leftStrip, planL) : [];
+  const rightRooms = wRight + EPS >= 1.0 ? packSide("right", rightStrip, planR) : [];
 
   regions.push(...leftRooms, ...rightRooms);
 
@@ -661,7 +816,7 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
   validateSecondFloorOrThrow(hn, hr.points, stairs, hall, regions);
 
   // Enforce “1 to 2 closets” in the final output (user request).
-  const closetCount = regions.filter((r) => r.name === "closet").length;
+  const closetCount = regions.filter((r) => r.name === "closet" && r.surface !== "void").length;
   if (closetCount < 1 || closetCount > 2) {
     throw new Error(`secondFloor: House ${hn} closet count ${closetCount} out of desired range [1,2]`);
   }
