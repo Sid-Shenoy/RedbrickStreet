@@ -1,4 +1,4 @@
-import { Engine, Scene, UniversalCamera, HemisphericLight, Vector3 } from "@babylonjs/core";
+import { Engine, Scene, UniversalCamera, HemisphericLight, Vector3, Color3 } from "@babylonjs/core";
 
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
@@ -18,7 +18,11 @@ async function boot() {
   scene.collisionsEnabled = true;
   scene.gravity = new Vector3(0, -0.35, 0);
 
-  new HemisphericLight("light", new Vector3(0, 1, 0), scene);
+  const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
+  light.intensity = 0.95;
+
+  // Bounce light so downward-facing surfaces (e.g. door lintel undersides) aren't unrealistically black.
+  light.groundColor = new Color3(0.35, 0.35, 0.35);
 
   // WASD + mouse look
   const camera = new UniversalCamera("cam", new Vector3(100, 1.7, 35), scene);

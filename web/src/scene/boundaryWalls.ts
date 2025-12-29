@@ -622,7 +622,7 @@ export function renderBoundaryWallsForLayer(
 
         const lintel = MeshBuilder.CreatePlane(
           `${meshPrefix}_lintel_${house.houseNumber}_${lintelIdx.v++}`,
-          { width: span, height: BOUNDARY_WALL_T, sideOrientation: Mesh.DOUBLESIDE },
+          { width: span, height: BOUNDARY_WALL_T, sideOrientation: Mesh.FRONTSIDE },
           scene
         );
 
@@ -642,7 +642,7 @@ export function renderBoundaryWallsForLayer(
 
         const lintel = MeshBuilder.CreatePlane(
           `${meshPrefix}_lintel_${house.houseNumber}_${lintelIdx.v++}`,
-          { width: span, height: BOUNDARY_WALL_T, sideOrientation: Mesh.DOUBLESIDE },
+          { width: span, height: BOUNDARY_WALL_T, sideOrientation: Mesh.FRONTSIDE },
           scene
         );
 
