@@ -1,3 +1,4 @@
+// web/src/world/houseModel/generateHouseModel.ts
 import type { HouseConfig } from "../../types/config";
 import type { HouseModel } from "./types";
 
@@ -5,15 +6,8 @@ import { makeHouseGenContext } from "./generation/context";
 import { generatePlotModel } from "./generation/plot";
 import { generateFirstFloorModel } from "./generation/firstFloor";
 import { generateSecondFloorModel } from "./generation/secondFloor";
+import { generateDoors } from "./generation/doors"; // <-- add
 
-/**
- * House generation pipeline:
- * Input: HouseConfig
- * Step 1) Plot
- * Step 2) First floor
- * Step 3) Second floor
- * Output: HouseModel
- */
 export function generateHouseModel(house: HouseConfig, streetSeed: string): HouseModel {
   const ctx = makeHouseGenContext(house, streetSeed);
 
@@ -21,10 +15,12 @@ export function generateHouseModel(house: HouseConfig, streetSeed: string): Hous
   const firstFloor = generateFirstFloorModel(house, ctx, plot);
   const secondFloor = generateSecondFloorModel(house, ctx, plot, firstFloor);
 
+  const { firstFloorDoors, secondFloorDoors } = generateDoors(house, ctx, plot, firstFloor, secondFloor);
+
   return {
     seed: ctx.seed,
-    plot,
-    firstFloor,
-    secondFloor,
+    plot: { ...plot, construction: [] }, // required: plot stays empty
+    firstFloor: { ...firstFloor, construction: firstFloorDoors },
+    secondFloor: { ...secondFloor, construction: secondFloorDoors },
   };
 }
