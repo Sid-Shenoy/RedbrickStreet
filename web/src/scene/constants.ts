@@ -8,8 +8,11 @@ export const SECOND_FLOOR_Y = 3.4;
 export const CEILING_Y = 6.4;
 
 // Boundary wall rendering (between regions + along exterior edges)
-export const BOUNDARY_WALL_H = 0.2;
 export const BOUNDARY_WALL_T = 0.06;
+
+// Door opening height used when carving gaps in boundary walls.
+// Door meshes aren't rendered yet; this creates believable openings under a lintel.
+export const DOOR_OPENING_H = 2.05;
 
 // Auto-step (meters)
 export const MAX_STEP_UP = 0.5;

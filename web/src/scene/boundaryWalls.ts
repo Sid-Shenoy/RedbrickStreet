@@ -3,7 +3,7 @@ import { Scene, MeshBuilder, StandardMaterial } from "@babylonjs/core";
 import type { HouseWithModel, Region } from "../world/houseModel/types";
 import type { Door } from "../world/houseModel/generation/doors";
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
-import { BOUNDARY_WALL_H, BOUNDARY_WALL_T } from "./constants";
+import { BOUNDARY_WALL_T, DOOR_OPENING_H } from "./constants";
 
 // -------- Boundary wall extraction/rendering (shared edges + exterior edges) --------
 
@@ -250,15 +250,25 @@ function carveDoorsFromAtomicSeg(seg: Seg, cuts: DoorCut[]): Seg[] {
   return [seg];
 }
 
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v));
+}
+
 export function renderBoundaryWallsForLayer(
   scene: Scene,
   houses: HouseWithModel[],
   getRegions: (h: HouseWithModel) => Region[],
   getConstruction: (h: HouseWithModel) => unknown[],
-  baseY: number,
+  bottomY: number,
+  topY: number,
+  doorBottomY: number,
   meshPrefix: string,
   wallMat: StandardMaterial
 ) {
+  if (!(topY > bottomY + 1e-6)) {
+    throw new Error(`renderBoundaryWallsForLayer: invalid Y range bottomY=${bottomY}, topY=${topY}`);
+  }
+
   for (const house of houses) {
     const allRegions = getRegions(house);
     const doorCuts = doorCutsFromConstruction(getConstruction(house));
@@ -307,15 +317,23 @@ export function renderBoundaryWallsForLayer(
     const interior = [...segStats.values()].filter((v) => v.nonVoid === 2);
 
     // Exterior edge segments: owned by exactly one non-void region AND not adjacent to a void opening.
-    // This draws short walls along the outer boundary of the generated floor footprint (house edges).
+    // This draws walls along the outer boundary of the generated floor footprint (house edges).
     const exterior = [...segStats.values()].filter((v) => v.nonVoid === 1 && v.void === 0);
 
     const allToRender = [...interior, ...exterior];
 
-    let idx = 0;
-    for (const { seg } of allToRender) {
-      // Carve door gaps out of this atomic segment in lot-local space.
-      const pieces = carveDoorsFromAtomicSeg(seg, doorCuts);
+    // Vertical slicing:
+    // - Solid base from bottomY -> doorBottomY (no carving)
+    // - Door opening band from doorBottomY -> doorBottomY + DOOR_OPENING_H (carved)
+    // - Solid upper from end of door band -> topY (no carving)
+    const yDoor0 = clamp(doorBottomY, bottomY, topY);
+    const yDoor1 = clamp(yDoor0 + DOOR_OPENING_H, bottomY, topY);
+
+    function renderPieces(seg: Seg, y0: number, y1: number, carveDoors: boolean, idxRef: { v: number }) {
+      const h = y1 - y0;
+      if (!(h > 1e-6)) return;
+
+      const pieces = carveDoors ? carveDoorsFromAtomicSeg(seg, doorCuts) : [seg];
 
       for (const piece of pieces) {
         const p0 = lotLocalToWorld(house, piece.x0, piece.z0);
@@ -335,10 +353,10 @@ export function renderBoundaryWallsForLayer(
           if (len <= MIN_WALL_SEG) continue;
 
           const box = MeshBuilder.CreateBox(
-            `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
+            `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
             {
               width: len,
-              height: BOUNDARY_WALL_H,
+              height: h,
               depth: BOUNDARY_WALL_T,
             },
             scene
@@ -346,7 +364,7 @@ export function renderBoundaryWallsForLayer(
 
           box.position.x = (x0 + x1) * 0.5;
           box.position.z = p0.z; // same as p1.z
-          box.position.y = baseY + BOUNDARY_WALL_H / 2;
+          box.position.y = y0 + h / 2;
 
           box.material = wallMat;
           box.checkCollisions = false; // visual only
@@ -357,10 +375,10 @@ export function renderBoundaryWallsForLayer(
           if (len <= MIN_WALL_SEG) continue;
 
           const box = MeshBuilder.CreateBox(
-            `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
+            `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
             {
               width: BOUNDARY_WALL_T,
-              height: BOUNDARY_WALL_H,
+              height: h,
               depth: len,
             },
             scene
@@ -368,11 +386,30 @@ export function renderBoundaryWallsForLayer(
 
           box.position.x = p0.x; // same as p1.x
           box.position.z = (z0 + z1) * 0.5;
-          box.position.y = baseY + BOUNDARY_WALL_H / 2;
+          box.position.y = y0 + h / 2;
 
           box.material = wallMat;
           box.checkCollisions = false; // visual only
         }
+      }
+    }
+
+    const idxRef = { v: 0 };
+
+    for (const { seg } of allToRender) {
+      // Solid base (plot/foundation to door bottom)
+      if (yDoor0 > bottomY + 1e-6) {
+        renderPieces(seg, bottomY, yDoor0, false, idxRef);
+      }
+
+      // Door band (carved openings)
+      if (yDoor1 > yDoor0 + 1e-6) {
+        renderPieces(seg, yDoor0, yDoor1, true, idxRef);
+      }
+
+      // Solid upper (above door to top)
+      if (topY > yDoor1 + 1e-6) {
+        renderPieces(seg, yDoor1, topY, false, idxRef);
       }
     }
   }

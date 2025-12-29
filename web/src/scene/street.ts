@@ -6,7 +6,7 @@ import { applyWorldUVs, applyWorldBoxUVs } from "./uvs";
 import { renderFloorLayer, renderCeilings } from "./regions";
 import { renderCurbFaces } from "./curb";
 import { renderBoundaryWallsForLayer } from "./boundaryWalls";
-import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y } from "./constants";
+import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y, CEILING_Y } from "./constants";
 
 export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   const mats = surfaceMaterial(scene); // normal (single-sided)
@@ -52,14 +52,16 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
 
   // Boundary walls between rooms AND along exterior edges (white, 0.2m tall) for first & second floor.
   // Doors are rendered as 0.8m gaps in these boundary walls (no door mesh yet).
-  const boundaryWallMat: StandardMaterial = makeMat(scene, "mat_boundary_wall", new Color3(1, 1, 1), false);
+  const boundaryWallMat: StandardMaterial = makeMat(scene, "mat_boundary_wall", new Color3(1, 1, 1), true);
 
   renderBoundaryWallsForLayer(
     scene,
     houses,
     (h) => h.model.firstFloor.regions,
     (h) => h.model.firstFloor.construction,
-    FIRST_FLOOR_Y,
+    PLOT_Y,        // walls start at plot level (fixes "floating")
+    SECOND_FLOOR_Y, // walls end at second-floor level
+    FIRST_FLOOR_Y,  // door openings start at first-floor level
     "ff",
     boundaryWallMat
   );
@@ -72,7 +74,9 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     houses,
     (h) => h.model.secondFloor.regions,
     (h) => h.model.secondFloor.construction,
-    SECOND_FLOOR_Y,
+    SECOND_FLOOR_Y, // walls start at second-floor level
+    CEILING_Y,      // walls end at ceiling level
+    SECOND_FLOOR_Y, // door openings start at second-floor level
     "sf",
     boundaryWallMat
   );
