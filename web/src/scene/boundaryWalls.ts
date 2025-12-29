@@ -3,7 +3,7 @@ import { Scene, MeshBuilder, StandardMaterial, Mesh, VertexData } from "@babylon
 import type { HouseWithModel, Region } from "../world/houseModel/types";
 import type { Door } from "../world/houseModel/generation/doors";
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
-import { BOUNDARY_WALL_T, DOOR_OPENING_H, SURFACE_TEX_METERS } from "./constants";
+import { BOUNDARY_WALL_T, DOOR_OPENING_H, DOOR_SILL_H, SURFACE_TEX_METERS } from "./constants";
 import { applyWorldBoxUVs } from "./uvs";
 
 // -------- Boundary wall extraction/rendering (shared edges + exterior edges) --------
@@ -325,6 +325,126 @@ function createOpenBox(name: string, scene: Scene, width: number, height: number
   return mesh;
 }
 
+// Door sill meshes:
+// - Must NOT have a bottom face (prevents z-fighting with floor surfaces that overlap wall thickness).
+// - Must NOT have end-caps at jambs (prevents z-fighting with adjacent wall segment end faces).
+// - Includes a top cap for realism.
+function createDoorSillH(name: string, scene: Scene, width: number, height: number, depth: number): Mesh {
+  const mesh = new Mesh(name, scene);
+
+  const hx = width / 2;
+  const hy = height / 2;
+  const hz = depth / 2;
+
+  // Faces: +Z, -Z, +Y(top). No -Y(bottom). No +/-X(end caps).
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  function addQuad(
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number,
+    cx: number,
+    cy: number,
+    cz: number,
+    dx: number,
+    dy: number,
+    dz: number,
+    nx: number,
+    ny: number,
+    nz: number
+  ) {
+    const base = positions.length / 3;
+
+    positions.push(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+
+    for (let i = 0; i < 4; i++) normals.push(nx, ny, nz);
+
+    uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+
+    indices.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);
+  }
+
+  // +Z face
+  addQuad(-hx, -hy, +hz, +hx, -hy, +hz, +hx, +hy, +hz, -hx, +hy, +hz, 0, 0, 1);
+  // -Z face
+  addQuad(+hx, -hy, -hz, -hx, -hy, -hz, -hx, +hy, -hz, +hx, +hy, -hz, 0, 0, -1);
+  // +Y top cap
+  addQuad(-hx, +hy, -hz, +hx, +hy, -hz, +hx, +hy, +hz, -hx, +hy, +hz, 0, 1, 0);
+
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.normals = normals;
+  vd.uvs = uvs;
+  vd.applyToMesh(mesh);
+
+  return mesh;
+}
+
+function createDoorSillV(name: string, scene: Scene, width: number, height: number, depth: number): Mesh {
+  const mesh = new Mesh(name, scene);
+
+  const hx = width / 2;
+  const hy = height / 2;
+  const hz = depth / 2;
+
+  // Faces: +X, -X, +Y(top). No -Y(bottom). No +/-Z(end caps).
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  function addQuad(
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number,
+    cx: number,
+    cy: number,
+    cz: number,
+    dx: number,
+    dy: number,
+    dz: number,
+    nx: number,
+    ny: number,
+    nz: number
+  ) {
+    const base = positions.length / 3;
+
+    positions.push(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+
+    for (let i = 0; i < 4; i++) normals.push(nx, ny, nz);
+
+    uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+
+    indices.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);
+  }
+
+  // +X face
+  addQuad(+hx, -hy, +hz, +hx, -hy, -hz, +hx, +hy, -hz, +hx, +hy, +hz, 1, 0, 0);
+  // -X face
+  addQuad(-hx, -hy, -hz, -hx, -hy, +hz, -hx, +hy, +hz, -hx, +hy, -hz, -1, 0, 0);
+  // +Y top cap
+  addQuad(-hx, +hy, -hz, +hx, +hy, -hz, +hx, +hy, +hz, -hx, +hy, +hz, 0, 1, 0);
+
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.normals = normals;
+  vd.uvs = uvs;
+  vd.applyToMesh(mesh);
+
+  return mesh;
+}
+
 export function renderBoundaryWallsForLayer(
   scene: Scene,
   houses: HouseWithModel[],
@@ -536,6 +656,65 @@ export function renderBoundaryWallsForLayer(
         lintel.material = wallMat;
         lintel.checkCollisions = false;
         lintel.isPickable = false;
+      }
+    }
+    // Add a 2 cm sill block under EVERY doorway to eliminate the tiny visible "void" gap at door bottoms.
+    // The sill:
+    // - has NO bottom face (prevents z-fighting with floors),
+    // - has NO jamb end-caps (prevents z-fighting with adjacent wall end faces),
+    // - DOES have a top cap for realism.
+    const sillH = clamp(DOOR_SILL_H, 0, topY - yDoor0);
+    if (sillH > 1e-6) {
+      const sillIdx = { v: 0 };
+
+      for (const cut of doorCuts) {
+        const span = cut.b - cut.a;
+        // Door width is invariant 0.8m, but keep a small tolerance.
+        if (span < 0.79 || span > 0.81) continue;
+
+        if (cut.orient === "h") {
+          const midX = (cut.a + cut.b) * 0.5;
+          const p = lotLocalToWorld(house, midX, cut.c);
+
+          const sill = createDoorSillH(
+            `${meshPrefix}_sill_${house.houseNumber}_${sillIdx.v++}`,
+            scene,
+            span,
+            sillH,
+            BOUNDARY_WALL_T
+          );
+
+          sill.position.x = p.x;
+          sill.position.y = yDoor0 + sillH / 2;
+          sill.position.z = p.z;
+
+          applyWorldBoxUVs(sill, SURFACE_TEX_METERS);
+
+          sill.material = wallMat;
+          sill.checkCollisions = false;
+          sill.isPickable = false;
+        } else {
+          const midZ = (cut.a + cut.b) * 0.5;
+          const p = lotLocalToWorld(house, cut.c, midZ);
+
+          const sill = createDoorSillV(
+            `${meshPrefix}_sill_${house.houseNumber}_${sillIdx.v++}`,
+            scene,
+            BOUNDARY_WALL_T,
+            sillH,
+            span
+          );
+
+          sill.position.x = p.x;
+          sill.position.y = yDoor0 + sillH / 2;
+          sill.position.z = p.z;
+
+          applyWorldBoxUVs(sill, SURFACE_TEX_METERS);
+
+          sill.material = wallMat;
+          sill.checkCollisions = false;
+          sill.isPickable = false;
+        }
       }
     }
   }

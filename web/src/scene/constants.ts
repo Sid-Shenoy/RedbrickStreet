@@ -14,6 +14,10 @@ export const BOUNDARY_WALL_T = 0.06;
 // Door meshes aren't rendered yet; this creates believable openings under a lintel.
 export const DOOR_OPENING_H = 2.05;
 
+// Small threshold wall block under door openings (meters).
+// Prevents seeing the void below at door bottoms without introducing floor z-fighting.
+export const DOOR_SILL_H = 0.02;
+
 // Auto-step (meters)
 export const MAX_STEP_UP = 0.5;
 export const STEP_PROBE_DIST = 0.55;
