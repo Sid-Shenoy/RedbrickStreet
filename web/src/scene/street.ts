@@ -3,7 +3,7 @@ import { Scene, MeshBuilder } from "@babylonjs/core";
 import type { HouseWithModel } from "../world/houseModel/types";
 import { surfaceMaterial } from "./materials";
 import { applyWorldUVs, applyWorldBoxUVs } from "./uvs";
-import { renderFloorLayer, renderCeilingLayer, renderCeilings } from "./regions";
+import { renderFloorLayer, renderCeilingLayer } from "./regions";
 import { renderCurbFaces } from "./curb";
 import { renderBoundaryWallsForLayer } from "./boundaryWalls";
 import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y, CEILING_Y, INTER_FLOOR_CEILING_EPS } from "./constants";
@@ -95,6 +95,16 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   );
 
   // Ceiling (congruent with houseregion) at 6.2m, double-sided so underside is visible.
-  renderCeilings(scene, houses, boundaryWallMat);
+  // Second-floor ceiling (roof underside) must match the second-floor footprint.
+  // Include void regions so the stairwell is capped at roof level (realistic).
+  renderCeilingLayer(
+    scene,
+    houses,
+    boundaryWallMat,
+    "secondCeiling",
+    (h) => h.model.secondFloor.regions,
+    CEILING_Y,
+    { includeVoid: true }
+  );
 
 }

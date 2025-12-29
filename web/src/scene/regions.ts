@@ -155,13 +155,16 @@ export function renderCeilingLayer(
   ceilingMat: StandardMaterial,
   layerTag: string,
   getRegions: (h: HouseWithModel) => Region[],
-  baseY: number
+  baseY: number,
+  opts?: { includeVoid?: boolean }
 ) {
+  const includeVoid = opts?.includeVoid ?? false;
+
   for (const house of houses) {
     const regions = getRegions(house);
 
     for (const region of regions) {
-      if (region.surface === "void") continue;
+      if (!includeVoid && region.surface === "void") continue;
 
       if (region.type === "rectangle") {
         renderRectRegion(scene, house, region, ceilingMat, "ceiling", layerTag, baseY, false);
