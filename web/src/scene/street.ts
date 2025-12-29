@@ -1,7 +1,7 @@
-import { Scene, MeshBuilder, Mesh, Color3, StandardMaterial } from "@babylonjs/core";
+import { Scene, MeshBuilder } from "@babylonjs/core";
 
 import type { HouseWithModel } from "../world/houseModel/types";
-import { surfaceMaterial, makeMat } from "./materials";
+import { surfaceMaterial } from "./materials";
 import { applyWorldUVs, applyWorldBoxUVs } from "./uvs";
 import { renderFloorLayer, renderCeilings } from "./regions";
 import { renderCurbFaces } from "./curb";
@@ -50,9 +50,9 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   renderFloorLayer(scene, houses, mats, "plot", (h) => h.model.plot.regions, PLOT_Y, true);
   renderFloorLayer(scene, houses, mats, "firstFloor", (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, true);
 
-  // Boundary walls between rooms AND along exterior edges (white, 0.2m tall) for first & second floor.
+  // Boundary walls between rooms AND along exterior edges use the house wall texture.
   // Doors are rendered as 0.8m gaps in these boundary walls (no door mesh yet).
-  const boundaryWallMat: StandardMaterial = makeMat(scene, "mat_boundary_wall", new Color3(1, 1, 1), true);
+  const boundaryWallMat = matsDouble.wall;
 
   renderBoundaryWallsForLayer(
     scene,

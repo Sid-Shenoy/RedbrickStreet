@@ -3,7 +3,8 @@ import { Scene, MeshBuilder, StandardMaterial, Mesh, VertexData } from "@babylon
 import type { HouseWithModel, Region } from "../world/houseModel/types";
 import type { Door } from "../world/houseModel/generation/doors";
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
-import { BOUNDARY_WALL_T, DOOR_OPENING_H } from "./constants";
+import { BOUNDARY_WALL_T, DOOR_OPENING_H, SURFACE_TEX_METERS } from "./constants";
+import { applyWorldBoxUVs } from "./uvs";
 
 // -------- Boundary wall extraction/rendering (shared edges + exterior edges) --------
 
@@ -434,6 +435,8 @@ export function renderBoundaryWallsForLayer(
           wall.position.z = p0.z; // same as p1.z
           wall.position.y = y0 + h / 2;
 
+          applyWorldBoxUVs(wall, SURFACE_TEX_METERS);
+
           wall.material = wallMat;
           wall.checkCollisions = false; // visual only
           wall.isPickable = false;
@@ -454,6 +457,8 @@ export function renderBoundaryWallsForLayer(
           wall.position.x = p0.x; // same as p1.x
           wall.position.z = (z0 + z1) * 0.5;
           wall.position.y = y0 + h / 2;
+
+          applyWorldBoxUVs(wall, SURFACE_TEX_METERS);
 
           wall.material = wallMat;
           wall.checkCollisions = false; // visual only

@@ -45,7 +45,7 @@ export function surfaceMaterial(scene: Scene, opts?: { doubleSided?: boolean }):
     // Not part of the Region surface enum, but still render with a real texture.
     road: makeTexMat(scene, `mat_road${suf}`, "/assets/textures/surfaces/concrete_dark.jpg", doubleSided),
 
-    // No wall texture exists yet; keep as solid color for now.
-    wall: makeMat(scene, `mat_wall${suf}`, new Color3(0.45, 0.20, 0.18), doubleSided),
+    // White indoor wall
+    wall: makeTexMat(scene, `mat_wall${suf}`, "/assets/textures/surfaces/wall.jpg", doubleSided),
   };
 }
