@@ -514,27 +514,27 @@ function ensureRequiredConnected(hn: number, regions: Region[]) {
 type HouseShape =
   | { kind: "rect"; x0: number; x1: number; z0: number; z1: number; zWideMin: number }
   | {
-      kind: "extension";
-      x0: number;
-      x1: number;
-      z0: number;
-      z1: number;
-      zWideMin: number;
-      extX0: number;
-      extX1: number;
-      extZ0: number;
-    }
+    kind: "extension";
+    x0: number;
+    x1: number;
+    z0: number;
+    z1: number;
+    zWideMin: number;
+    extX0: number;
+    extX1: number;
+    extZ0: number;
+  }
   | {
-      kind: "notch";
-      x0: number;
-      x1: number;
-      z0: number;
-      z1: number;
-      zWideMin: number;
-      notchX0: number;
-      notchX1: number;
-      notchZ1: number;
-    };
+    kind: "notch";
+    x0: number;
+    x1: number;
+    z0: number;
+    z1: number;
+    zWideMin: number;
+    notchX0: number;
+    notchX1: number;
+    notchZ1: number;
+  };
 
 function inferHouseShape(hn: number, poly: PolyPoints): HouseShape {
   // Bounds

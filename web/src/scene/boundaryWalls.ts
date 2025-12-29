@@ -567,7 +567,7 @@ export function renderBoundaryWallsForLayer(
           if (len <= MIN_WALL_SEG) continue;
 
           const wall = createOpenBox(
-          `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
+            `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
             scene,
             BOUNDARY_WALL_T,
             h,

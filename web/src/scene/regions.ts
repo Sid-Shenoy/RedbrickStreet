@@ -79,8 +79,8 @@ function renderPolyRegion(
   const pts = region.points;
   const basePts =
     pts.length >= 4 &&
-    pts[0]![0] === pts[pts.length - 1]![0] &&
-    pts[0]![1] === pts[pts.length - 1]![1]
+      pts[0]![0] === pts[pts.length - 1]![0] &&
+      pts[0]![1] === pts[pts.length - 1]![1]
       ? pts.slice(0, -1)
       : pts;
 
