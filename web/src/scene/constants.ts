@@ -18,6 +18,10 @@ export const DOOR_OPENING_H = 2.05;
 // Prevents seeing the void below at door bottoms without introducing floor z-fighting.
 export const DOOR_SILL_H = 0.02;
 
+// Small vertical separation between a ceiling plane and the floor plane above it (meters).
+// Prevents z-fighting while remaining visually imperceptible.
+export const INTER_FLOOR_CEILING_EPS = 0.01;
+
 // Auto-step (meters)
 export const MAX_STEP_UP = 0.5;
 export const STEP_PROBE_DIST = 0.55;

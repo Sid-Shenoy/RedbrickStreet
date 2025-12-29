@@ -3,10 +3,10 @@ import { Scene, MeshBuilder } from "@babylonjs/core";
 import type { HouseWithModel } from "../world/houseModel/types";
 import { surfaceMaterial } from "./materials";
 import { applyWorldUVs, applyWorldBoxUVs } from "./uvs";
-import { renderFloorLayer, renderCeilings } from "./regions";
+import { renderFloorLayer, renderCeilingLayer, renderCeilings } from "./regions";
 import { renderCurbFaces } from "./curb";
 import { renderBoundaryWallsForLayer } from "./boundaryWalls";
-import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y, CEILING_Y } from "./constants";
+import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y, CEILING_Y, INTER_FLOOR_CEILING_EPS } from "./constants";
 
 export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   const mats = surfaceMaterial(scene); // normal (single-sided)
@@ -66,6 +66,19 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     boundaryWallMat
   );
 
+  // First-floor ceiling:
+  // - Same material as walls (painted drywall look).
+  // - Offset slightly below SECOND_FLOOR_Y to avoid z-fighting with second-floor floors.
+  // - No ceiling above the first-floor stairs (stairwell opening).
+  renderCeilingLayer(
+    scene,
+    houses,
+    boundaryWallMat,
+    "firstCeiling",
+    (h) => h.model.firstFloor.regions.filter((r) => r.name !== "stairs"),
+    SECOND_FLOOR_Y - INTER_FLOOR_CEILING_EPS
+  );
+
   // Second floor: double-sided so underside is visible while walking below.
   renderFloorLayer(scene, houses, matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, false);
 
@@ -82,5 +95,6 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   );
 
   // Ceiling (congruent with houseregion) at 6.2m, double-sided so underside is visible.
-  renderCeilings(scene, houses, matsDouble.concrete_light);
+  renderCeilings(scene, houses, boundaryWallMat);
+
 }
