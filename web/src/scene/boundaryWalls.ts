@@ -1,4 +1,4 @@
-import { Scene, MeshBuilder, StandardMaterial } from "@babylonjs/core";
+import { Scene, MeshBuilder, StandardMaterial, Mesh, VertexData } from "@babylonjs/core";
 
 import type { HouseWithModel, Region } from "../world/houseModel/types";
 import type { Door } from "../world/houseModel/generation/doors";
@@ -254,6 +254,76 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
 
+function createOpenBox(name: string, scene: Scene, width: number, height: number, depth: number): Mesh {
+  const mesh = new Mesh(name, scene);
+
+  const hx = width / 2;
+  const hy = height / 2;
+  const hz = depth / 2;
+
+  // 4 vertical faces only: +Z, -Z, +X, -X. No top/bottom caps (prevents z-fighting with floors/ceilings).
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  function addQuad(
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number,
+    cx: number,
+    cy: number,
+    cz: number,
+    dx: number,
+    dy: number,
+    dz: number,
+    nx: number,
+    ny: number,
+    nz: number
+  ) {
+    const base = positions.length / 3;
+
+    positions.push(
+      ax, ay, az,
+      bx, by, bz,
+      cx, cy, cz,
+      dx, dy, dz
+    );
+
+    // Flat normal per face
+    for (let i = 0; i < 4; i++) normals.push(nx, ny, nz);
+
+    // Simple UVs (walls are solid color now, but keep valid UVs)
+    uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+
+    indices.push(
+      base + 0, base + 1, base + 2,
+      base + 0, base + 2, base + 3
+    );
+  }
+
+  // +Z face
+  addQuad(-hx, -hy, +hz, +hx, -hy, +hz, +hx, +hy, +hz, -hx, +hy, +hz, 0, 0, 1);
+  // -Z face
+  addQuad(+hx, -hy, -hz, -hx, -hy, -hz, -hx, +hy, -hz, +hx, +hy, -hz, 0, 0, -1);
+  // +X face
+  addQuad(+hx, -hy, +hz, +hx, -hy, -hz, +hx, +hy, -hz, +hx, +hy, +hz, 1, 0, 0);
+  // -X face
+  addQuad(-hx, -hy, -hz, -hx, -hy, +hz, -hx, +hy, +hz, -hx, +hy, -hz, -1, 0, 0);
+
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.normals = normals;
+  vd.uvs = uvs;
+  vd.applyToMesh(mesh);
+
+  return mesh;
+}
+
 export function renderBoundaryWallsForLayer(
   scene: Scene,
   houses: HouseWithModel[],
@@ -352,44 +422,43 @@ export function renderBoundaryWallsForLayer(
           const len = x1 - x0;
           if (len <= MIN_WALL_SEG) continue;
 
-          const box = MeshBuilder.CreateBox(
+          const wall = createOpenBox(
             `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
-            {
-              width: len,
-              height: h,
-              depth: BOUNDARY_WALL_T,
-            },
-            scene
+            scene,
+            len,
+            h,
+            BOUNDARY_WALL_T
           );
 
-          box.position.x = (x0 + x1) * 0.5;
-          box.position.z = p0.z; // same as p1.z
-          box.position.y = y0 + h / 2;
+          wall.position.x = (x0 + x1) * 0.5;
+          wall.position.z = p0.z; // same as p1.z
+          wall.position.y = y0 + h / 2;
 
-          box.material = wallMat;
-          box.checkCollisions = false; // visual only
+          wall.material = wallMat;
+          wall.checkCollisions = false; // visual only
+          wall.isPickable = false;
         } else {
           const z0 = Math.min(p0.z, p1.z);
           const z1 = Math.max(p0.z, p1.z);
           const len = z1 - z0;
           if (len <= MIN_WALL_SEG) continue;
 
-          const box = MeshBuilder.CreateBox(
-            `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
-            {
-              width: BOUNDARY_WALL_T,
-              height: h,
-              depth: len,
-            },
-            scene
+          const wall = createOpenBox(
+          `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
+            scene,
+            BOUNDARY_WALL_T,
+            h,
+            len
           );
 
-          box.position.x = p0.x; // same as p1.x
-          box.position.z = (z0 + z1) * 0.5;
-          box.position.y = y0 + h / 2;
+          wall.position.x = p0.x; // same as p1.x
+          wall.position.z = (z0 + z1) * 0.5;
+          wall.position.y = y0 + h / 2;
 
-          box.material = wallMat;
-          box.checkCollisions = false; // visual only
+          wall.material = wallMat;
+          wall.checkCollisions = false; // visual only
+          wall.isPickable = false;
+
         }
       }
     }
@@ -410,6 +479,58 @@ export function renderBoundaryWallsForLayer(
       // Solid upper (above door to top)
       if (topY > yDoor1 + 1e-6) {
         renderPieces(seg, yDoor1, topY, false, idxRef);
+      }
+    }
+
+    // Add a simple lintel underside at the top of each door opening, so openings look believable.
+    // (We removed wall top/bottom caps to eliminate z-fighting.)
+    const lintelIdx = { v: 0 };
+
+    for (const cut of doorCuts) {
+      const span = cut.b - cut.a;
+      // Door width is invariant 0.8m, but keep a small tolerance.
+      if (span < 0.79 || span > 0.81) continue;
+
+      if (cut.orient === "h") {
+        const midX = (cut.a + cut.b) * 0.5;
+        const p = lotLocalToWorld(house, midX, cut.c);
+
+        const lintel = MeshBuilder.CreatePlane(
+          `${meshPrefix}_lintel_${house.houseNumber}_${lintelIdx.v++}`,
+          { width: span, height: BOUNDARY_WALL_T, sideOrientation: Mesh.DOUBLESIDE },
+          scene
+        );
+
+        // Convert XY plane to XZ plane (horizontal)
+        lintel.rotation.x = Math.PI / 2;
+
+        lintel.position.x = p.x;
+        lintel.position.y = yDoor1;
+        lintel.position.z = p.z;
+
+        lintel.material = wallMat;
+        lintel.checkCollisions = false;
+        lintel.isPickable = false;
+      } else {
+        const midZ = (cut.a + cut.b) * 0.5;
+        const p = lotLocalToWorld(house, cut.c, midZ);
+
+        const lintel = MeshBuilder.CreatePlane(
+          `${meshPrefix}_lintel_${house.houseNumber}_${lintelIdx.v++}`,
+          { width: span, height: BOUNDARY_WALL_T, sideOrientation: Mesh.DOUBLESIDE },
+          scene
+        );
+
+        lintel.rotation.x = Math.PI / 2;
+        lintel.rotation.y = Math.PI / 2;
+
+        lintel.position.x = p.x;
+        lintel.position.y = yDoor1;
+        lintel.position.z = p.z;
+
+        lintel.material = wallMat;
+        lintel.checkCollisions = false;
+        lintel.isPickable = false;
       }
     }
   }
