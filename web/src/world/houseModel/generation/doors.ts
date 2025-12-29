@@ -11,6 +11,12 @@ import type { HouseGenContext } from "./context";
  * - Does not modify regions
  * - Required doors: fail-fast with `doors:`-prefixed Errors
  * - Optional doors: best-effort only (never fail the stage)
+ *
+ * Additional guarantees (this task):
+ * - Every house has an exterior door leading to the backyard (rear exterior boundary).
+ * - Every room in each indoor layer is accessible via doors from the primary entry region:
+ *   - first floor: from `foyer`
+ *   - second floor: from `hallway`
  */
 
 export interface Door {
@@ -26,7 +32,8 @@ const COORD_TOL = 1e-4; // regions are quantized to ~1e-3; be slightly tolerant
 const MERGE_TOL = 1e-4;
 
 const DOOR_W = 0.8;
-const MIN_SEG_FOR_DOOR = DOOR_W - 1e-6;
+const MIN_SEG_HARD = DOOR_W - 1e-6; // hard minimum: door must fit
+const MIN_SEG_PREFER = 1.0 - 1e-6; // prefer >=1.0m shared boundary when possible (avoid corner-touching)
 
 type Rect = { x0: number; x1: number; z0: number; z1: number };
 
@@ -212,6 +219,13 @@ function bestSegmentOrNull(segs: Seg[], minLen: number): Seg | null {
   return good[0]!;
 }
 
+// Prefer a longer shared boundary (>=1.0) when available, but allow >=0.8 to satisfy accessibility.
+function bestSegmentPreferOrNull(segs: Seg[], minHard: number, minPrefer: number): Seg | null {
+  const preferred = bestSegmentOrNull(segs, minPrefer);
+  if (preferred) return preferred;
+  return bestSegmentOrNull(segs, minHard);
+}
+
 function placeDoorOnSegment(s: Seg): { hinge: [number, number]; end: [number, number] } {
   const L = segLen(s);
   const startMin = s.a;
@@ -308,6 +322,12 @@ function houseFrontZ(housePoly: PolyPoints): number {
   return q(zMax, 3);
 }
 
+function houseBackZ(housePoly: PolyPoints): number {
+  let zMin = Infinity;
+  for (const [, z] of housePoly) zMin = Math.min(zMin, z);
+  return q(zMin, 3);
+}
+
 function doorKey(a: number, b: number | null): string {
   if (b === null) return `e|${a}`;
   const lo = Math.min(a, b);
@@ -329,7 +349,7 @@ function addInteriorDoorRequired(
   if (seen.has(key)) return;
 
   const shared = sharedSegmentsBetweenRegions(hn, regions, aIdx, bIdx);
-  const best = bestSegmentOrNull(shared, MIN_SEG_FOR_DOOR);
+  const best = bestSegmentPreferOrNull(shared, MIN_SEG_HARD, MIN_SEG_PREFER);
   if (!best) {
     throw new Error(`doors: House ${hn} cannot place '${label}' (no shared boundary segment >= ${DOOR_W} m)`);
   }
@@ -366,7 +386,7 @@ function addInteriorDoorOptional(
   if (seen.has(key)) return;
 
   const shared = sharedSegmentsBetweenRegions(hn, regions, aIdx, bIdx);
-  const best = bestSegmentOrNull(shared, MIN_SEG_FOR_DOOR);
+  const best = bestSegmentPreferOrNull(shared, MIN_SEG_HARD, MIN_SEG_PREFER);
   if (!best) return;
 
   const { hinge, end } = placeDoorOnSegment(best);
@@ -414,17 +434,16 @@ function addExteriorFrontDoorRequired(
   }
 
   // Ensure the segment is actually on the footprint boundary (exterior).
-  // We verify against footprint boundary overlaps, then place within that.
   const footprintSegs = sharedSegmentsWithFootprint(hn, foyer, housePoly);
   const frontFootSegs = footprintSegs.filter((s) => s.orient === "h" && nearlyEq(s.c, zFront, 2e-3));
-  const bestFront = bestSegmentOrNull(frontFootSegs, DOOR_W);
+  const bestFront = bestSegmentPreferOrNull(frontFootSegs, DOOR_W, MIN_SEG_PREFER);
   if (!bestFront) {
     throw new Error(`doors: House ${hn} cannot place 'foyer->outside' (foyer has no exterior front edge on footprint)`);
   }
 
   // Restrict to the walkway-overlap window on the front line.
   const windowSeg: Seg = { orient: "h", c: bestFront.c, a: q6(x0), b: q6(x1) };
-  const best = bestSegmentOrNull(mergeCollinear([windowSeg]), DOOR_W);
+  const best = bestSegmentPreferOrNull(mergeCollinear([windowSeg]), DOOR_W, MIN_SEG_PREFER);
   if (!best) {
     throw new Error(`doors: House ${hn} cannot place 'foyer->outside' (no ${DOOR_W} m span within walkway window)`);
   }
@@ -448,6 +467,190 @@ function addExteriorFrontDoorRequired(
   seen.add(key);
 }
 
+function addExteriorBackDoorRequired(
+  hn: number,
+  house: HouseConfig,
+  plot: FloorModel,
+  firstFloor: FloorModel,
+  doors: Door[],
+  seen: Set<string>
+) {
+  const regions = firstFloor.regions;
+
+  // Plot precondition (also documents intent)
+  const backyard = getPlotRegion(plot, hn, "backyard");
+  void backyard;
+
+  const housePoly = getHouseRegionPoly(plot, hn);
+  const zBack = houseBackZ(housePoly);
+
+  // Find the best rear-boundary segment on the footprint, owned by some first-floor region.
+  let bestChoice: { idx: number; seg: Seg; segs: Seg[] } | null = null;
+
+  for (let i = 0; i < regions.length; i++) {
+    const r = regions[i]!;
+    if (r.surface === "void") continue;
+
+    const footprintSegs = sharedSegmentsWithFootprint(hn, r, housePoly);
+    const backFootSegs = footprintSegs.filter((s) => s.orient === "h" && nearlyEq(s.c, zBack, 2e-3));
+
+    const bestBack = bestSegmentPreferOrNull(backFootSegs, DOOR_W, MIN_SEG_PREFER);
+    if (!bestBack) continue;
+
+    if (
+      !bestChoice ||
+      segLen(bestBack) > segLen(bestChoice.seg) + 1e-9 ||
+      (Math.abs(segLen(bestBack) - segLen(bestChoice.seg)) <= 1e-9 && i < bestChoice.idx)
+    ) {
+      bestChoice = { idx: i, seg: bestBack, segs: backFootSegs };
+    }
+  }
+
+  if (!bestChoice) {
+    throw new Error(`doors: House ${hn} cannot place 'inside->backyard' (no rear exterior segment >= ${DOOR_W} m)`);
+  }
+
+  const key = doorKey(bestChoice.idx, null);
+  if (seen.has(key)) return;
+
+  const { hinge, end } = placeDoorOnSegment(bestChoice.seg);
+  const d: Door = { kind: "door", aRegion: bestChoice.idx, bRegion: null, hinge, end };
+
+  if (!doorWidthOk(d)) throw new Error(`doors: House ${hn} internal error: backyard door has invalid width/axis`);
+  if (!withinLotBounds(house, hinge) || !withinLotBounds(house, end)) {
+    throw new Error(`doors: House ${hn} internal error: backyard door out of lot bounds`);
+  }
+  if (!doorOnAnySegment(d, bestChoice.segs)) {
+    throw new Error(`doors: House ${hn} internal error: backyard door not on footprint rear boundary`);
+  }
+
+  doors.push(d);
+  seen.add(key);
+}
+
+// -------------------- Accessibility enforcement --------------------
+
+function buildDoorAdjacency(doors: Door[], regionCount: number): number[][] {
+  const adj: number[][] = Array.from({ length: regionCount }, () => []);
+  for (const d of doors) {
+    if (d.bRegion === null) continue;
+    const a = d.aRegion;
+    const b = d.bRegion;
+    if (a < 0 || a >= regionCount || b < 0 || b >= regionCount) continue;
+    adj[a]!.push(b);
+    adj[b]!.push(a);
+  }
+  return adj;
+}
+
+function bfsReachable(adj: number[][], root: number, active: boolean[]): boolean[] {
+  const reachable = Array.from({ length: adj.length }, () => false);
+  if (root < 0 || root >= adj.length) return reachable;
+  if (!active[root]) return reachable;
+
+  const stack: number[] = [root];
+  reachable[root] = true;
+
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const nxt of adj[cur]!) {
+      if (!active[nxt] || reachable[nxt]) continue;
+      reachable[nxt] = true;
+      stack.push(nxt);
+    }
+  }
+
+  return reachable;
+}
+
+function ensureAllRoomsAccessible(
+  hn: number,
+  house: HouseConfig,
+  regions: Region[],
+  doors: Door[],
+  seen: Set<string>,
+  rootIdx: number,
+  layerLabel: "firstFloor" | "secondFloor"
+) {
+  const active = regions.map((r) => r.surface !== "void");
+  if (rootIdx < 0 || !active[rootIdx]) {
+    throw new Error(`doors: House ${hn} ${layerLabel} cannot enforce accessibility (invalid root region index)`);
+  }
+
+  // Add doors until all active rooms are reachable from root, or fail-fast if impossible.
+  // Bounded by number of regions: each iteration must add at least one new reachable region.
+  for (let guard = 0; guard < regions.length + 2; guard++) {
+    const adj = buildDoorAdjacency(doors, regions.length);
+    const reachable = bfsReachable(adj, rootIdx, active);
+
+    let allOk = true;
+    for (let i = 0; i < regions.length; i++) {
+      if (active[i] && !reachable[i]) {
+        allOk = false;
+        break;
+      }
+    }
+    if (allOk) return;
+
+    // Find best connection from reachable -> unreachable.
+    let bestEdge: { a: number; b: number; seg: Seg } | null = null;
+
+    for (let a = 0; a < regions.length; a++) {
+      if (!reachable[a]) continue;
+
+      for (let b = 0; b < regions.length; b++) {
+        if (!active[b] || reachable[b] || a === b) continue;
+
+        const shared = sharedSegmentsBetweenRegions(hn, regions, a, b);
+        const seg = bestSegmentPreferOrNull(shared, MIN_SEG_HARD, MIN_SEG_PREFER);
+        if (!seg) continue;
+
+        if (
+          !bestEdge ||
+          segLen(seg) > segLen(bestEdge.seg) + 1e-9 ||
+          (Math.abs(segLen(seg) - segLen(bestEdge.seg)) <= 1e-9 &&
+            (a < bestEdge.a || (a === bestEdge.a && b < bestEdge.b)))
+        ) {
+          bestEdge = { a, b, seg };
+        }
+      }
+    }
+
+    if (!bestEdge) {
+      // Provide a stable “first unreachable” diagnostic.
+      let firstUnreach = -1;
+      for (let i = 0; i < regions.length; i++) {
+        if (active[i] && !reachable[i]) {
+          firstUnreach = i;
+          break;
+        }
+      }
+      const nm = firstUnreach >= 0 ? regions[firstUnreach]!.name : "unknown";
+      throw new Error(
+        `doors: House ${hn} ${layerLabel} accessibility failed (cannot connect unreachable region '${nm}' index=${firstUnreach}; no shared boundary segment >= ${DOOR_W} m to reachable rooms)`
+      );
+    }
+
+    const aNm = regions[bestEdge.a]!.name;
+    const bNm = regions[bestEdge.b]!.name;
+    addInteriorDoorRequired(
+      hn,
+      house,
+      regions,
+      doors,
+      seen,
+      bestEdge.a,
+      bestEdge.b,
+      `access:${layerLabel}:${aNm}(${bestEdge.a})->${bNm}(${bestEdge.b})`
+    );
+    // loop continues; reachable set should expand next iteration.
+  }
+
+  throw new Error(`doors: House ${hn} ${layerLabel} accessibility failed (iteration guard tripped)`);
+}
+
+// -------------------- First floor doors --------------------
+
 function makeFirstFloorDoors(house: HouseConfig, ctx: HouseGenContext, plot: FloorModel, firstFloor: FloorModel): Door[] {
   const hn = house.houseNumber;
   const regions = firstFloor.regions;
@@ -455,8 +658,9 @@ function makeFirstFloorDoors(house: HouseConfig, ctx: HouseGenContext, plot: Flo
   const doors: Door[] = [];
   const seen = new Set<string>();
 
-  // --- Required: front exterior door ---
+  // --- Required: exterior doors ---
   addExteriorFrontDoorRequired(hn, house, plot, firstFloor, doors, seen);
+  addExteriorBackDoorRequired(hn, house, plot, firstFloor, doors, seen); // <-- backyard door guarantee
 
   // --- Required interior doors ---
   const iGarage = idxFirst(regions, "garage");
@@ -480,8 +684,8 @@ function makeFirstFloorDoors(house: HouseConfig, ctx: HouseGenContext, plot: Flo
     const segFH = sharedSegmentsBetweenRegions(hn, regions, iFoyer, iHall);
     const segFL = sharedSegmentsBetweenRegions(hn, regions, iFoyer, iLiving);
 
-    const canFH = bestSegmentOrNull(segFH, MIN_SEG_FOR_DOOR);
-    const canFL = bestSegmentOrNull(segFL, MIN_SEG_FOR_DOOR);
+    const canFH = bestSegmentPreferOrNull(segFH, MIN_SEG_HARD, MIN_SEG_PREFER);
+    const canFL = bestSegmentPreferOrNull(segFL, MIN_SEG_HARD, MIN_SEG_PREFER);
 
     if (canFH) addInteriorDoorRequired(hn, house, regions, doors, seen, iFoyer, iHall, "foyer->hallway");
     else if (canFL) addInteriorDoorRequired(hn, house, regions, doors, seen, iFoyer, iLiving, "foyer->livingroom");
@@ -508,7 +712,7 @@ function makeFirstFloorDoors(house: HouseConfig, ctx: HouseGenContext, plot: Flo
     let placed = false;
     for (const c of candidates) {
       const shared = sharedSegmentsBetweenRegions(hn, regions, iKitchen, c.idx);
-      if (bestSegmentOrNull(shared, MIN_SEG_FOR_DOOR)) {
+      if (bestSegmentPreferOrNull(shared, MIN_SEG_HARD, MIN_SEG_PREFER)) {
         addInteriorDoorRequired(hn, house, regions, doors, seen, iKitchen, c.idx, c.label);
         placed = true;
         break;
@@ -532,7 +736,7 @@ function makeFirstFloorDoors(house: HouseConfig, ctx: HouseGenContext, plot: Flo
     let placed = false;
     for (const c of candidates) {
       const shared = sharedSegmentsBetweenRegions(hn, regions, iGarage, c.idx);
-      if (bestSegmentOrNull(shared, MIN_SEG_FOR_DOOR)) {
+      if (bestSegmentPreferOrNull(shared, MIN_SEG_HARD, MIN_SEG_PREFER)) {
         addInteriorDoorRequired(hn, house, regions, doors, seen, iGarage, c.idx, c.label);
         placed = true;
         break;
@@ -615,11 +819,16 @@ function makeFirstFloorDoors(house: HouseConfig, ctx: HouseGenContext, plot: Flo
     }
   }
 
+  // Ensure every first-floor room is accessible from foyer (adds additional doors if necessary).
+  ensureAllRoomsAccessible(hn, house, regions, doors, seen, iFoyer, "firstFloor");
+
   // (ctx currently unused; door placement is purely geometric and deterministic)
   void ctx;
 
   return doors;
 }
+
+// -------------------- Second floor doors --------------------
 
 function makeSecondFloorDoors(house: HouseConfig, secondFloor: FloorModel): Door[] {
   const hn = house.houseNumber;
@@ -653,7 +862,7 @@ function makeSecondFloorDoors(house: HouseConfig, secondFloor: FloorModel): Door
     let placed = false;
     for (const iB of bedroomIdx) {
       const shared = sharedSegmentsBetweenRegions(hn, regions, iC, iB);
-      if (bestSegmentOrNull(shared, MIN_SEG_FOR_DOOR)) {
+      if (bestSegmentPreferOrNull(shared, MIN_SEG_HARD, MIN_SEG_PREFER)) {
         addInteriorDoorOptional(hn, house, regions, doors, seen, iC, iB, `closet(${iC})->bedroom(${iB})`);
         placed = true;
         break;
@@ -663,6 +872,9 @@ function makeSecondFloorDoors(house: HouseConfig, secondFloor: FloorModel): Door
       addInteriorDoorOptional(hn, house, regions, doors, seen, iC, iHall, `closet(${iC})->hallway`);
     }
   }
+
+  // Ensure every second-floor room is accessible from hallway (adds additional doors if necessary).
+  ensureAllRoomsAccessible(hn, house, regions, doors, seen, iHall, "secondFloor");
 
   return doors;
 }
@@ -689,6 +901,25 @@ export function generateDoors(
     if (!doorWidthOk(d)) throw new Error(`doors: House ${hn} produced a door with invalid geometry`);
     if (!withinLotBounds(house, d.hinge) || !withinLotBounds(house, d.end)) {
       throw new Error(`doors: House ${hn} produced a door out of lot-local bounds`);
+    }
+  }
+
+  // Guarantee: at least one exterior backyard door exists (first floor).
+  {
+    const regions = firstFloor.regions;
+    const housePoly = getHouseRegionPoly(plot, hn);
+    const zBack = houseBackZ(housePoly);
+
+    const hasBackDoor = firstFloorDoors.some((d) => {
+      if (d.bRegion !== null) return false;
+      // door lies on rear boundary line
+      const z0 = d.hinge[1];
+      const z1 = d.end[1];
+      return nearlyEq(z0, zBack, 2e-3) && nearlyEq(z1, zBack, 2e-3) && d.aRegion >= 0 && d.aRegion < regions.length;
+    });
+
+    if (!hasBackDoor) {
+      throw new Error(`doors: House ${hn} internal error: missing required backyard exterior door after generation`);
     }
   }
 
