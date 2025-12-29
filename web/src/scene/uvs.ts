@@ -82,3 +82,45 @@ export function applyWorldBoxUVs(mesh: Mesh, metersPerTile: number) {
 
   mesh.setVerticesData(VertexBuffer.UVKind, uvs);
 }
+
+/**
+ * World-space UVs for meshes that may be rotated:
+ * - Computes world vertex positions using the mesh world matrix.
+ * - Projects onto chosen world axes for (u,v).
+ */
+export function applyWorldUVsWorldAxes(
+  mesh: Mesh,
+  metersPerTile: number,
+  uAxis: "x" | "y" | "z",
+  vAxis: "x" | "y" | "z"
+) {
+  const pos = mesh.getVerticesData(VertexBuffer.PositionKind);
+  if (!pos) return;
+
+  mesh.computeWorldMatrix(true);
+  const m = mesh.getWorldMatrix().m;
+
+  const uvs = new Array((pos.length / 3) * 2);
+
+  function pickAxis(wx: number, wy: number, wz: number, axis: "x" | "y" | "z") {
+    if (axis === "x") return wx;
+    if (axis === "y") return wy;
+    return wz;
+  }
+
+  for (let i = 0, j = 0; i < pos.length; i += 3, j += 2) {
+    const lx = pos[i]!;
+    const ly = pos[i + 1]!;
+    const lz = pos[i + 2]!;
+
+    // Babylon matrix layout (same as Vector3.TransformCoordinates):
+    const wx = lx * m[0] + ly * m[4] + lz * m[8] + m[12];
+    const wy = lx * m[1] + ly * m[5] + lz * m[9] + m[13];
+    const wz = lx * m[2] + ly * m[6] + lz * m[10] + m[14];
+
+    uvs[j] = pickAxis(wx, wy, wz, uAxis) / metersPerTile;
+    uvs[j + 1] = pickAxis(wx, wy, wz, vAxis) / metersPerTile;
+  }
+
+  mesh.setVerticesData(VertexBuffer.UVKind, uvs);
+}

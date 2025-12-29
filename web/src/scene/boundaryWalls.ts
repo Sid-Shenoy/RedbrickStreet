@@ -4,7 +4,7 @@ import type { HouseWithModel, Region } from "../world/houseModel/types";
 import type { Door } from "../world/houseModel/generation/doors";
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
 import { BOUNDARY_WALL_T, DOOR_OPENING_H, DOOR_SILL_H, SURFACE_TEX_METERS } from "./constants";
-import { applyWorldBoxUVs } from "./uvs";
+import { applyWorldBoxUVs, applyWorldUVsWorldAxes } from "./uvs";
 
 // -------- Boundary wall extraction/rendering (shared edges + exterior edges) --------
 
@@ -255,14 +255,18 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
 
-function createOpenBox(name: string, scene: Scene, width: number, height: number, depth: number): Mesh {
+// Capless wall strips:
+// - No top/bottom caps (prevents z-fighting with floors/ceilings).
+// - No end caps (prevents coplanar overlap at right-angle and collinear joins).
+// We render only the two long faces, then "miter" corners by extending segments by half thickness.
+function createOpenWallH(name: string, scene: Scene, length: number, height: number, thickness: number): Mesh {
   const mesh = new Mesh(name, scene);
 
-  const hx = width / 2;
+  const hx = length / 2;
   const hy = height / 2;
-  const hz = depth / 2;
+  const hz = thickness / 2;
 
-  // 4 vertical faces only: +Z, -Z, +X, -X. No top/bottom caps (prevents z-fighting with floors/ceilings).
+  // Faces: +Z and -Z only. No +/-X end caps.
   const positions: number[] = [];
   const normals: number[] = [];
   const uvs: number[] = [];
@@ -287,29 +291,73 @@ function createOpenBox(name: string, scene: Scene, width: number, height: number
   ) {
     const base = positions.length / 3;
 
-    positions.push(
-      ax, ay, az,
-      bx, by, bz,
-      cx, cy, cz,
-      dx, dy, dz
-    );
+    positions.push(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
 
-    // Flat normal per face
     for (let i = 0; i < 4; i++) normals.push(nx, ny, nz);
 
-    // Simple UVs (walls are solid color now, but keep valid UVs)
+    // Placeholder UVs; overwritten by applyWorldBoxUVs().
     uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
 
-    indices.push(
-      base + 0, base + 1, base + 2,
-      base + 0, base + 2, base + 3
-    );
+    indices.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);
   }
 
   // +Z face
   addQuad(-hx, -hy, +hz, +hx, -hy, +hz, +hx, +hy, +hz, -hx, +hy, +hz, 0, 0, 1);
   // -Z face
   addQuad(+hx, -hy, -hz, -hx, -hy, -hz, -hx, +hy, -hz, +hx, +hy, -hz, 0, 0, -1);
+
+  const vd = new VertexData();
+  vd.positions = positions;
+  vd.indices = indices;
+  vd.normals = normals;
+  vd.uvs = uvs;
+  vd.applyToMesh(mesh);
+
+  return mesh;
+}
+
+function createOpenWallV(name: string, scene: Scene, thickness: number, height: number, length: number): Mesh {
+  const mesh = new Mesh(name, scene);
+
+  const hx = thickness / 2;
+  const hy = height / 2;
+  const hz = length / 2;
+
+  // Faces: +X and -X only. No +/-Z end caps.
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  function addQuad(
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number,
+    cx: number,
+    cy: number,
+    cz: number,
+    dx: number,
+    dy: number,
+    dz: number,
+    nx: number,
+    ny: number,
+    nz: number
+  ) {
+    const base = positions.length / 3;
+
+    positions.push(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+
+    for (let i = 0; i < 4; i++) normals.push(nx, ny, nz);
+
+    // Placeholder UVs; overwritten by applyWorldBoxUVs().
+    uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+
+    indices.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);
+  }
+
   // +X face
   addQuad(+hx, -hy, +hz, +hx, -hy, -hz, +hx, +hy, -hz, +hx, +hy, +hz, 1, 0, 0);
   // -X face
@@ -513,6 +561,77 @@ export function renderBoundaryWallsForLayer(
 
     const allToRender = [...interior, ...exterior];
 
+    // --- Corner mitering (prevents jagged seams at right angles) ---
+    // We extend wall segments by half thickness at endpoints that meet a perpendicular segment,
+    // so the two long faces meet cleanly without relying on coplanar end caps.
+    type EndpointInfo = { hasH: boolean; hasV: boolean };
+
+    const endpointInfo = new Map<string, EndpointInfo>();
+
+    function ptKey(x: number, z: number) {
+      return `${round6(x)}|${round6(z)}`;
+    }
+
+    function markEndpoint(x: number, z: number, orient: "h" | "v") {
+      const k = ptKey(x, z);
+      const e = endpointInfo.get(k) ?? { hasH: false, hasV: false };
+      if (orient === "h") e.hasH = true;
+      else e.hasV = true;
+      endpointInfo.set(k, e);
+    }
+
+    for (const { seg } of allToRender) {
+      const dx = seg.x1 - seg.x0;
+      const dz = seg.z1 - seg.z0;
+
+      if (Math.abs(dz) <= WALL_EPS && Math.abs(dx) > WALL_EPS) {
+        markEndpoint(seg.x0, seg.z0, "h");
+        markEndpoint(seg.x1, seg.z1, "h");
+      } else if (Math.abs(dx) <= WALL_EPS && Math.abs(dz) > WALL_EPS) {
+        markEndpoint(seg.x0, seg.z0, "v");
+        markEndpoint(seg.x1, seg.z1, "v");
+      }
+    }
+
+    const halfT = BOUNDARY_WALL_T * 0.5;
+
+    function extendSegForCorners(seg: Seg): Seg {
+      const dx = seg.x1 - seg.x0;
+      const dz = seg.z1 - seg.z0;
+
+      // Horizontal: extend in X at endpoints that touch any vertical wall.
+      if (Math.abs(dz) <= WALL_EPS && Math.abs(dx) > WALL_EPS) {
+        const z = seg.z0;
+        let a = seg.x0;
+        let b = seg.x1;
+
+        const left = endpointInfo.get(ptKey(a, z));
+        const right = endpointInfo.get(ptKey(b, z));
+
+        if (left?.hasV) a -= halfT;
+        if (right?.hasV) b += halfT;
+
+        return { x0: a, z0: z, x1: b, z1: z };
+      }
+
+      // Vertical: extend in Z at endpoints that touch any horizontal wall.
+      if (Math.abs(dx) <= WALL_EPS && Math.abs(dz) > WALL_EPS) {
+        const x = seg.x0;
+        let a = seg.z0;
+        let b = seg.z1;
+
+        const bot = endpointInfo.get(ptKey(x, a));
+        const top = endpointInfo.get(ptKey(x, b));
+
+        if (bot?.hasH) a -= halfT;
+        if (top?.hasH) b += halfT;
+
+        return { x0: x, z0: a, x1: x, z1: b };
+      }
+
+      return seg;
+    }
+
     // Vertical slicing:
     // - Solid base from bottomY -> doorBottomY (no carving)
     // - Door opening band from doorBottomY -> doorBottomY + DOOR_OPENING_H (carved)
@@ -524,7 +643,8 @@ export function renderBoundaryWallsForLayer(
       const h = y1 - y0;
       if (!(h > 1e-6)) return;
 
-      const pieces = carveDoors ? carveDoorsFromAtomicSeg(seg, doorCuts) : [seg];
+      const baseSeg = extendSegForCorners(seg);
+      const pieces = carveDoors ? carveDoorsFromAtomicSeg(baseSeg, doorCuts) : [baseSeg];
 
       for (const piece of pieces) {
         const p0 = lotLocalToWorld(house, piece.x0, piece.z0);
@@ -543,7 +663,7 @@ export function renderBoundaryWallsForLayer(
           const len = x1 - x0;
           if (len <= MIN_WALL_SEG) continue;
 
-          const wall = createOpenBox(
+          const wall = createOpenWallH(
             `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
             scene,
             len,
@@ -566,7 +686,7 @@ export function renderBoundaryWallsForLayer(
           const len = z1 - z0;
           if (len <= MIN_WALL_SEG) continue;
 
-          const wall = createOpenBox(
+          const wall = createOpenWallV(
             `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
             scene,
             BOUNDARY_WALL_T,
@@ -604,6 +724,69 @@ export function renderBoundaryWallsForLayer(
       // Solid upper (above door to top)
       if (topY > yDoor1 + 1e-6) {
         renderPieces(seg, yDoor1, topY, false, idxRef);
+      }
+    }
+
+    // Add door jamb faces at BOTH sides of each door opening so doorway edges are visible.
+    // We intentionally removed end-caps from wall segments to avoid z-fighting at joins; jambs are added only at doors.
+    const jambBandH = yDoor1 - yDoor0;
+    if (jambBandH > 1e-6) {
+      const jambIdx = { v: 0 };
+
+      for (const cut of doorCuts) {
+        const span = cut.b - cut.a;
+        // Door width is invariant 0.8m, but keep a small tolerance.
+        if (span < 0.79 || span > 0.81) continue;
+
+        if (cut.orient === "h") {
+          // Horizontal wall (z constant): jambs are YZ planes at x=cut.a and x=cut.b.
+          for (const xEdge of [cut.a, cut.b] as const) {
+            const p = lotLocalToWorld(house, xEdge, cut.c);
+
+            const jamb = MeshBuilder.CreatePlane(
+              `${meshPrefix}_jamb_${house.houseNumber}_${jambIdx.v++}`,
+              { width: BOUNDARY_WALL_T, height: jambBandH, sideOrientation: Mesh.DOUBLESIDE },
+              scene
+            );
+
+            // XY plane -> YZ plane (vertical), normal along ±X
+            jamb.rotation.y = Math.PI / 2;
+
+            jamb.position.x = p.x;
+            jamb.position.y = yDoor0 + jambBandH / 2;
+            jamb.position.z = p.z;
+
+            // Tile in meters using world Z/Y (plane is rotated)
+            applyWorldUVsWorldAxes(jamb, SURFACE_TEX_METERS, "z", "y");
+
+            jamb.material = wallMat;
+            jamb.checkCollisions = false;
+            jamb.isPickable = false;
+          }
+        } else {
+          // Vertical wall (x constant): jambs are XY planes at z=cut.a and z=cut.b.
+          for (const zEdge of [cut.a, cut.b] as const) {
+            const p = lotLocalToWorld(house, cut.c, zEdge);
+
+            const jamb = MeshBuilder.CreatePlane(
+              `${meshPrefix}_jamb_${house.houseNumber}_${jambIdx.v++}`,
+              { width: BOUNDARY_WALL_T, height: jambBandH, sideOrientation: Mesh.DOUBLESIDE },
+              scene
+            );
+
+            // Plane stays in XY (vertical), normal along ±Z
+            jamb.position.x = p.x;
+            jamb.position.y = yDoor0 + jambBandH / 2;
+            jamb.position.z = p.z;
+
+            // Tile in meters using world X/Y
+            applyWorldUVsWorldAxes(jamb, SURFACE_TEX_METERS, "x", "y");
+
+            jamb.material = wallMat;
+            jamb.checkCollisions = false;
+            jamb.isPickable = false;
+          }
+        }
       }
     }
 
