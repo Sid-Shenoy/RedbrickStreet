@@ -35,6 +35,17 @@ async function boot() {
   camera.keysLeft = [65]; // A
   camera.keysRight = [68]; // D
 
+  // ENABLED FOR TESTING!
+  // Space: teleport 10m up (single activation per key press)
+  const teleportUpHandler = (ev: KeyboardEvent) => {
+    if (ev.code !== "Space" || ev.repeat) return;
+    ev.preventDefault();
+    camera.position.y += 10;
+  };
+
+  window.addEventListener("keydown", teleportUpHandler);
+  scene.onDisposeObservable.add(() => window.removeEventListener("keydown", teleportUpHandler));
+
   // Click-to-pointer-lock (better mouse look)
   scene.onPointerDown = () => {
     canvas.requestPointerLock?.();
