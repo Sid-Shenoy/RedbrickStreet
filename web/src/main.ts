@@ -20,6 +20,7 @@ import earcut from "earcut";
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
 import type { HouseWithModel, Region } from "./world/houseModel/types";
+import type { Door } from "./world/houseModel/generation/doors";
 import { lotLocalToWorld } from "./world/houseModel/lotTransform";
 
 const STREET_SEED = "redbrick-street/v0";
@@ -503,16 +504,143 @@ function segKeyAtomic(s: Seg): string {
   return `na|${round6(s.x0)}|${round6(s.z0)}|${round6(s.x1)}|${round6(s.z1)}`;
 }
 
+// --- Door gap carving (doors are rendered as gaps in boundary walls) ---
+
+type DoorCut = { orient: "h" | "v"; c: number; a: number; b: number };
+type Interval = { a: number; b: number };
+
+const DOOR_CUT_TOL = 2e-3;
+const MIN_WALL_SEG = 1e-4;
+
+function isDoorElement(v: unknown): v is Door {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Partial<Door>;
+  if (o.kind !== "door") return false;
+
+  const aOk = typeof o.aRegion === "number";
+  const bOk = o.bRegion === null || typeof o.bRegion === "number";
+
+  const hingeOk =
+    Array.isArray(o.hinge) &&
+    o.hinge.length === 2 &&
+    typeof o.hinge[0] === "number" &&
+    typeof o.hinge[1] === "number";
+
+  const endOk =
+    Array.isArray(o.end) &&
+    o.end.length === 2 &&
+    typeof o.end[0] === "number" &&
+    typeof o.end[1] === "number";
+
+  return aOk && bOk && hingeOk && endOk;
+}
+
+function doorCutsFromConstruction(construction: unknown[]): DoorCut[] {
+  const cuts: DoorCut[] = [];
+
+  for (const el of construction) {
+    if (!isDoorElement(el)) continue;
+
+    const x0 = el.hinge[0];
+    const z0 = el.hinge[1];
+    const x1 = el.end[0];
+    const z1 = el.end[1];
+
+    // Axis-aligned by invariant.
+    if (Math.abs(z0 - z1) <= 1e-6 && Math.abs(x0 - x1) > 1e-6) {
+      const a = Math.min(x0, x1);
+      const b = Math.max(x0, x1);
+      cuts.push({ orient: "h", c: z0, a, b });
+    } else if (Math.abs(x0 - x1) <= 1e-6 && Math.abs(z0 - z1) > 1e-6) {
+      const a = Math.min(z0, z1);
+      const b = Math.max(z0, z1);
+      cuts.push({ orient: "v", c: x0, a, b });
+    }
+  }
+
+  return cuts;
+}
+
+function subtractOne(intervals: Interval[], cut: Interval): Interval[] {
+  const out: Interval[] = [];
+  for (const it of intervals) {
+    // No overlap
+    if (cut.b <= it.a + WALL_EPS || cut.a >= it.b - WALL_EPS) {
+      out.push(it);
+      continue;
+    }
+
+    // Left remainder
+    const la = it.a;
+    const lb = Math.max(it.a, cut.a);
+    if (lb - la > WALL_EPS) out.push({ a: la, b: lb });
+
+    // Right remainder
+    const ra = Math.min(it.b, cut.b);
+    const rb = it.b;
+    if (rb - ra > WALL_EPS) out.push({ a: ra, b: rb });
+  }
+  return out;
+}
+
+function carveDoorsFromAtomicSeg(seg: Seg, cuts: DoorCut[]): Seg[] {
+  const dx = seg.x1 - seg.x0;
+  const dz = seg.z1 - seg.z0;
+
+  // Horizontal in lot-local: z constant, interval in x.
+  if (Math.abs(dz) <= WALL_EPS && Math.abs(dx) > WALL_EPS) {
+    const z = seg.z0;
+    const a0 = Math.min(seg.x0, seg.x1);
+    const b0 = Math.max(seg.x0, seg.x1);
+
+    let intervals: Interval[] = [{ a: a0, b: b0 }];
+
+    const relevant = cuts.filter((c) => c.orient === "h" && Math.abs(c.c - z) <= DOOR_CUT_TOL);
+    for (const c of relevant) {
+      intervals = subtractOne(intervals, { a: c.a, b: c.b });
+      if (intervals.length === 0) break;
+    }
+
+    return intervals
+      .filter((it) => it.b - it.a > MIN_WALL_SEG)
+      .map((it) => ({ x0: it.a, z0: z, x1: it.b, z1: z }));
+  }
+
+  // Vertical in lot-local: x constant, interval in z.
+  if (Math.abs(dx) <= WALL_EPS && Math.abs(dz) > WALL_EPS) {
+    const x = seg.x0;
+    const a0 = Math.min(seg.z0, seg.z1);
+    const b0 = Math.max(seg.z0, seg.z1);
+
+    let intervals: Interval[] = [{ a: a0, b: b0 }];
+
+    const relevant = cuts.filter((c) => c.orient === "v" && Math.abs(c.c - x) <= DOOR_CUT_TOL);
+    for (const c of relevant) {
+      intervals = subtractOne(intervals, { a: c.a, b: c.b });
+      if (intervals.length === 0) break;
+    }
+
+    return intervals
+      .filter((it) => it.b - it.a > MIN_WALL_SEG)
+      .map((it) => ({ x0: x, z0: it.a, x1: x, z1: it.b }));
+  }
+
+  // Non-axis-aligned shouldn't happen.
+  return [seg];
+}
+
 function renderBoundaryWallsForLayer(
   scene: Scene,
   houses: HouseWithModel[],
   getRegions: (h: HouseWithModel) => Region[],
+  getConstruction: (h: HouseWithModel) => unknown[],
   baseY: number,
   meshPrefix: string,
   wallMat: StandardMaterial
 ) {
   for (const house of houses) {
     const allRegions = getRegions(house);
+    const doorCuts = doorCutsFromConstruction(getConstruction(house));
 
     // Build cut sets from ALL region vertices (including void) so we can split long edges into shared atomic segments.
     const xVals: number[] = [0, house.bounds.xsize];
@@ -565,58 +693,65 @@ function renderBoundaryWallsForLayer(
 
     let idx = 0;
     for (const { seg } of allToRender) {
-      const p0 = lotLocalToWorld(house, seg.x0, seg.z0);
-      const p1 = lotLocalToWorld(house, seg.x1, seg.z1);
+      // Carve door gaps out of this atomic segment in lot-local space.
+      const pieces = carveDoorsFromAtomicSeg(seg, doorCuts);
 
-      const dx = p1.x - p0.x;
-      const dz = p1.z - p0.z;
+      for (const piece of pieces) {
+        const p0 = lotLocalToWorld(house, piece.x0, piece.z0);
+        const p1 = lotLocalToWorld(house, piece.x1, piece.z1);
 
-      const isHoriz = Math.abs(dz) <= 1e-6 && Math.abs(dx) > 1e-6;
-      const isVert = Math.abs(dx) <= 1e-6 && Math.abs(dz) > 1e-6;
-      if (!isHoriz && !isVert) continue;
+        const dx = p1.x - p0.x;
+        const dz = p1.z - p0.z;
 
-      if (isHoriz) {
-        const x0 = Math.min(p0.x, p1.x);
-        const x1 = Math.max(p0.x, p1.x);
-        const len = Math.max(0.001, x1 - x0);
+        const isHoriz = Math.abs(dz) <= 1e-6 && Math.abs(dx) > 1e-6;
+        const isVert = Math.abs(dx) <= 1e-6 && Math.abs(dz) > 1e-6;
+        if (!isHoriz && !isVert) continue;
 
-        const box = MeshBuilder.CreateBox(
-          `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
-          {
-            width: len,
-            height: BOUNDARY_WALL_H,
-            depth: BOUNDARY_WALL_T,
-          },
-          scene
-        );
+        if (isHoriz) {
+          const x0 = Math.min(p0.x, p1.x);
+          const x1 = Math.max(p0.x, p1.x);
+          const len = x1 - x0;
+          if (len <= MIN_WALL_SEG) continue;
 
-        box.position.x = (x0 + x1) * 0.5;
-        box.position.z = p0.z; // same as p1.z
-        box.position.y = baseY + BOUNDARY_WALL_H / 2;
+          const box = MeshBuilder.CreateBox(
+            `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
+            {
+              width: len,
+              height: BOUNDARY_WALL_H,
+              depth: BOUNDARY_WALL_T,
+            },
+            scene
+          );
 
-        box.material = wallMat;
-        box.checkCollisions = false; // visual only
-      } else {
-        const z0 = Math.min(p0.z, p1.z);
-        const z1 = Math.max(p0.z, p1.z);
-        const len = Math.max(0.001, z1 - z0);
+          box.position.x = (x0 + x1) * 0.5;
+          box.position.z = p0.z; // same as p1.z
+          box.position.y = baseY + BOUNDARY_WALL_H / 2;
 
-        const box = MeshBuilder.CreateBox(
-          `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
-          {
-            width: BOUNDARY_WALL_T,
-            height: BOUNDARY_WALL_H,
-            depth: len,
-          },
-          scene
-        );
+          box.material = wallMat;
+          box.checkCollisions = false; // visual only
+        } else {
+          const z0 = Math.min(p0.z, p1.z);
+          const z1 = Math.max(p0.z, p1.z);
+          const len = z1 - z0;
+          if (len <= MIN_WALL_SEG) continue;
 
-        box.position.x = p0.x; // same as p1.x
-        box.position.z = (z0 + z1) * 0.5;
-        box.position.y = baseY + BOUNDARY_WALL_H / 2;
+          const box = MeshBuilder.CreateBox(
+            `${meshPrefix}_wall_${house.houseNumber}_${idx++}`,
+            {
+              width: BOUNDARY_WALL_T,
+              height: BOUNDARY_WALL_H,
+              depth: len,
+            },
+            scene
+          );
 
-        box.material = wallMat;
-        box.checkCollisions = false; // visual only
+          box.position.x = p0.x; // same as p1.x
+          box.position.z = (z0 + z1) * 0.5;
+          box.position.y = baseY + BOUNDARY_WALL_H / 2;
+
+          box.material = wallMat;
+          box.checkCollisions = false; // visual only
+        }
       }
     }
   }
@@ -700,13 +835,32 @@ function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   renderFloorLayer(scene, houses, mats, "plot", (h) => h.model.plot.regions, PLOT_Y, true);
   renderFloorLayer(scene, houses, mats, "firstFloor", (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, true);
 
-  // Boundary walls between rooms AND along exterior edges (white, 0.2m tall) for first & second floor
+  // Boundary walls between rooms AND along exterior edges (white, 0.2m tall) for first & second floor.
+  // Doors are rendered as 0.8m gaps in these boundary walls (no door mesh yet).
   const boundaryWallMat = makeMat(scene, "mat_boundary_wall", new Color3(1, 1, 1), false);
-  renderBoundaryWallsForLayer(scene, houses, (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, "ff", boundaryWallMat);
+
+  renderBoundaryWallsForLayer(
+    scene,
+    houses,
+    (h) => h.model.firstFloor.regions,
+    (h) => h.model.firstFloor.construction,
+    FIRST_FLOOR_Y,
+    "ff",
+    boundaryWallMat
+  );
 
   // Second floor: double-sided so underside is visible while walking below.
   renderFloorLayer(scene, houses, matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, false);
-  renderBoundaryWallsForLayer(scene, houses, (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, "sf", boundaryWallMat);
+
+  renderBoundaryWallsForLayer(
+    scene,
+    houses,
+    (h) => h.model.secondFloor.regions,
+    (h) => h.model.secondFloor.construction,
+    SECOND_FLOOR_Y,
+    "sf",
+    boundaryWallMat
+  );
 
   // Ceiling (congruent with houseregion) at 6.2m, double-sided so underside is visible.
   renderCeilings(scene, houses, matsDouble.concrete_light);

@@ -1,5 +1,5 @@
 web\public\config\characters.json
 web\public\config\houses.json
 web\src\world\houseModel\generation\plot.ts
-web\src\main.ts
-web\src\world\houseModel\generation\doors.ts
+web\src\world\houseModel\generation\firstFloor.ts
+web\src\world\houseModel\generation\secondFloor.ts
