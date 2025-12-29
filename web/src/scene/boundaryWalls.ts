@@ -501,6 +501,7 @@ export function renderBoundaryWallsForLayer(
   bottomY: number,
   topY: number,
   doorBottomY: number,
+  sillBottomY: number,
   meshPrefix: string,
   wallMat: StandardMaterial
 ) {
@@ -663,8 +664,11 @@ export function renderBoundaryWallsForLayer(
           const len = x1 - x0;
           if (len <= MIN_WALL_SEG) continue;
 
+          const idx = idxRef.v++;
+
+          // Visual wall strip (capless; avoids z-fighting and coplanar seams)
           const wall = createOpenWallH(
-            `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
+            `${meshPrefix}_wall_${house.houseNumber}_${idx}`,
             scene,
             len,
             h,
@@ -678,16 +682,35 @@ export function renderBoundaryWallsForLayer(
           applyWorldBoxUVs(wall, SURFACE_TEX_METERS);
 
           wall.material = wallMat;
-          wall.checkCollisions = false; // visual only
+          wall.checkCollisions = false; // visual only (collision uses a closed box below)
           wall.isPickable = false;
+
+          // Collision wall (closed box; prevents corner leaks since visual strips have no end caps)
+          const col = MeshBuilder.CreateBox(
+            `${meshPrefix}_col_${house.houseNumber}_${idx}`,
+            { width: len, height: h, depth: BOUNDARY_WALL_T },
+            scene
+          );
+
+          col.position.x = wall.position.x;
+          col.position.z = wall.position.z;
+          col.position.y = wall.position.y;
+
+          col.checkCollisions = true;
+          col.isPickable = false;
+          col.isVisible = false;
+
         } else {
           const z0 = Math.min(p0.z, p1.z);
           const z1 = Math.max(p0.z, p1.z);
           const len = z1 - z0;
           if (len <= MIN_WALL_SEG) continue;
 
+          const idx = idxRef.v++;
+
+          // Visual wall strip (capless; avoids z-fighting and coplanar seams)
           const wall = createOpenWallV(
-            `${meshPrefix}_wall_${house.houseNumber}_${idxRef.v++}`,
+            `${meshPrefix}_wall_${house.houseNumber}_${idx}`,
             scene,
             BOUNDARY_WALL_T,
             h,
@@ -701,8 +724,23 @@ export function renderBoundaryWallsForLayer(
           applyWorldBoxUVs(wall, SURFACE_TEX_METERS);
 
           wall.material = wallMat;
-          wall.checkCollisions = false; // visual only
+          wall.checkCollisions = false; // visual only (collision uses a closed box below)
           wall.isPickable = false;
+
+          // Collision wall (closed box; prevents corner leaks since visual strips have no end caps)
+          const col = MeshBuilder.CreateBox(
+            `${meshPrefix}_col_${house.houseNumber}_${idx}`,
+            { width: BOUNDARY_WALL_T, height: h, depth: len },
+            scene
+          );
+
+          col.position.x = wall.position.x;
+          col.position.z = wall.position.z;
+          col.position.y = wall.position.y;
+
+          col.checkCollisions = true;
+          col.isPickable = false;
+          col.isVisible = false;
 
         }
       }
@@ -846,7 +884,14 @@ export function renderBoundaryWallsForLayer(
     // - has NO bottom face (prevents z-fighting with floors),
     // - has NO jamb end-caps (prevents z-fighting with adjacent wall end faces),
     // - DOES have a top cap for realism.
-    const sillH = clamp(DOOR_SILL_H, 0, topY - yDoor0);
+    // Door sills should:
+    // - start at the same base as the carved door opening (e.g. PLOT_Y on first floor),
+    //   so you can't see the "under-floor" gap/black area through exterior doorways,
+    // - extend slightly ABOVE the actual floor height (sillBottomY) by DOOR_SILL_H.
+    const ySill0 = yDoor0;
+    const ySill1 = clamp(sillBottomY + DOOR_SILL_H, ySill0, topY);
+
+    const sillH = ySill1 - ySill0;
     if (sillH > 1e-6) {
       const sillIdx = { v: 0 };
 
@@ -868,7 +913,7 @@ export function renderBoundaryWallsForLayer(
           );
 
           sill.position.x = p.x;
-          sill.position.y = yDoor0 + sillH / 2;
+          sill.position.y = ySill0 + sillH / 2;
           sill.position.z = p.z;
 
           applyWorldBoxUVs(sill, SURFACE_TEX_METERS);
@@ -889,7 +934,7 @@ export function renderBoundaryWallsForLayer(
           );
 
           sill.position.x = p.x;
-          sill.position.y = yDoor0 + sillH / 2;
+          sill.position.y = ySill0 + sillH / 2;
           sill.position.z = p.z;
 
           applyWorldBoxUVs(sill, SURFACE_TEX_METERS);

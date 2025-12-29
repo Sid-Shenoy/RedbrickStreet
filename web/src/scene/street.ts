@@ -59,9 +59,10 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     houses,
     (h) => h.model.firstFloor.regions,
     (h) => h.model.firstFloor.construction,
-    PLOT_Y,        // walls start at plot level (fixes "floating")
+    PLOT_Y,         // walls start at plot level (fixes "floating")
     SECOND_FLOOR_Y, // walls end at second-floor level
-    FIRST_FLOOR_Y,  // door openings start at first-floor level
+    PLOT_Y,         // door openings start at plot level (so exterior doors are traversable without porch/steps yet)
+    FIRST_FLOOR_Y,  // sill/threshold should sit at real first-floor height
     "ff",
     boundaryWallMat
   );
@@ -80,7 +81,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   );
 
   // Second floor: double-sided so underside is visible while walking below.
-  renderFloorLayer(scene, houses, matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, false);
+  renderFloorLayer(scene, houses, matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, true);
 
   renderBoundaryWallsForLayer(
     scene,
@@ -90,6 +91,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     SECOND_FLOOR_Y, // walls start at second-floor level
     CEILING_Y,      // walls end at ceiling level
     SECOND_FLOOR_Y, // door openings start at second-floor level
+    SECOND_FLOOR_Y, // sill/threshold should sit at real second-floor height
     "sf",
     boundaryWallMat
   );
