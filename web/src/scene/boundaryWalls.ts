@@ -1,6 +1,6 @@
 import { Scene, MeshBuilder, StandardMaterial, Mesh, VertexData } from "@babylonjs/core";
 
-import type { HouseWithModel, Region } from "../world/houseModel/types";
+import type { HouseWithModel, Region, StairsLeadDir } from "../world/houseModel/types";
 import type { Door } from "../world/houseModel/generation/doors";
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
 import { BOUNDARY_WALL_T, DOOR_OPENING_H, DOOR_SILL_H, SURFACE_TEX_METERS } from "./constants";
@@ -130,6 +130,101 @@ function segKeyAtomic(s: Seg): string {
 
 type DoorCut = { orient: "h" | "v"; c: number; a: number; b: number };
 type Interval = { a: number; b: number };
+
+type StairsOpeningInfo = {
+  x0: number;
+  x1: number;
+  z0: number;
+  z1: number;
+  openEdge: DoorCut; // the ONLY side that must remain unwalled
+};
+
+function isStairsLeadDir(v: unknown): v is StairsLeadDir {
+  return v === "+x" || v === "-x" || v === "+z" || v === "-z";
+}
+
+function findStairsOpeningInfo(regions: Region[], houseNumber: number): StairsOpeningInfo | null {
+  const hits = regions.filter((r) => r.name === "stairs_opening");
+  if (hits.length === 0) return null;
+
+  if (hits.length !== 1) {
+    throw new Error(`[RBS] house ${houseNumber}: expected exactly 1 stairs_opening region, found ${hits.length}`);
+  }
+
+  const r = hits[0]!;
+  if (r.type !== "rectangle" || r.surface !== "void") {
+    throw new Error(`[RBS] house ${houseNumber}: stairs_opening must be a void rectangle`);
+  }
+
+  const dir = r.meta?.stairsLeadDir;
+  if (!isStairsLeadDir(dir)) {
+    throw new Error(`[RBS] house ${houseNumber}: stairs_opening.meta.stairsLeadDir missing/invalid`);
+  }
+
+  const [[ax, az], [bx, bz]] = r.points;
+  const x0 = Math.min(ax, bx);
+  const x1 = Math.max(ax, bx);
+  const z0 = Math.min(az, bz);
+  const z1 = Math.max(az, bz);
+
+  let openEdge: DoorCut;
+  if (dir === "+x") openEdge = { orient: "v", c: x1, a: z0, b: z1 };
+  else if (dir === "-x") openEdge = { orient: "v", c: x0, a: z0, b: z1 };
+  else if (dir === "+z") openEdge = { orient: "h", c: z1, a: x0, b: x1 };
+  else openEdge = { orient: "h", c: z0, a: x0, b: x1 };
+
+  return { x0, x1, z0, z1, openEdge };
+}
+
+function isSegOnDoorCut(seg: Seg, edge: DoorCut): boolean {
+  const dx = seg.x1 - seg.x0;
+  const dz = seg.z1 - seg.z0;
+
+  // Horizontal: z constant, interval in x.
+  if (edge.orient === "h" && Math.abs(dz) <= WALL_EPS && Math.abs(dx) > WALL_EPS) {
+    if (Math.abs(seg.z0 - edge.c) > WALL_EPS) return false;
+    const a = Math.min(seg.x0, seg.x1);
+    const b = Math.max(seg.x0, seg.x1);
+    return a >= edge.a - WALL_EPS && b <= edge.b + WALL_EPS;
+  }
+
+  // Vertical: x constant, interval in z.
+  if (edge.orient === "v" && Math.abs(dx) <= WALL_EPS && Math.abs(dz) > WALL_EPS) {
+    if (Math.abs(seg.x0 - edge.c) > WALL_EPS) return false;
+    const a = Math.min(seg.z0, seg.z1);
+    const b = Math.max(seg.z0, seg.z1);
+    return a >= edge.a - WALL_EPS && b <= edge.b + WALL_EPS;
+  }
+
+  return false;
+}
+
+function isSegOnStairsOpeningBoundary(seg: Seg, s: StairsOpeningInfo): boolean {
+  const dx = seg.x1 - seg.x0;
+  const dz = seg.z1 - seg.z0;
+
+  // Horizontal edges (z == z0 or z1)
+  if (Math.abs(dz) <= WALL_EPS && Math.abs(dx) > WALL_EPS) {
+    const z = seg.z0;
+    if (Math.abs(z - s.z0) > WALL_EPS && Math.abs(z - s.z1) > WALL_EPS) return false;
+
+    const a = Math.min(seg.x0, seg.x1);
+    const b = Math.max(seg.x0, seg.x1);
+    return a >= s.x0 - WALL_EPS && b <= s.x1 + WALL_EPS;
+  }
+
+  // Vertical edges (x == x0 or x1)
+  if (Math.abs(dx) <= WALL_EPS && Math.abs(dz) > WALL_EPS) {
+    const x = seg.x0;
+    if (Math.abs(x - s.x0) > WALL_EPS && Math.abs(x - s.x1) > WALL_EPS) return false;
+
+    const a = Math.min(seg.z0, seg.z1);
+    const b = Math.max(seg.z0, seg.z1);
+    return a >= s.z0 - WALL_EPS && b <= s.z1 + WALL_EPS;
+  }
+
+  return false;
+}
 
 const DOOR_CUT_TOL = 2e-3;
 const MIN_WALL_SEG = 1e-4;
@@ -560,7 +655,20 @@ export function renderBoundaryWallsForLayer(
     // This draws walls along the outer boundary of the generated floor footprint (house edges).
     const exterior = [...segStats.values()].filter((v) => v.nonVoid === 1 && v.void === 0);
 
-    const allToRender = [...interior, ...exterior];
+    // Second-floor stairs opening:
+    // Render walls on 3 sides of the void "stairs_opening" rectangle, leaving ONLY meta.stairsLeadDir open.
+    const stairsOpening = findStairsOpeningInfo(allRegions, house.houseNumber);
+
+    const stairsVoidWalls = stairsOpening
+      ? [...segStats.values()].filter(
+          (v) =>
+            v.void > 0 &&
+            isSegOnStairsOpeningBoundary(v.seg, stairsOpening) &&
+            !isSegOnDoorCut(v.seg, stairsOpening.openEdge)
+        )
+      : [];
+
+    const allToRender = [...interior, ...exterior, ...stairsVoidWalls];
 
     // --- Corner mitering (prevents jagged seams at right angles) ---
     // We extend wall segments by half thickness at endpoints that meet a perpendicular segment,
