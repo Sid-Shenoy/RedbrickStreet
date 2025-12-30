@@ -1053,5 +1053,65 @@ export function renderBoundaryWallsForLayer(
         }
       }
     }
+    
+    // Add a 2 cm cap sill on the OPEN edge of the second-floor stairs opening.
+    // Our wall strips are intentionally capless to avoid z-fighting; however, at the stairwell opening,
+    // the top of the wall below is exposed and would otherwise look hollow between the two faces.
+    // This cap uses the same sill geometry as doors (no bottom face) to avoid z-fighting with the 2nd-floor floor.
+    if (stairsOpening) {
+      const edge = stairsOpening.openEdge;
+      const span = edge.b - edge.a;
+
+      // Place a thin cap at this layer's base (SECOND_FLOOR_Y in the second-floor call).
+      const yCap0 = bottomY;
+      const yCap1 = clamp(yCap0 + DOOR_SILL_H, yCap0, topY);
+      const capH = yCap1 - yCap0;
+
+      if (span > 1e-6 && capH > 1e-6) {
+        if (edge.orient === "h") {
+          const midX = (edge.a + edge.b) * 0.5;
+          const p = lotLocalToWorld(house, midX, edge.c);
+
+          const cap = createDoorSillH(
+            `${meshPrefix}_stairs_open_cap_${house.houseNumber}`,
+            scene,
+            span,
+            capH,
+            BOUNDARY_WALL_T
+          );
+
+          cap.position.x = p.x;
+          cap.position.y = yCap0 + capH / 2;
+          cap.position.z = p.z;
+
+          applyWorldBoxUVs(cap, SURFACE_TEX_METERS);
+
+          cap.material = wallMat;
+          cap.checkCollisions = false;
+          cap.isPickable = false;
+        } else {
+          const midZ = (edge.a + edge.b) * 0.5;
+          const p = lotLocalToWorld(house, edge.c, midZ);
+
+          const cap = createDoorSillV(
+            `${meshPrefix}_stairs_open_cap_${house.houseNumber}`,
+            scene,
+            BOUNDARY_WALL_T,
+            capH,
+            span
+          );
+
+          cap.position.x = p.x;
+          cap.position.y = yCap0 + capH / 2;
+          cap.position.z = p.z;
+
+          applyWorldBoxUVs(cap, SURFACE_TEX_METERS);
+
+          cap.material = wallMat;
+          cap.checkCollisions = false;
+          cap.isPickable = false;
+        }
+      }
+    }
   }
 }
