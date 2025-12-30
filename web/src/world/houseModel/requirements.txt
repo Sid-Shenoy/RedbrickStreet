@@ -110,6 +110,7 @@
 3.4.1.1) `name: string` (a semantic label; duplicates are allowed unless a layer explicitly forbids them)
 3.4.1.2) `type: "rectangle" | "polygon"`
 3.4.1.3) `points` in lot-local coordinates
+3.4.1.4) `meta?: RegionMeta` (optional; see 3.4.5)
 3.4.2) Rectangle format
 3.4.2.1) points: [[min_x, min_z], [max_x, max_z]]
 3.4.3) Polygon format
@@ -119,6 +120,27 @@
 3.4.4.1) If multiple regions share the same `name`, consumers must treat that name as a category.
 3.4.4.2) When a layer requires "a region named X", it means:
 3.4.4.2.1) at least one region exists where region.name === X
+3.4.5) Region meta (optional per-region extra semantics)
+3.4.5.1) A region may include an optional `meta` object for additional data:
+3.4.5.1.1) Consumers must feature-detect; `meta` may be omitted for most regions.
+3.4.5.2) Stairs opening lead direction (second floor)
+3.4.5.2.1) The second floor must include exactly one region named `stairs_opening` with surface `void`.
+3.4.5.2.2) `stairs_opening.meta.stairsLeadDir` must exist and belong to:
+3.4.5.2.2.1) { "+x", "-x", "+z", "-z" }
+3.4.5.2.3) `stairsLeadDir` indicates the ONLY side of the `stairs_opening` rectangle that is NOT walled on the second floor.
+3.4.5.2.4) The indicated side must lead into a valid non-void room region (typically the second-floor `hallway`).
+3.4.5.2.5) The other 3 sides are considered walled (either interior walls or exterior walls if on the footprint boundary).
+
+Example `stairs_opening` region:
+```
+{
+  "name": "stairs_opening",
+  "surface": "void",
+  "type": "rectangle",
+  "points": [[5.2, 14.0], [6.4, 17.2]],
+  "meta": { "stairsLeadDir": "+x" }
+}
+```
 
 Example region objects:
 
@@ -463,6 +485,11 @@ Example firstFloor output (with a couple extras):
 6.4.3.1) all required rooms still meet constraints, and
 6.4.3.2) the extra room meets its minimum size constraints (6.7.2), and
 6.4.3.3) it can be placed without overlap and within `houseregion`
+6.4.4) Required non-walkable region: stairs opening (hard)
+6.4.4.1) Exactly one region named `stairs_opening` must exist.
+6.4.4.2) It must be a rectangle with surface `void`.
+6.4.4.3) It represents the opening (hole) in the second-floor floor surface above the first-floor stairs.
+6.4.4.4) It must include `meta.stairsLeadDir` (see 3.4.5.2).
 
 6.5) Placement and connectivity (hard)
 
@@ -473,6 +500,11 @@ Example firstFloor output (with a couple extras):
 6.5.3.1) Every `bedroom` must share a boundary segment length >= 1.0 m with `hallway`.
 6.5.3.2) Every bathroom (bathroom_small/bathroom_large) must share a boundary segment length >= 1.0 m with `hallway`.
 6.5.3.3) If present, `closet` should share a boundary segment length >= 1.0 m with a `bedroom` OR share a boundary segment length >= 1.0 m with `hallway`.
+6.5.4) Stairs opening lead and realism (hard)
+6.5.4.1) The `stairs_opening` region must lead into a valid room on the second floor (not into uncovered/open-roof space).
+6.5.4.2) The lead side is defined by `stairs_opening.meta.stairsLeadDir`.
+6.5.4.3) The lead side must share a boundary segment length >= 1.0 m with the destination room (typically the second-floor `hallway`).
+6.5.4.4) The `stairs_opening` rectangle must not share a boundary segment with the destination room on any other side (only the lead side is open).
 
 6.6) Room size minimums (hard, realistic)
 

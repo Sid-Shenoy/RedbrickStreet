@@ -1,6 +1,6 @@
 // web/src/world/houseModel/generation/secondFloor.ts
 import type { HouseConfig } from "../../../types/config";
-import type { FloorModel, PolyPoints, Region, Surface } from "../types";
+import type { FloorModel, PolyPoints, Region, Surface, RegionMeta, StairsLeadDir } from "../types";
 import type { HouseGenContext } from "./context";
 import { makeRng } from "../../../utils/seededRng";
 
@@ -133,7 +133,7 @@ function rectInsidePoly(r: Rect, poly: PolyPoints): boolean {
   );
 }
 
-function rectToRegion(name: string, surface: Surface, r: Rect): Region {
+function rectToRegion(name: string, surface: Surface, r: Rect, meta?: RegionMeta): Region {
   return {
     name,
     surface,
@@ -142,6 +142,7 @@ function rectToRegion(name: string, surface: Surface, r: Rect): Region {
       [r.x0, r.z0],
       [r.x1, r.z1],
     ],
+    ...(meta ? { meta } : {}),
   };
 }
 
@@ -288,6 +289,54 @@ function sharedEdgeLen(a: Rect, b: Rect): number {
     return Math.max(0, x1 - x0);
   }
   return 0;
+}
+
+function overlap1D(a0: number, a1: number, b0: number, b1: number): number {
+  return Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+}
+
+function inferStairsLeadDirOrThrow(hn: number, opening: Rect, hallway: Rect): StairsLeadDir {
+  const cand: Array<{ dir: StairsLeadDir; len: number }> = [];
+
+  // Hallway is to +x of opening (opening's +x side is open)
+  if (Math.abs(opening.x1 - hallway.x0) <= 1e-3) {
+    cand.push({ dir: "+x", len: overlap1D(opening.z0, opening.z1, hallway.z0, hallway.z1) });
+  }
+
+  // Hallway is to -x of opening (opening's -x side is open)
+  if (Math.abs(opening.x0 - hallway.x1) <= 1e-3) {
+    cand.push({ dir: "-x", len: overlap1D(opening.z0, opening.z1, hallway.z0, hallway.z1) });
+  }
+
+  // Hallway is to +z of opening (opening's +z side is open)
+  if (Math.abs(opening.z1 - hallway.z0) <= 1e-3) {
+    cand.push({ dir: "+z", len: overlap1D(opening.x0, opening.x1, hallway.x0, hallway.x1) });
+  }
+
+  // Hallway is to -z of opening (opening's -z side is open)
+  if (Math.abs(opening.z0 - hallway.z1) <= 1e-3) {
+    cand.push({ dir: "-z", len: overlap1D(opening.x0, opening.x1, hallway.x0, hallway.x1) });
+  }
+
+  if (cand.length === 0) {
+    throw new Error(`secondFloor: House ${hn} stairs_opening must touch hallway along an edge`);
+  }
+
+  cand.sort((a, b) => b.len - a.len);
+  const best = cand[0]!;
+  if (best.len + EPS < 1.0) {
+    throw new Error(
+      `secondFloor: House ${hn} stairs_opening must lead to hallway via shared edge >= 1.0m, got ${q(best.len, 3)}m`
+    );
+  }
+
+  // If ambiguous (rare), fail fast to keep the attribute meaningful.
+  const near = cand.filter((c) => Math.abs(c.len - best.len) <= 1e-3);
+  if (near.length > 1) {
+    throw new Error(`secondFloor: House ${hn} stairs_opening lead direction ambiguous`);
+  }
+
+  return best.dir;
 }
 
 function packStripOrThrow(
@@ -503,6 +552,52 @@ function validateSecondFloorOrThrow(hn: number, housePoly: PolyPoints, stairs: R
     throw new Error(`secondFloor: House ${hn} hallway must touch stairs projection (>=1.0m), got ${q(touchLen, 3)}m`);
   }
 
+  // Required: stairs opening must exist, be void, and specify which side is open (lead direction).
+  const stairsOpenRegion = regions.find((r) => r.name === "stairs_opening");
+  if (!stairsOpenRegion || stairsOpenRegion.type !== "rectangle" || stairsOpenRegion.surface !== "void") {
+    throw new Error(`secondFloor: House ${hn} missing required region 'stairs_opening' (rectangle, surface=void)`);
+  }
+
+  const leadDir = stairsOpenRegion.meta?.stairsLeadDir;
+  if (!leadDir) {
+    throw new Error(`secondFloor: House ${hn} stairs_opening missing meta.stairsLeadDir`);
+  }
+
+  const opening = rectFromRegion(stairsOpenRegion);
+
+  // Opening must lie within the stairs projection rectangle.
+  if (
+    opening.x0 + EPS < stairs.x0 ||
+    opening.x1 - EPS > stairs.x1 ||
+    opening.z0 + EPS < stairs.z0 ||
+    opening.z1 - EPS > stairs.z1
+  ) {
+    throw new Error(`secondFloor: House ${hn} stairs_opening must be within stairs projection`);
+  }
+
+  // The opening MUST lead into a valid room (the hallway) and the direction must match the geometry.
+  const expectedLead = inferStairsLeadDirOrThrow(hn, opening, hallway);
+  if (leadDir !== expectedLead) {
+    throw new Error(`secondFloor: House ${hn} stairs_opening meta.stairsLeadDir=${leadDir} but expected ${expectedLead}`);
+  }
+
+  // Ensure the hallway touches the opening only on the lead side (all other sides are walled).
+  const adj: Record<StairsLeadDir, number> = { "+x": 0, "-x": 0, "+z": 0, "-z": 0 };
+
+  if (Math.abs(opening.x1 - hallway.x0) <= 1e-3) adj["+x"] = overlap1D(opening.z0, opening.z1, hallway.z0, hallway.z1);
+  if (Math.abs(opening.x0 - hallway.x1) <= 1e-3) adj["-x"] = overlap1D(opening.z0, opening.z1, hallway.z0, hallway.z1);
+  if (Math.abs(opening.z1 - hallway.z0) <= 1e-3) adj["+z"] = overlap1D(opening.x0, opening.x1, hallway.x0, hallway.x1);
+  if (Math.abs(opening.z0 - hallway.z1) <= 1e-3) adj["-z"] = overlap1D(opening.x0, opening.x1, hallway.x0, hallway.x1);
+
+  for (const d of ["+x", "-x", "+z", "-z"] as const) {
+    if (d === leadDir) continue;
+    if (adj[d] > 0.05) {
+      throw new Error(
+        `secondFloor: House ${hn} stairs_opening touches hallway on non-lead side ${d} (len=${q(adj[d], 3)}m)`
+      );
+    }
+  }
+
   // Required regions
   const has = (nm: string) => regions.some((r) => r.name === nm && r.surface !== "void");
   if (!has("hallway")) throw new Error(`secondFloor: House ${hn} missing required region 'hallway'`);
@@ -682,9 +777,24 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
   // Compute stairs opening region (second floor): mark as void so it is not rendered.
   // IMPORTANT: We intersect with usableWide so it stays within the second-floor footprint we are generating.
   const stairsOpening = rectIntersect(stairs, usableWide);
-  if (stairsOpening) {
-    regions.push(rectToRegion("stairs_opening", "void", stairsOpening));
+  if (!stairsOpening) {
+    throw new Error(`secondFloor: House ${hn} stairs opening is outside usable second-floor footprint`);
   }
+
+  // Keep the opening physically usable (and not a degenerate sliver due to inset clipping).
+  if (rectArea(stairsOpening) + EPS < 2.0 || rectMinDim(stairsOpening) + EPS < 1.0) {
+    throw new Error(`secondFloor: House ${hn} stairs opening too small for safe navigation`);
+  }
+
+  // The opening must not overlap the hallway (it should connect via an edge only).
+  if (rectIntersect(stairsOpening, hall)) {
+    throw new Error(`secondFloor: House ${hn} stairs opening overlaps hallway`);
+  }
+
+  // Determine which side is open (no wall) on the second floor: it MUST lead into the hallway.
+  const stairsLeadDir = inferStairsLeadDirOrThrow(hn, stairsOpening, hall);
+
+  regions.push(rectToRegion("stairs_opening", "void", stairsOpening, { stairsLeadDir }));
 
   // Build per-strip room lists (front->back) and pack each strip.
   let closetsPlanned = 0;
@@ -747,15 +857,18 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
 
   // Determine which strip contains the stairs opening (if any), so we can reserve it as VOID and not generate floor there.
   let holeSide: Side | null = null;
-  if (stairsOpening) {
-    // If opening is entirely left of the hallway's left edge, it's in leftStrip.
-    if (stairsOpening.x1 <= hall.x0 + 1e-3) holeSide = "left";
-    // If opening is entirely right of the hallway's right edge, it's in rightStrip.
-    else if (stairsOpening.x0 >= hall.x1 - 1e-3) holeSide = "right";
+
+  // If opening is entirely left of the hallway's left edge, it's in leftStrip.
+  if (stairsOpening.x1 <= hall.x0 + 1e-3) holeSide = "left";
+  // If opening is entirely right of the hallway's right edge, it's in rightStrip.
+  else if (stairsOpening.x0 >= hall.x1 - 1e-3) holeSide = "right";
+
+  if (!holeSide) {
+    throw new Error(`secondFloor: House ${hn} stairs opening could not be assigned to a strip for packing`);
   }
 
   const packSide = (side: Side, strip: Rect, plan: string[]): Region[] => {
-    if (stairsOpening && holeSide === side) {
+    if (holeSide === side) {
       return packStripWithStairsOpeningOrThrow(hn, hr.points, rng, strip, stairsOpening, plan, stripSurfaces);
     }
     return packStripOrThrow(hn, hr.points, rng, strip, plan, stripSurfaces);
