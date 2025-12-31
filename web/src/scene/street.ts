@@ -6,6 +6,7 @@ import { applyWorldUVs, applyWorldBoxUVs } from "./uvs";
 import { renderFloorLayer, renderCeilingLayer } from "./regions";
 import { renderCurbFaces } from "./curb";
 import { renderBoundaryWallsForLayer } from "./boundaryWalls";
+import { renderExteriorBrickPrisms } from "./exteriorBrick";
 import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y, CEILING_Y, INTER_FLOOR_CEILING_EPS } from "./constants";
 
 export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
@@ -108,5 +109,9 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     CEILING_Y,
     { includeVoid: true }
   );
+
+  // Exterior envelope: brick-clad houseregion prism (no caps => no z-fighting with floors/ceilings).
+  // Offset slightly outward from the existing boundary walls to avoid coplanar overlap.
+  renderExteriorBrickPrisms(scene, houses, mats.brick);
 
 }
