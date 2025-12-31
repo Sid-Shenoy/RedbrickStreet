@@ -18,7 +18,12 @@ const MIN_SEG = 1e-4;
 // Place brick slightly OUTSIDE the existing boundary walls to avoid coplanar overlap.
 // Existing boundary walls are centered on the footprint edges with thickness BOUNDARY_WALL_T.
 // Their outward face is ~BOUNDARY_WALL_T/2 from the edge line; we push a bit further out.
-const BRICK_OFFSET = BOUNDARY_WALL_T * 0.5 + 0.015;
+// Desired apparent brick "thickness" (gap from the existing wall OUTER face to the brick shell).
+const BRICK_GAP = 0.05;
+
+// Brick plane offset from the footprint edge centerline:
+// existing wall outer face is at BOUNDARY_WALL_T/2 from the edge line; add BRICK_GAP beyond that.
+const BRICK_OFFSET = BOUNDARY_WALL_T * 0.5 + BRICK_GAP;
 
 function signedArea(pts: Pt[]): number {
   let a = 0;
@@ -227,6 +232,151 @@ function renderWallPlane(
   plane.isPickable = false;
 }
 
+function renderDoorRevealFrame(
+  scene: Scene,
+  namePrefix: string,
+  brickMat: StandardMaterial,
+  orient: "h" | "v",
+  outwardSign: number,
+  edgeC: number,  // original edge line (z for "h", x for "v")
+  fixedC: number, // brick shell line (offset)
+  cut: DoorCut,
+  y0: number,
+  y1: number,
+  idx: number
+) {
+  const h = y1 - y0;
+  if (!(h > 1e-6)) return;
+
+  // Inner reference is the OUTER FACE of the existing boundary wall (not the centerline),
+  // so this frame fills only the empty gap between that face and the brick shell.
+  const wallFaceC = edgeC + outwardSign * (BOUNDARY_WALL_T * 0.5);
+
+  const gap = Math.abs(fixedC - wallFaceC);
+  if (!(gap > 1e-6)) return;
+
+  const cMid = (fixedC + wallFaceC) * 0.5;
+  const yMid = (y0 + y1) * 0.5;
+
+  const span = cut.b - cut.a;
+  if (!(span > 1e-6)) return;
+
+  if (orient === "h") {
+    // Door spans along X, facade is at Z=edgeC, brick is at Z=fixedC
+    // Side returns: YZ planes at x=cut.a and x=cut.b spanning Z from wallFaceC -> fixedC
+    for (const xEdge of [cut.a, cut.b] as const) {
+      const side = MeshBuilder.CreatePlane(
+        `${namePrefix}_${idx}_side_h_${Math.round(xEdge * 1000)}`,
+        { width: gap, height: h, sideOrientation: Mesh.DOUBLESIDE },
+        scene
+      );
+
+      side.rotation.y = Math.PI / 2; // XY -> YZ
+      side.position.x = xEdge;
+      side.position.y = yMid;
+      side.position.z = cMid;
+
+      applyWorldUVsWorldAxes(side, SURFACE_TEX_METERS, "z", "y");
+
+      side.material = brickMat;
+      side.checkCollisions = false;
+      side.isPickable = false;
+    }
+
+    // Bottom cap: XZ plane at y=y0 spanning X door width and Z gap depth
+    const bot = MeshBuilder.CreatePlane(
+      `${namePrefix}_${idx}_bot_h`,
+      { width: span, height: gap, sideOrientation: Mesh.DOUBLESIDE },
+      scene
+    );
+    bot.rotation.x = Math.PI / 2; // XY -> XZ
+    bot.position.x = (cut.a + cut.b) * 0.5;
+    bot.position.y = y0;
+    bot.position.z = cMid;
+
+    applyWorldUVsWorldAxes(bot, SURFACE_TEX_METERS, "x", "z");
+
+    bot.material = brickMat;
+    bot.checkCollisions = false;
+    bot.isPickable = false;
+
+    // Top cap: XZ plane at y=y1 spanning X door width and Z gap depth
+    const top = MeshBuilder.CreatePlane(
+      `${namePrefix}_${idx}_top_h`,
+      { width: span, height: gap, sideOrientation: Mesh.DOUBLESIDE },
+      scene
+    );
+    top.rotation.x = Math.PI / 2; // XY -> XZ
+    top.position.x = (cut.a + cut.b) * 0.5;
+    top.position.y = y1;
+    top.position.z = cMid;
+
+    applyWorldUVsWorldAxes(top, SURFACE_TEX_METERS, "x", "z");
+
+    top.material = brickMat;
+    top.checkCollisions = false;
+    top.isPickable = false;
+
+  } else {
+    // Door spans along Z, facade is at X=edgeC, brick is at X=fixedC
+    // Side returns: XY planes at z=cut.a and z=cut.b spanning X from wallFaceC -> fixedC
+    for (const zEdge of [cut.a, cut.b] as const) {
+      const side = MeshBuilder.CreatePlane(
+        `${namePrefix}_${idx}_side_v_${Math.round(zEdge * 1000)}`,
+        { width: gap, height: h, sideOrientation: Mesh.DOUBLESIDE },
+        scene
+      );
+
+      // XY plane already; width along X
+      side.position.x = cMid;
+      side.position.y = yMid;
+      side.position.z = zEdge;
+
+      applyWorldUVsWorldAxes(side, SURFACE_TEX_METERS, "x", "y");
+
+      side.material = brickMat;
+      side.checkCollisions = false;
+      side.isPickable = false;
+    }
+
+    // Bottom cap: XZ plane at y=y0 spanning Z door width and X gap depth
+    const bot = MeshBuilder.CreatePlane(
+      `${namePrefix}_${idx}_bot_v`,
+      { width: span, height: gap, sideOrientation: Mesh.DOUBLESIDE },
+      scene
+    );
+    bot.rotation.x = Math.PI / 2; // XY -> XZ
+    bot.rotation.y = Math.PI / 2; // width axis -> world Z
+    bot.position.x = cMid;
+    bot.position.y = y0;
+    bot.position.z = (cut.a + cut.b) * 0.5;
+
+    applyWorldUVsWorldAxes(bot, SURFACE_TEX_METERS, "z", "x");
+
+    bot.material = brickMat;
+    bot.checkCollisions = false;
+    bot.isPickable = false;
+
+    // Top cap: XZ plane at y=y1 spanning Z door width and X gap depth
+    const top = MeshBuilder.CreatePlane(
+      `${namePrefix}_${idx}_top_v`,
+      { width: span, height: gap, sideOrientation: Mesh.DOUBLESIDE },
+      scene
+    );
+    top.rotation.x = Math.PI / 2; // XY -> XZ
+    top.rotation.y = Math.PI / 2; // width axis -> world Z
+    top.position.x = cMid;
+    top.position.y = y1;
+    top.position.z = (cut.a + cut.b) * 0.5;
+
+    applyWorldUVsWorldAxes(top, SURFACE_TEX_METERS, "z", "x");
+
+    top.material = brickMat;
+    top.checkCollisions = false;
+    top.isPickable = false;
+  }
+}
+
 function renderEdgeBand(
   scene: Scene,
   house: HouseWithModel,
@@ -327,8 +477,30 @@ function renderEdgeBand(
 
   // Door band (carved)
   if (yDoor1 > yDoor0 + 1e-6) {
-    if (relevantCuts.length > 0) renderCarved(yDoor0, yDoor1);
-    else renderSolid(yDoor0, yDoor1);
+    if (relevantCuts.length > 0) {
+      renderCarved(yDoor0, yDoor1);
+
+      // Seal the offset gap between the outer brick shell and the inner doorway edges
+      // so no thin empty slivers are visible from outside.
+      let di = 0;
+      for (const c of relevantCuts) {
+        renderDoorRevealFrame(
+          scene,
+          `${namePrefix}_reveal`,
+          brickMat,
+          orient,
+          outwardSign === 0 ? 1 : outwardSign,
+          edgeC,
+          fixedC,
+          c,
+          yDoor0,
+          yDoor1,
+          di++
+        );
+      }
+    } else {
+      renderSolid(yDoor0, yDoor1);
+    }
   }
 
   // Solid above door band
