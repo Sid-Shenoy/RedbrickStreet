@@ -6,7 +6,7 @@ import type { Door } from "../world/houseModel/generation/doors";
 
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
 import { applyWorldUVsWorldAxes } from "./uvs";
-import { SURFACE_TEX_METERS, PLOT_Y, SECOND_FLOOR_Y, CEILING_Y, BOUNDARY_WALL_T, DOOR_OPENING_H } from "./constants";
+import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y, CEILING_Y, BOUNDARY_WALL_T, DOOR_OPENING_H } from "./constants";
 
 type Pt = { x: number; z: number };
 type Interval = { a: number; b: number };
@@ -262,10 +262,13 @@ function renderEdgeBand(
   const fixedC = orient === "h" ? offA.z : offA.x;
 
   // Split vertically:
-  // - Carve doors only in the door opening band at the bottom of this band.
-  // - Keep the rest solid.
-  const yDoor0 = y0;
-  const yDoor1 = Math.min(y0 + DOOR_OPENING_H, y1);
+  // - For the first-floor exterior shell, DO NOT carve below the real first-floor level.
+  //   This keeps brick visible "below" the doorway (avoids the grey/void look at the base).
+  // - For upper bands, carve from the band base as normal.
+  const carveBase = y0 < FIRST_FLOOR_Y - 1e-6 ? FIRST_FLOOR_Y : y0;
+
+  const yDoor0 = Math.min(Math.max(carveBase, y0), y1);
+  const yDoor1 = Math.min(yDoor0 + DOOR_OPENING_H, y1);
 
   const relevantCuts = cuts.filter((c) => c.orient === orient && Math.abs(c.c - edgeC) <= 2e-3);
 
