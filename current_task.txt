@@ -34,8 +34,8 @@ We want a function that given a house object like this, will generate data for a
     "bounds": {
       "x": 0,
       "z": 0,
-      "xsize": 30,
-      "zsize": 12
+      "xsize": 12,
+      "zsize": 32
     }
   }
 ```
