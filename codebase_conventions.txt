@@ -6,7 +6,7 @@ From a `requirements.txt` file, it should be possible to clearly understand the 
 
 Once a feature is complete, it should be possible to understand everything is does that may be necessary for future development efforts, simply by looking at the corresponding `requirements.txt` file(s). At this point, all large files for that feature will be added to `exclude_list.txt`, to ensure that the entire contents of those files are not included in the prompt.
 
-`requirements.txt` files must follow the below coventions to ensure consistency:
+`requirements.txt` files must follow the below conventions to ensure consistency:
 1) Requirements must be ordered using a hierarchical numbering system
 2) Use examples wherever possible, encapsulated in triple ticks
 3) All examples must use two-space indentation
