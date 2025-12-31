@@ -35,7 +35,7 @@ We want a function that given a house object like this, will generate data for a
       "x": 0,
       "z": 0,
       "xsize": 12,
-      "zsize": 32
+      "zsize": 30
     }
   }
 ```
