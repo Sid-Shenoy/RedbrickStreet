@@ -1,7 +1,6 @@
-import { Scene, MeshBuilder, Mesh } from "@babylonjs/core";
+import { Scene, MeshBuilder, Mesh, StandardMaterial, Texture, Color3 } from "@babylonjs/core";
 
-import type { StandardMaterial } from "@babylonjs/core";
-import type { HouseWithModel } from "../world/houseModel/types";
+import type { HouseWithModel, BrickTextureFile } from "../world/houseModel/types";
 import type { Door } from "../world/houseModel/generation/doors";
 
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
@@ -507,8 +506,30 @@ function renderEdgeBand(
   if (y1 > yDoor1 + 1e-6) renderSolid(yDoor1, y1);
 }
 
-export function renderExteriorBrickPrisms(scene: Scene, houses: HouseWithModel[], brickMat: StandardMaterial) {
+export function renderExteriorBrickPrisms(scene: Scene, houses: HouseWithModel[]) {
+  const brickMats = new Map<BrickTextureFile, StandardMaterial>();
+
+  function getHouseBrickMat(texFile: BrickTextureFile): StandardMaterial {
+    const hit = brickMats.get(texFile);
+    if (hit) return hit;
+
+    const mat = new StandardMaterial(`house_brick_${texFile.replace(".jpg", "")}`, scene);
+    const tex = new Texture(`/assets/textures/surfaces/${texFile}`, scene);
+    tex.wrapU = Texture.WRAP_ADDRESSMODE;
+    tex.wrapV = Texture.WRAP_ADDRESSMODE;
+
+    mat.diffuseTexture = tex;
+
+    // Keep brick fairly matte (more realistic, avoids "shiny plastic" look).
+    mat.specularColor = new Color3(0.08, 0.08, 0.08);
+
+    brickMats.set(texFile, mat);
+    return mat;
+  }
+
   for (const house of houses) {
+    const brickMat = getHouseBrickMat(house.model.brickTexture);
+
     const hr = house.model.plot.regions.find((r) => r.name === "houseregion");
     if (!hr || hr.type !== "polygon" || hr.points.length < 3) continue;
 

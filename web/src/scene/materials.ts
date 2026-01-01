@@ -30,7 +30,7 @@ export function surfaceMaterial(scene: Scene, opts?: { doubleSided?: boolean }):
 
   return {
     black: makeTexMat(scene, `mat_black${suf}`, "/assets/textures/surfaces/black.jpg", doubleSided),
-    brick: makeTexMat(scene, `mat_brick${suf}`, "/assets/textures/surfaces/brick.jpg", doubleSided),
+    brick: makeTexMat(scene, `mat_brick${suf}`, "/assets/textures/surfaces/brick_normal.jpg", doubleSided),
     grass: makeTexMat(scene, `mat_grass${suf}`, "/assets/textures/surfaces/grass.jpg", doubleSided),
     concrete_light: makeTexMat(scene, `mat_conc_light${suf}`, "/assets/textures/surfaces/concrete_light.jpg", doubleSided),
     concrete_medium: makeTexMat(scene, `mat_conc_med${suf}`, "/assets/textures/surfaces/concrete_medium.jpg", doubleSided),

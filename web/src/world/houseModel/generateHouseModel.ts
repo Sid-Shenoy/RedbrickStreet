@@ -19,6 +19,7 @@ export function generateHouseModel(house: HouseConfig, streetSeed: string): Hous
 
   return {
     seed: ctx.seed,
+    brickTexture: ctx.brickTexture,
     plot: { ...plot, construction: [] }, // required: plot stays empty
     firstFloor: { ...firstFloor, construction: firstFloorDoors },
     secondFloor: { ...secondFloor, construction: secondFloorDoors },

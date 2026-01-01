@@ -1,4 +1,4 @@
-import { Scene, MeshBuilder } from "@babylonjs/core";
+import { Scene, MeshBuilder, StandardMaterial, Texture, Color3 } from "@babylonjs/core";
 
 import type { HouseWithModel } from "../world/houseModel/types";
 import { surfaceMaterial } from "./materials";
@@ -27,6 +27,10 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   renderCurbFaces(scene, houses, mats);
 
   // Boundary wall around 230 x 70
+  // IMPORTANT: Only these 4 exterior street walls use brick_dark.jpg.
+  const streetBrickDarkMat = new StandardMaterial("street_brick_dark", scene);
+  streetBrickDarkMat.diffuseTexture = new Texture("/assets/textures/surfaces/brick_dark.jpg", scene);
+  streetBrickDarkMat.specularColor = new Color3(0.08, 0.08, 0.08);
   const wallH = 5;
   const wallT = 0.5;
 
@@ -49,7 +53,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
 
 
   for (const w of [wallNorth, wallSouth, wallWest, wallEast]) {
-    w.material = mats.brick;
+    w.material = streetBrickDarkMat;
     applyWorldBoxUVs(w, SURFACE_TEX_METERS);
     w.checkCollisions = true;
   }
@@ -119,5 +123,5 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
 
   // Exterior envelope: brick-clad houseregion prism (no caps => no z-fighting with floors/ceilings).
   // Offset slightly outward from the existing boundary walls to avoid coplanar overlap.
-  renderExteriorBrickPrisms(scene, houses, mats.brick);
+  renderExteriorBrickPrisms(scene, houses);
 }

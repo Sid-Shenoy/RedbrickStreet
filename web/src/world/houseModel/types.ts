@@ -16,6 +16,13 @@ export type Surface =
   | "void";
 export type RegionType = "polygon" | "rectangle";
 
+export type BrickTextureFile =
+  | "brick_normal.jpg"
+  | "brick_golden.jpg"
+  | "brick_grey.jpg"
+  | "brick_red.jpg"
+  | "brick_white.jpg";
+
 export type RectPoints = [[number, number], [number, number]];
 export type PolyPoints = Array<[number, number]>;
 
@@ -46,6 +53,10 @@ export interface FloorModel {
 
 export interface HouseModel {
   seed: string; // for debugging / determinism tracking
+
+  // Deterministically chosen per-house exterior brick texture (never brick_dark.jpg).
+  brickTexture: BrickTextureFile;
+
   plot: FloorModel;
   firstFloor: FloorModel;
   secondFloor: FloorModel;

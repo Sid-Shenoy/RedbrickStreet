@@ -38,3 +38,15 @@ C-----D-----C
 |     |     |
 A-----B-----A
 ```
+
+Brick textures in this folder:
+
+- House exterior brick textures (chosen per-house, deterministically):
+  - brick_normal.jpg
+  - brick_golden.jpg
+  - brick_grey.jpg
+  - brick_red.jpg
+  - brick_white.jpg
+
+- Street boundary walls (ONLY the 4 exterior street walls):
+  - brick_dark.jpg
