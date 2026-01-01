@@ -34,6 +34,10 @@ async function boot() {
   camera.checkCollisions = true;
   camera.ellipsoid = new Vector3(0.35, 0.9, 0.35);
 
+  // Set near plane to a very small value to prevent seeing through walls when close
+  // This allows the player to get very close to objects without clipping issues
+  camera.minZ = 0.01;
+
   camera.keysUp = [87]; // W
   camera.keysDown = [83]; // S
   camera.keysLeft = [65]; // A
