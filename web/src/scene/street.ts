@@ -31,16 +31,22 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   const wallT = 0.5;
 
   const wallNorth = MeshBuilder.CreateBox("wall_n", { width: 230, height: wallH, depth: wallT }, scene);
-  wallNorth.position.set(115, wallH / 2, wallT / 2);
+  // Move walls outward so their INNER faces align with the street outer edges:
+  // - north inner face at z=0
+  // - south inner face at z=70
+  // - west inner face at x=0
+  // - east inner face at x=230
+  wallNorth.position.set(115, wallH / 2, -wallT / 2);
 
   const wallSouth = MeshBuilder.CreateBox("wall_s", { width: 230, height: wallH, depth: wallT }, scene);
-  wallSouth.position.set(115, wallH / 2, 70 - wallT / 2);
+  wallSouth.position.set(115, wallH / 2, 70 + wallT / 2);
 
   const wallWest = MeshBuilder.CreateBox("wall_w", { width: wallT, height: wallH, depth: 70 }, scene);
-  wallWest.position.set(wallT / 2, wallH / 2, 35);
+  wallWest.position.set(-wallT / 2, wallH / 2, 35);
 
   const wallEast = MeshBuilder.CreateBox("wall_e", { width: wallT, height: wallH, depth: 70 }, scene);
-  wallEast.position.set(230 - wallT / 2, wallH / 2, 35);
+  wallEast.position.set(230 + wallT / 2, wallH / 2, 35);
+
 
   for (const w of [wallNorth, wallSouth, wallWest, wallEast]) {
     w.material = mats.brick;
