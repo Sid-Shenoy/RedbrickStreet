@@ -36,7 +36,7 @@ async function boot() {
 
   // Set near plane to a very small value to prevent seeing through walls when close
   // This allows the player to get very close to objects without clipping issues
-  camera.minZ = 0.01;
+  camera.minZ = 0.05;
 
   camera.keysUp = [87]; // W
   camera.keysDown = [83]; // S
