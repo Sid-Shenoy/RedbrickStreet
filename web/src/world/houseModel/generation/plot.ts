@@ -8,6 +8,9 @@ const Z_SIDEWALK1 = 26.5;
 const Z_CURB0 = 29.8;
 const Z_CURB1 = 30.0;
 
+// New: fixed right-edge padding (meters). Houses/driveways/walkways must NOT use this band.
+const PAD_RIGHT_X = 2.0;
+
 const EPS = 1e-6;
 
 function q(v: number, digits = 3): number {
@@ -130,10 +133,10 @@ type DrivewaySide = "left" | "right";
 function buildHouseFootprint(
   house: HouseConfig,
   ctx: HouseGenContext,
-  opts: { drivewaySide: DrivewaySide; drivewayWidth: number; zFront: number; minArea: number }
+  opts: { drivewaySide: DrivewaySide; drivewayWidth: number; zFront: number; minArea: number; buildXsize: number }
 ): { points: PolyPoints; core: { x0: number; x1: number; z0: number; z1: number } } {
   const hn = house.houseNumber;
-  const xsize = ctx.xsize;
+  const xsize = opts.buildXsize;
 
   const zFront = opts.zFront;
 
@@ -165,7 +168,10 @@ function buildHouseFootprint(
 
     if (x1 - x0 < minCoreW - EPS) {
       throw new Error(
-        `plot: House ${hn} cannot satisfy coreWidth>=${minCoreW} with xsize=${xsize} (got coreWidth=${q(x1 - x0, 3)})`
+        `plot: House ${hn} cannot satisfy coreWidth>=${minCoreW} with buildXsize=${xsize} (got coreWidth=${q(
+          x1 - x0,
+          3
+        )})`
       );
     }
   }
@@ -176,7 +182,10 @@ function buildHouseFootprint(
   const maxCoreD = zFront - 6.0; // guarantees minZ >= 6.0 (unless extension makes it deeper)
   if (maxCoreD + EPS < minCoreD) {
     throw new Error(
-      `plot: House ${hn} cannot satisfy coreDepth>=${minCoreD} with zFront=${q(zFront, 3)} (maxCoreD=${q(maxCoreD, 3)})`
+      `plot: House ${hn} cannot satisfy coreDepth>=${minCoreD} with zFront=${q(zFront, 3)} (maxCoreD=${q(
+        maxCoreD,
+        3
+      )})`
     );
   }
 
@@ -221,7 +230,7 @@ function buildHouseFootprint(
 
     if ((x1 - x0) * coreDepth + EPS < opts.minArea) {
       throw new Error(
-        `plot: House ${hn} cannot satisfy houseregion area>=${opts.minArea} with xsize=${xsize} (best area=${q(
+        `plot: House ${hn} cannot satisfy houseregion area>=${opts.minArea} with buildXsize=${xsize} (best area=${q(
           (x1 - x0) * coreDepth,
           3
         )})`
@@ -393,7 +402,7 @@ function buildHouseFootprint(
     throw new Error(`plot: House ${hn} houseregion frontZ mismatch (got ${q(fz, 3)}, expected ${q(zFront, 3)})`);
   }
 
-  // Ensure bounds.
+  // Ensure bounds (against buildXsize).
   for (const [x, z] of housePts) {
     if (x < -EPS || x > xsize + EPS || z < -EPS || z > 30 + EPS) {
       throw new Error(`plot: House ${hn} houseregion point out of bounds: (${q(x, 3)},${q(z, 3)})`);
@@ -546,7 +555,7 @@ function buildBackyardRegion(
 
 /**
  * Plot generation:
- * - Partitions full lot [0..xsize]x[0..30] into exactly 9 regions.
+ * - Partitions full lot [0..xsize]x[0..30] into required regions.
  * - Produces `houseregion` polygon footprint used by indoor floors.
  */
 export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): FloorModel {
@@ -556,15 +565,20 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
   if (ctx.zsize !== 30) {
     throw new Error(`House ${hn} has zsize=${ctx.zsize}, expected 30`);
   }
-  if (ctx.xsize < 12.0) {
-    throw new Error(`House ${hn} has xsize=${ctx.xsize}, expected >= 12.0`);
+
+  // Lot-local plot width (includes right padding).
+  const lotXsize = q(ctx.xsize, 3);
+
+  // Effective buildable width used for all pre-existing regions that must NOT move or resize.
+  const buildXsize = q(ctx.xsize - PAD_RIGHT_X, 3);
+  if (buildXsize + EPS < 12.0) {
+    throw new Error(`House ${hn} has xsize=${lotXsize}, expected xsize>=${q(12.0 + PAD_RIGHT_X, 3)} (buildXsize>=12.0)`);
   }
+
   const occ = house.occupants.length;
   if (occ < 1 || occ > 5) {
     throw new Error(`House ${hn} has occupants.length=${occ}, expected within [1,5]`);
   }
-
-  const xsize = q(ctx.xsize, 3);
 
   // Bedroom-derived minimum footprint area requirement.
   const minBedrooms = Math.ceil(occ / 2);
@@ -577,10 +591,11 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
   const drivewayWidth = q(ctx.rng.float(3.0, 3.8), 3);
   const walkwayWidth = q(ctx.rng.float(1.1, 1.8), 3);
 
-  const remainingFrontLawnWidth = xsize - drivewayWidth - walkwayWidth;
+  // IMPORTANT: computed against buildXsize so driveway/walkway/houseregion coordinates remain unchanged.
+  const remainingFrontLawnWidth = buildXsize - drivewayWidth - walkwayWidth;
   if (remainingFrontLawnWidth + EPS < 0.9) {
     throw new Error(
-      `plot: House ${hn} cannot satisfy remainingFrontLawnWidth>=0.9 (xsize=${xsize}, drivewayWidth=${drivewayWidth}, walkwayWidth=${walkwayWidth})`
+      `plot: House ${hn} cannot satisfy remainingFrontLawnWidth>=0.9 (buildXsize=${buildXsize}, drivewayWidth=${drivewayWidth}, walkwayWidth=${walkwayWidth})`
     );
   }
 
@@ -597,12 +612,12 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     throw new Error(`plot: House ${hn} zFront=${q(zFront, 3)} invalid`);
   }
 
-  // Driveway and walkway placement per requirements.
-  const dx0 = drivewaySide === "left" ? 0.0 : q(xsize - drivewayWidth, 3);
-  const dx1 = drivewaySide === "left" ? q(drivewayWidth, 3) : xsize;
+  // Driveway and walkway placement per requirements (against buildXsize only).
+  const dx0 = drivewaySide === "left" ? 0.0 : q(buildXsize - drivewayWidth, 3);
+  const dx1 = drivewaySide === "left" ? q(drivewayWidth, 3) : buildXsize;
 
-  const wx0 = drivewaySide === "left" ? q(drivewayWidth, 3) : q(xsize - drivewayWidth - walkwayWidth, 3);
-  const wx1 = drivewaySide === "left" ? q(drivewayWidth + walkwayWidth, 3) : q(xsize - drivewayWidth, 3);
+  const wx0 = drivewaySide === "left" ? q(drivewayWidth, 3) : q(buildXsize - drivewayWidth - walkwayWidth, 3);
+  const wx1 = drivewaySide === "left" ? q(drivewayWidth + walkwayWidth, 3) : q(buildXsize - drivewayWidth, 3);
 
   // Disjoint intervals (may share boundary).
   const overlap = Math.min(dx1, wx1) - Math.max(dx0, wx0);
@@ -610,8 +625,8 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     throw new Error(`plot: House ${hn} driveway and walkway x-intervals overlap (overlap=${q(overlap, 3)}m)`);
   }
 
-  // Build houseregion footprint polygon (must be polygon even if rectangle).
-  const houseFoot = buildHouseFootprint(house, ctx, { drivewaySide, drivewayWidth, zFront, minArea });
+  // Build houseregion footprint polygon (must be polygon even if rectangle) against buildXsize.
+  const houseFoot = buildHouseFootprint(house, ctx, { drivewaySide, drivewayWidth, zFront, minArea, buildXsize });
 
   // Ensure driveway and walkway contact the front boundary (normative connectivity feasibility).
   const houseFrontX0 = Math.min(...houseFoot.points.filter((p) => Math.abs(p[1] - zFront) <= 1e-3).map((p) => p[0]));
@@ -641,7 +656,7 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     );
   }
 
-  // Regions (exact required set of 9).
+  // Regions.
   const regions: Region[] = [];
 
   // 1) houseregion (polygon)
@@ -676,29 +691,29 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     points: rectPoints(wx0, zFront, wx1, Z_SIDEWALK0),
   });
 
-  // 5) sidewalk (fixed rectangle)
+  // 5) sidewalk (fixed rectangle; covers full lot width including padding)
   regions.push({
     name: "sidewalk",
     surface: "concrete_light",
     type: "rectangle",
-    points: rectPoints(0, Z_SIDEWALK0, xsize, Z_SIDEWALK1),
+    points: rectPoints(0, Z_SIDEWALK0, lotXsize, Z_SIDEWALK1),
   });
 
-  // 6) curb (fixed rectangle)
+  // 6) curb (fixed rectangle; covers full lot width including padding)
   regions.push({
     name: "curb",
     surface: "concrete_light",
     type: "rectangle",
-    points: rectPoints(0, Z_CURB0, xsize, Z_CURB1),
+    points: rectPoints(0, Z_CURB0, lotXsize, Z_CURB1),
   });
 
-  // 7) frontlawn_near (single connected rectangle on the opposite side of driveway+walkway)
+  // 7) frontlawn_near (single connected rectangle on the opposite side of driveway+walkway; within buildXsize)
   if (drivewaySide === "left") {
     regions.push({
       name: "frontlawn_near",
       surface: "grass",
       type: "rectangle",
-      points: rectPoints(wx1, zFront, xsize, Z_SIDEWALK0),
+      points: rectPoints(wx1, zFront, buildXsize, Z_SIDEWALK0),
     });
   } else {
     regions.push({
@@ -709,13 +724,13 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     });
   }
 
-  // 8) frontlawn_far (single connected rectangle on the opposite side of driveway)
+  // 8) frontlawn_far (single connected rectangle on the opposite side of driveway; within buildXsize)
   if (drivewaySide === "left") {
     regions.push({
       name: "frontlawn_far",
       surface: "grass",
       type: "rectangle",
-      points: rectPoints(dx1, Z_SIDEWALK1, xsize, Z_CURB0),
+      points: rectPoints(dx1, Z_SIDEWALK1, buildXsize, Z_CURB0),
     });
   } else {
     regions.push({
@@ -726,14 +741,69 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     });
   }
 
-  // 9) backyard (connected polygon/rectangle; no holes)
-  regions.push(buildBackyardRegion(house, xsize, zFront, houseFoot.points, "grass"));
+  // 9) backyard (connected polygon/rectangle; no holes) within buildXsize
+  regions.push(buildBackyardRegion(house, buildXsize, zFront, houseFoot.points, "grass"));
 
-  // Final sanity: enforce exactly 9 unique names.
-  const names = regions.map((r) => r.name);
-  const uniq = new Set(names);
-  if (regions.length !== 9 || uniq.size !== 9) {
-    throw new Error(`plot: House ${hn} produced ${regions.length} regions with ${uniq.size} unique names`);
+  // NEW: right-edge padding fill (grass only; sidewalk/curb already cover their z-bands)
+  // This creates a guaranteed 2.0m clear band at higher-x for detached houses.
+  if (lotXsize - buildXsize > EPS) {
+    regions.push({
+      name: "sideyard",
+      surface: "grass",
+      type: "rectangle",
+      points: rectPoints(buildXsize, 0, lotXsize, zFront),
+    });
+    regions.push({
+      name: "sideyard",
+      surface: "grass",
+      type: "rectangle",
+      points: rectPoints(buildXsize, zFront, lotXsize, Z_SIDEWALK0),
+    });
+    regions.push({
+      name: "sideyard",
+      surface: "grass",
+      type: "rectangle",
+      points: rectPoints(buildXsize, Z_SIDEWALK1, lotXsize, Z_CURB0),
+    });
+  }
+
+  // Final sanity: enforce required regions + sideyard contract.
+  const requiredOnce = [
+    "backyard",
+    "houseregion",
+    "frontlawn_near",
+    "frontlawn_far",
+    "driveway_near",
+    "driveway_far",
+    "sidewalk",
+    "curb",
+    "walkway",
+  ] as const;
+
+  const counts = new Map<string, number>();
+  for (const r of regions) counts.set(r.name, (counts.get(r.name) ?? 0) + 1);
+
+  for (const name of requiredOnce) {
+    const c = counts.get(name) ?? 0;
+    if (c !== 1) {
+      throw new Error(`plot: House ${hn} expected exactly 1 region named '${name}', got ${c}`);
+    }
+  }
+
+  const sideyardCount = counts.get("sideyard") ?? 0;
+  if (sideyardCount !== 3) {
+    throw new Error(`plot: House ${hn} expected exactly 3 'sideyard' regions, got ${sideyardCount}`);
+  }
+
+  for (const r of regions.filter((x) => x.name === "sideyard")) {
+    if (r.surface !== "grass" || r.type !== "rectangle") {
+      throw new Error(`plot: House ${hn} sideyard must be grass rectangle`);
+    }
+  }
+
+  // Total regions should now be 12 (9 required + 3 sideyard).
+  if (regions.length !== 12) {
+    throw new Error(`plot: House ${hn} produced ${regions.length} regions, expected 12`);
   }
 
   return {

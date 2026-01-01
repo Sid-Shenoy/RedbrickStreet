@@ -7,6 +7,17 @@
 1.1.2.1) localX is within [0, xsize]
 1.1.2.2) localZ is within [0, zsize]
 1.1.2.3) For this project, zsize must be 30 for all houses
+1.1.2.4) Right-edge padding for detached houses (hard)
+1.1.2.4.1) Each lot includes a mandatory clear band on the right edge (higher localX) of width 2.0 m.
+1.1.2.4.2) Define:
+1.1.2.4.2.1) buildXsize = xsize - 2.0
+1.1.2.4.3) The following plot regions MUST be generated exactly as if the lot width were buildXsize:
+1.1.2.4.3.1) houseregion
+1.1.2.4.3.2) driveway_near
+1.1.2.4.3.3) driveway_far
+1.1.2.4.3.4) walkway
+1.1.2.4.4) The extra band localX in [buildXsize, xsize] is plot-only padding and must NOT be used by houseregion/driveway/walkway.
+
 1.1.3) Orientation rule (consistent "front" for both sides of street)
 1.1.3.1) The lot-local "front" edge is always localZ = zsize (30), regardless of which side of the street the house is on.
 1.1.3.2) The lot-local "back" edge is always localZ = 0.
@@ -18,7 +29,7 @@
 1.2.2.1) worldX = house.bounds.x + localX
 1.2.2.2) worldZ = house.bounds.z + localZ
 1.2.3) Odd-numbered houses (mirrored to preserve 1.1.3):
-1.2.3.1) worldX = house.bounds.x + (house.bounds.xsize - localX)
+1.2.3.1) worldX = house.bounds.x + localX
 1.2.3.2) worldZ = house.bounds.z + (house.bounds.zsize - localZ)
 
 2) House modeling and determinism (`attachHouseModel.ts`, `generateHouseModel.ts`, `generation/context.ts`)
@@ -55,7 +66,7 @@
 2.4.2.1) For a given tuple:
 2.4.2.1.1) streetSeed
 2.4.2.1.2) house.houseNumber
-2.4.2.1.3) house.bounds (x, z, xsize, zsize)
+2.4.2.1.3) house.bounds (x, z, zsize) and buildXsize = house.bounds.xsize - 2.0
 2.4.2.1.4) house.occupants.length
 2.4.2.2) The generated `HouseModel` must be identical across runs.
 
@@ -254,16 +265,22 @@ Example Door element (exterior):
 
 4.4) Required plot regions (exact set)
 
-4.4.1) The plot must contain exactly 9 regions, exactly one each with the following names:
-4.4.1.1) backyard
-4.4.1.2) houseregion
-4.4.1.3) frontlawn_near
-4.4.1.4) frontlawn_far
-4.4.1.5) driveway_near
-4.4.1.6) driveway_far
-4.4.1.7) sidewalk
-4.4.1.8) curb
-4.4.1.9) walkway
+4.4.1) The plot must contain exactly 12 regions total:
+4.4.1.1) Exactly 9 base regions (exactly one each, by name):
+4.4.1.1.1) backyard
+4.4.1.1.2) houseregion
+4.4.1.1.3) frontlawn_near
+4.4.1.1.4) frontlawn_far
+4.4.1.1.5) driveway_near
+4.4.1.1.6) driveway_far
+4.4.1.1.7) sidewalk
+4.4.1.1.8) curb
+4.4.1.1.9) walkway
+4.4.1.2) Plus exactly 3 additional regions named `sideyard` (duplicates allowed), all with surface grass:
+4.4.1.2.1) sideyard (back): rectangle from (buildXsize, 0) to (xsize, zFront)
+4.4.1.2.2) sideyard (front near): rectangle from (buildXsize, zFront) to (xsize, 25.0)
+4.4.1.2.3) sideyard (front far): rectangle from (buildXsize, 26.5) to (xsize, 29.8)
+4.4.1.3) Sidewalk and curb cover the full lot width (0..xsize) and therefore also cover the right-edge padding in their respective z-bands.
 
 4.4.2) Required plot region types
 4.4.2.1) `sidewalk` and `curb` must be rectangles.
@@ -283,9 +300,9 @@ Example Door element (exterior):
 
 4.5) Fixed geometry (must match `plot.ts`)
 
-4.5.1) Sidewalk must always be:
+4.5.1) Sidewalk must always be (covers full lot width, including right-edge padding):
 4.5.1.1) rectangle from (0, 25) to (xsize, 26.5)
-4.5.2) Curb must always be:
+4.5.2) Curb must always be (covers full lot width, including right-edge padding):
 4.5.2.1) rectangle from (0, 29.8) to (xsize, 30)
 
 4.6) Plot realism constraints (must match `plot.ts`)

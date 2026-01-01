@@ -8,6 +8,7 @@ export function lotLocalToWorld(house: HouseConfig, localX: number, localZ: numb
     return { x: x + localX, z: z + localZ };
   }
 
-  // Odd houses: mirrored so that "front" remains at lot-local z=30 (road side) consistently.
-  return { x: x + (xsize - localX), z: z + (zsize - localZ) };
+  // Odd houses: mirror Z only so the lot-local "front" remains at localZ=30 (road side),
+  // while lot-local +x consistently maps to world +x (needed for right-edge padding).
+  return { x: x + localX, z: z + (zsize - localZ) };
 }

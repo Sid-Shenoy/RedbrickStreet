@@ -13,9 +13,10 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   const mats = surfaceMaterial(scene); // normal (single-sided)
   const matsDouble = surfaceMaterial(scene, { doubleSided: true }); // for viewing from below
 
-  // Road: x 0..200, z 30..40 => width=200, height=10
-  const road = MeshBuilder.CreateGround("road", { width: 200, height: 10 }, scene);
-  road.position.x = 100;
+  // Street: 230m (x-axis) by 70m (z-axis)
+  // Road: x 0..230, z 30..40 => width=230, height=10
+  const road = MeshBuilder.CreateGround("road", { width: 230, height: 10 }, scene);
+  road.position.x = 115;
   road.position.z = 35;
   road.material = mats.road;
   applyWorldUVs(road, SURFACE_TEX_METERS);
@@ -25,21 +26,21 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   // Add a vertical curb face so the raised plot meets the road visually.
   renderCurbFaces(scene, houses, mats);
 
-  // Boundary wall around 200 x 70
+  // Boundary wall around 230 x 70
   const wallH = 5;
   const wallT = 0.5;
 
-  const wallNorth = MeshBuilder.CreateBox("wall_n", { width: 200, height: wallH, depth: wallT }, scene);
-  wallNorth.position.set(100, wallH / 2, wallT / 2);
+  const wallNorth = MeshBuilder.CreateBox("wall_n", { width: 230, height: wallH, depth: wallT }, scene);
+  wallNorth.position.set(115, wallH / 2, wallT / 2);
 
-  const wallSouth = MeshBuilder.CreateBox("wall_s", { width: 200, height: wallH, depth: wallT }, scene);
-  wallSouth.position.set(100, wallH / 2, 70 - wallT / 2);
+  const wallSouth = MeshBuilder.CreateBox("wall_s", { width: 230, height: wallH, depth: wallT }, scene);
+  wallSouth.position.set(115, wallH / 2, 70 - wallT / 2);
 
   const wallWest = MeshBuilder.CreateBox("wall_w", { width: wallT, height: wallH, depth: 70 }, scene);
   wallWest.position.set(wallT / 2, wallH / 2, 35);
 
   const wallEast = MeshBuilder.CreateBox("wall_e", { width: wallT, height: wallH, depth: 70 }, scene);
-  wallEast.position.set(200 - wallT / 2, wallH / 2, 35);
+  wallEast.position.set(230 - wallT / 2, wallH / 2, 35);
 
   for (const w of [wallNorth, wallSouth, wallWest, wallEast]) {
     w.material = mats.brick;
@@ -113,5 +114,4 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   // Exterior envelope: brick-clad houseregion prism (no caps => no z-fighting with floors/ceilings).
   // Offset slightly outward from the existing boundary walls to avoid coplanar overlap.
   renderExteriorBrickPrisms(scene, houses, mats.brick);
-
 }
