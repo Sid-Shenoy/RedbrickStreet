@@ -32,7 +32,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   const streetBrickDarkMat = new StandardMaterial("street_brick_dark", scene);
   streetBrickDarkMat.diffuseTexture = new Texture("/assets/textures/surfaces/brick_dark.jpg", scene);
   streetBrickDarkMat.specularColor = new Color3(0.08, 0.08, 0.08);
-  const wallH = 5;
+  const wallH = 10;
   const wallT = 0.5;
 
   const wallNorth = MeshBuilder.CreateBox("wall_n", { width: 230, height: wallH, depth: wallT }, scene);
