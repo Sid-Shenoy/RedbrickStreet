@@ -50,3 +50,8 @@ Brick textures in this folder:
 
 - Street boundary walls (ONLY the 4 exterior street walls):
   - brick_dark.jpg
+
+Roof textures in this folder:
+
+- House roof texture (used by the roof prism on top of each house):
+  - roofing.jpg
