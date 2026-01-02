@@ -1,0 +1,7 @@
+This directory contains `zombie.glb` - a 3D model of a zombie.
+
+The model has the following 4 animations:
+1) Attack (clumsily keep punching with both hands)
+2) Reel back (when attacked)
+3) Collapse and die
+4) Jog forward
