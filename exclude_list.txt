@@ -10,4 +10,5 @@ web\src\scene\floorPick.ts
 web\src\scene\materials.ts
 web\src\scene\roof.ts
 web\src\scene\spawn.ts
+web\src\scene\stairs.ts
 web\src\scene\uvs.ts

@@ -464,8 +464,8 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
       const minDim = Math.min(w, h);
 
       // Depth: how far the plank protrudes from the wall into the stairwell.
-      // Keep moderate so treads don't look like huge platforms.
-      const treadDepth = clamp(minDim * 0.30, 0.30, 0.42);
+      // Make steps 2x wider by doubling this protrusion (area touching wall remains the same).
+      const treadDepth = clamp(minDim * 0.30, 0.30, 0.42) * 2;
 
       // Width along the wall (the "length" of the plank).
       // Cap it by step-to-step spacing so planks cannot heavily overlap in projection.
