@@ -412,12 +412,12 @@ function renderEdgeBand(
 
   // Split vertically:
   // - For the first-floor exterior shell, DO NOT carve below the real first-floor level.
-  //   This keeps brick visible "below" the doorway (avoids the grey/void look at the base).
-  // - For upper bands, carve from the band base as normal.
+  //   This keeps brick visible "below" the doorway and avoids coplanar fighting with plot surfaces.
+  // - However, the TOP of the opening must align with the interior opening which is carved from the band base (y0).
   const carveBase = y0 < FIRST_FLOOR_Y - 1e-6 ? FIRST_FLOOR_Y : y0;
 
   const yDoor0 = Math.min(Math.max(carveBase, y0), y1);
-  const yDoor1 = Math.min(yDoor0 + DOOR_OPENING_H, y1);
+  const yDoor1 = Math.min(y0 + DOOR_OPENING_H, y1);
 
   const relevantCuts = cuts.filter((c) => c.orient === orient && Math.abs(c.c - edgeC) <= 2e-3);
 
