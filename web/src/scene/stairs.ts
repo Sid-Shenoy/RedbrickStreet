@@ -358,16 +358,26 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
       const mz = (entryDoor.hinge[1] + entryDoor.end[1]) * 0.5;
 
       const inward = inwardFromDoorOnRect(stairsRect, entryDoor) ?? { x: 0, z: 1 };
-      const left = { x: -inward.z, z: inward.x };
+      const left = { x: inward.z, z: -inward.x };
 
-      // Small deterministic nudge: step “in” then “left”, so nearest-side selection is stable.
-      const inside = {
-        x: mx + inward.x * 0.20 + left.x * 0.20,
-        z: mz + inward.z * 0.20 + left.z * 0.20,
+      // Force the start onto the wall that is physically to the LEFT as you enter,
+      // so you can step through the door, look left, and the first tread is directly ahead.
+      const sSide: Side =
+        Math.abs(left.x) > Math.abs(left.z)
+          ? left.x > 0
+            ? "right"
+            : "left"
+          : left.z > 0
+            ? "bottom"
+            : "top";
+
+      // Bias the anchor slightly inward and to the left of the doorway before projecting to the left wall.
+      const leftBiased = {
+        x: mx + inward.x * 0.15 + left.x * 0.70,
+        z: mz + inward.z * 0.15 + left.z * 0.70,
       };
 
-      const sSide = nearestSide(baseRect, inside);
-      const sPt = projectToSide(baseRect, sSide, inside, cornerMargin);
+      const sPt = projectToSide(baseRect, sSide, leftBiased, cornerMargin);
 
       uStart = uFromPointOnSide(baseRect, sSide, sPt.x, sPt.z);
     } else {
