@@ -1,6 +1,6 @@
 Summary of this directory:
 
-- Store an initial list of NPCs and houses with all relevant associations.
+- Store an initial list of NPCs (not actually present in game) and houses with all relevant associations.
 - Store zoning and modeling information regarding houses.
 
 Non-functional requirements for this directory:
