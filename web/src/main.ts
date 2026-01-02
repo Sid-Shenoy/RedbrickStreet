@@ -77,7 +77,7 @@ async function boot() {
 
   function sampleFloorY(): number | null {
     // Probe from just above the camera so we don't start above indoor ceilings (which would block the ray).
-    return pickFloorY(scene, camera.position.x, camera.position.z, camera.position.y + 0.2, 30);
+    return pickFloorY(scene, camera.position.x, camera.position.z, camera.position.y + 0.1, 30);
   }
 
   function isGrounded(): boolean {
