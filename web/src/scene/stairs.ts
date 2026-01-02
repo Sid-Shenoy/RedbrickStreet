@@ -10,7 +10,7 @@ type Rect = { x0: number; x1: number; z0: number; z1: number };
 type Side = "top" | "right" | "bottom" | "left";
 
 const STEP_THICK = 0.10; // 10 cm
-const STEP_RUN_DESIRED = 0.28; // horizontal spacing target (meters)
+const STEP_RUN_DESIRED = 0.40; // horizontal spacing target (meters)
 const TOP_STEPS_FORCE_OPENING = 6; // ensure the last few steps are definitely inside the stairs_opening shaft
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -444,6 +444,12 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
     // If it’s shorter, we keep it shorter (tighter steps are fine; they do NOT create overlaps due to vertical separation).
     const totalU = Math.max(baseU, desiredU);
 
+    // Physical spacing between successive steps along the (smaller) perimeter.
+    // Used to cap tread length so planks cannot heavily overlap in projection.
+    const deltaU = totalU / Math.max(1, N - 1);
+    const minPerim = Math.min(perimeterLen(baseRect), perimeterLen(topRect));
+    const stepSpacing = minPerim * deltaU;
+
     for (let i = 0; i < N; i++) {
       const t = N <= 1 ? 1 : i / (N - 1);
       const u = (uStart + t * totalU) % 1;
@@ -458,12 +464,16 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
       const minDim = Math.min(w, h);
 
       // Depth: how far the plank protrudes from the wall into the stairwell.
-      const treadDepth = clamp(minDim * 0.35, 0.22, 0.45);
+      // Keep moderate so treads don't look like huge platforms.
+      const treadDepth = clamp(minDim * 0.30, 0.30, 0.42);
 
-      // Width along the wall: enough for the player ellipsoid (0.35 radius) + margin.
+      // Width along the wall (the "length" of the plank).
+      // Cap it by step-to-step spacing so planks cannot heavily overlap in projection.
       const sideLen = sample.side === "top" || sample.side === "bottom" ? w : h;
-      const maxWidth = Math.max(0.35, sideLen - 2 * cornerMargin);
-      const treadWidth = clamp(sideLen * 0.55, 0.60, Math.min(1.00, maxWidth));
+      const maxWidth = Math.max(0.25, sideLen - 2 * cornerMargin);
+
+      const widthBySpacing = clamp(stepSpacing * 0.85, 0.40, 0.65);
+      const treadWidth = Math.min(widthBySpacing, maxWidth);
 
       // Place the plank so its back face is exactly on the inset wall line (no overlaps with wall collision),
       // and clamp along the wall to keep away from corners.
