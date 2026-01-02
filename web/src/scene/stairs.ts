@@ -10,7 +10,7 @@ type Rect = { x0: number; x1: number; z0: number; z1: number };
 type Side = "top" | "right" | "bottom" | "left";
 
 const STEP_THICK = 0.10; // 10 cm
-const STEP_RUN_DESIRED = 0.40; // horizontal spacing target (meters)
+const STEP_RUN_DESIRED = 0.48; // horizontal spacing target (meters)
 const TOP_STEPS_FORCE_OPENING = 6; // ensure the last few steps are definitely inside the stairs_opening shaft
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -472,7 +472,7 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
       const sideLen = sample.side === "top" || sample.side === "bottom" ? w : h;
       const maxWidth = Math.max(0.25, sideLen - 2 * cornerMargin);
 
-      const widthBySpacing = clamp(stepSpacing * 0.85, 0.40, 0.65);
+      const widthBySpacing = clamp(stepSpacing * 0.72, 0.40, 0.65);
       const treadWidth = Math.min(widthBySpacing, maxWidth);
 
       // Place the plank so its back face is exactly on the inset wall line (no overlaps with wall collision),
