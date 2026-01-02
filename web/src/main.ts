@@ -1,4 +1,4 @@
-import { Engine, Scene, UniversalCamera, HemisphericLight, Vector3, Color3 } from "@babylonjs/core";
+import { Engine, Scene, UniversalCamera, HemisphericLight, DirectionalLight, Vector3, Color3 } from "@babylonjs/core";
 
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
@@ -23,6 +23,11 @@ async function boot() {
 
   // Bounce light so downward-facing surfaces (e.g. door lintel undersides) aren't unrealistically black.
   light.groundColor = new Color3(0.35, 0.35, 0.35);
+
+  // Key light to create directional shading (makes walls distinguishable / more 3D).
+  const key = new DirectionalLight("key", new Vector3(-0.6, -1.0, -0.4), scene);
+  key.position = new Vector3(115, 50, 35); // above the street center
+  key.intensity = 0.35;
 
   // WASD + mouse look
   const camera = new UniversalCamera("cam", new Vector3(100, 1.7, 35), scene);

@@ -21,7 +21,7 @@ Optimization:
 Several features will be optimized for performance without sacrificing realism. Innovative techniques will be used for this. Below are some examples of optimization techniques:
 1) Instead of loading all game resources and then starting the game, load sufficient data to account for the current setting, start the game, and continue loading assets.
 2) Use less vertices as long as realism is not compromised. For example, a round toilet would look blocky with less vertices, so you may want to use a rounded rectangle will small but well-defined edges as the shape.
-3) Near/far clip distance should adapt to the situation when constrained by limits. When outdoors, the player should be able to see across the street as long as there are no objects really close in front of view. Near clip space must be sufficiently low during relevant interactions (like drinking from a cup, kissing, etc.), and the player should NEVER see through objects (e.g. a face when really close) to maintain realism.
+3) Near/far clip distance should adapt to the situation when constrained by limits. When outdoors, the player should be able to see across the street as long as there are no objects really close in front of view. Near clip space must be sufficiently low during relevant interactions (like drinking from a cup, licking a lollipop, etc.), and the player should NEVER see through objects (e.g. a face when really close) to maintain realism.
 4) For NPCs, use programatically generated meshes and textures in a way that does not compromise fine details when overly close (should be able to generate a realistic textured NPC mesh for any given body measurements).
 
 In-game Phone:

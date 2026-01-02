@@ -12,7 +12,7 @@ export const BOUNDARY_WALL_T = 0.06;
 
 // Door opening height used when carving gaps in boundary walls.
 // Door meshes aren't rendered yet; this creates believable openings under a lintel.
-export const DOOR_OPENING_H = 2.05;
+export const DOOR_OPENING_H = 2.5;
 
 // Small threshold wall block under door openings (meters).
 // Prevents seeing the void below at door bottoms without introducing floor z-fighting.

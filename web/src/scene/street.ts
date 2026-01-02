@@ -65,7 +65,15 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
 
   // Boundary walls between rooms AND along exterior edges use the house wall texture.
   // Doors are rendered as 0.8m gaps in these boundary walls (no door mesh yet).
-  const boundaryWallMat = matsDouble.wall;
+  const wallMat = matsDouble.wall;
+
+  // Use a slightly different material for ceilings so planes are visually distinguishable.
+  // Keep it double-sided (we often view ceilings from below).
+  const ceilingMat = new StandardMaterial("ceiling_mat", scene);
+  ceilingMat.diffuseTexture = wallMat.diffuseTexture;
+  ceilingMat.backFaceCulling = false;
+  ceilingMat.diffuseColor = new Color3(0.92, 0.92, 0.92);
+  ceilingMat.specularColor = new Color3(0.03, 0.03, 0.03);
 
   renderBoundaryWallsForLayer(
     scene,
@@ -77,7 +85,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     PLOT_Y,         // door openings start at plot level (so exterior doors are traversable without porch/steps yet)
     FIRST_FLOOR_Y,  // sill/threshold should sit at real first-floor height
     "ff",
-    boundaryWallMat
+    wallMat
   );
 
   // First-floor ceiling:
@@ -87,7 +95,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   renderCeilingLayer(
     scene,
     houses,
-    boundaryWallMat,
+    ceilingMat,
     "firstCeiling",
     (h) => h.model.firstFloor.regions.filter((r) => r.name !== "stairs"),
     SECOND_FLOOR_Y - INTER_FLOOR_CEILING_EPS
@@ -106,7 +114,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     SECOND_FLOOR_Y, // door openings start at second-floor level
     SECOND_FLOOR_Y, // sill/threshold should sit at real second-floor height
     "sf",
-    boundaryWallMat
+    wallMat
   );
 
   // Ceiling (congruent with houseregion) at 6.2m, double-sided so underside is visible.
@@ -115,7 +123,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   renderCeilingLayer(
     scene,
     houses,
-    boundaryWallMat,
+    ceilingMat,
     "secondCeiling",
     (h) => h.model.secondFloor.regions,
     CEILING_Y,
