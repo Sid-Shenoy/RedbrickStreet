@@ -4,7 +4,6 @@ web\src\world\houseModel\generation\doors.ts
 web\src\world\houseModel\generation\plot.ts
 web\src\world\houseModel\generation\firstFloor.ts
 web\src\world\houseModel\generation\secondFloor.ts
-web\src\scene\autoStep.ts
 web\src\scene\curb.ts
 web\src\scene\exteriorBrick.ts
 web\src\scene\floorPick.ts
