@@ -8,6 +8,7 @@ import { renderCurbFaces } from "./curb";
 import { renderBoundaryWallsForLayer } from "./boundaryWalls";
 import { renderExteriorBrickPrisms } from "./exteriorBrick";
 import { renderRoofs } from "./roof";
+import { renderStairs } from "./stairs";
 import { SURFACE_TEX_METERS, PLOT_Y, FIRST_FLOOR_Y, SECOND_FLOOR_Y, CEILING_Y, INTER_FLOOR_CEILING_EPS } from "./constants";
 
 export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
@@ -87,6 +88,9 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
     "ff",
     wallMat
   );
+
+  // Stairs: 10cm planks (same surface as the "stairs" region), clockwise ascent to the 2F opening lead edge.
+  renderStairs(scene, houses, matsDouble as unknown as Record<string, StandardMaterial>);
 
   // First-floor ceiling:
   // - Same material as walls (painted drywall look).
