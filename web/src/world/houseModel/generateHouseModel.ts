@@ -6,7 +6,7 @@ import { makeHouseGenContext } from "./generation/context";
 import { generatePlotModel } from "./generation/plot";
 import { generateFirstFloorModel } from "./generation/firstFloor";
 import { generateSecondFloorModel } from "./generation/secondFloor";
-import { generateDoors } from "./generation/doors"; // <-- add
+import { generateDoors } from "./generation/doors";
 
 export function generateHouseModel(house: HouseConfig, streetSeed: string): HouseModel {
   const ctx = makeHouseGenContext(house, streetSeed);
