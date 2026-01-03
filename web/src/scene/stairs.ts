@@ -489,20 +489,26 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
     const minPerim = Math.min(perimeterLen(baseRect), perimeterLen(topRect));
     const stepSpacing = minPerim * deltaU;
 
+    // --- Step planning pass ---
+    type StepPlan =
+      | { kind: "corner"; rect: Rect; corner: Corner; treadDepth: number; side: Side }
+      | { kind: "wall"; rect: Rect; side: Side; treadDepth: number; treadWidth: number };
+
+    const plans: StepPlan[] = [];
+
     let prevSide: Side | null = null;
-    let lastStepWasDestCorner = false;
 
     for (let i = 0; i < N; i++) {
       const t = N <= 1 ? 1 : i / (N - 1);
       const u = (uStart + t * totalU) % 1;
 
       // Force the last few steps into the opening shaft to make it impossible to collide with 2F floor.
-      const r = i >= N - TOP_STEPS_FORCE_OPENING ? topRect : baseRect;
+      const rect = i >= N - TOP_STEPS_FORCE_OPENING ? topRect : baseRect;
 
-      const sample = pointAtU(r, u);
+      const sample = pointAtU(rect, u);
 
-      const w = rectW(r);
-      const h = rectH(r);
+      const w = rectW(rect);
+      const h = rectH(rect);
       const minDim = Math.min(w, h);
 
       // Depth: how far the plank protrudes from the wall into the stairwell.
@@ -519,64 +525,134 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
 
       // ---- Corner overlap fix ----
       // Reserve a treadDepth x treadDepth "corner pocket" at both ends of each wall.
-      // - Wall steps are clamped to never enter the corner pockets.
+      // - Wall steps are distributed evenly along the edge span outside the corner pockets.
       // - When we turn a corner (side changes), we place a square corner step that fills that pocket.
       const edgeClear = treadDepth;
-
-      let cx = sample.x;
-      let cz = sample.z;
-
-      let dim: { width: number; height: number; depth: number } = { width: 1, height: STEP_THICK, depth: 1 };
 
       const turningCorner = prevSide !== null ? cornerForTurn(prevSide, sample.side) : null;
 
       if (turningCorner) {
-        // Square corner step (no overlap with either wall's steps).
-        const c = cornerCenter(r, turningCorner, treadDepth);
-        cx = c.x;
-        cz = c.z;
-        dim = { width: treadDepth, height: STEP_THICK, depth: treadDepth };
-
-        if (i === N - 1 && r === topRect && turningCorner === destCorner) {
-          lastStepWasDestCorner = true;
-        }
+        plans.push({ kind: "corner", rect, corner: turningCorner, treadDepth, side: sample.side });
       } else {
-        const halfW = treadWidth * 0.5;
-
         // If the wall is too short to place a non-overlapping wall step (given fixed treadWidth),
         // fall back to a corner step at the nearer end of this side.
         const canPlaceWall = sideLen >= 2 * edgeClear + treadWidth + 1e-3;
 
         if (!canPlaceWall) {
-          const corner = nearestCornerOnSide(r, sample.side, sample.x, sample.z);
-          const c = cornerCenter(r, corner, treadDepth);
-          cx = c.x;
-          cz = c.z;
-          dim = { width: treadDepth, height: STEP_THICK, depth: treadDepth };
-
-          if (i === N - 1 && r === topRect && corner === destCorner) {
-            lastStepWasDestCorner = true;
-          }
-        } else if (sample.side === "top") {
-          cx = clamp(sample.x, r.x0 + edgeClear + halfW, r.x1 - edgeClear - halfW);
-          cz = r.z0 + treadDepth * 0.5;
-          dim = { width: treadWidth, height: STEP_THICK, depth: treadDepth };
-        } else if (sample.side === "right") {
-          cz = clamp(sample.z, r.z0 + edgeClear + halfW, r.z1 - edgeClear - halfW);
-          cx = r.x1 - treadDepth * 0.5;
-          dim = { width: treadDepth, height: STEP_THICK, depth: treadWidth };
-        } else if (sample.side === "bottom") {
-          cx = clamp(sample.x, r.x0 + edgeClear + halfW, r.x1 - edgeClear - halfW);
-          cz = r.z1 - treadDepth * 0.5;
-          dim = { width: treadWidth, height: STEP_THICK, depth: treadDepth };
+          const corner = nearestCornerOnSide(rect, sample.side, sample.x, sample.z);
+          plans.push({ kind: "corner", rect, corner, treadDepth, side: sample.side });
         } else {
-          cz = clamp(sample.z, r.z0 + edgeClear + halfW, r.z1 - edgeClear - halfW);
-          cx = r.x0 + treadDepth * 0.5;
-          dim = { width: treadDepth, height: STEP_THICK, depth: treadWidth };
+          plans.push({ kind: "wall", rect, side: sample.side, treadDepth, treadWidth });
         }
       }
 
       prevSide = sample.side;
+    }
+
+    // --- Even spacing pass for wall (rectangular) steps on each edge ---
+    type WallGroup = { rect: Rect; side: Side; treadDepth: number; treadWidth: number; idxs: number[] };
+
+    function wallGroupKey(rect: Rect, side: Side): string {
+      const tag = rect === topRect ? "top" : "base";
+      return `${tag}|${side}`;
+    }
+
+    const wallGroups = new Map<string, WallGroup>();
+
+    for (let i = 0; i < plans.length; i++) {
+      const p = plans[i]!;
+      if (p.kind !== "wall") continue;
+
+      const key = wallGroupKey(p.rect, p.side);
+      const g = wallGroups.get(key);
+
+      if (g) {
+        g.idxs.push(i);
+        g.treadDepth = Math.max(g.treadDepth, p.treadDepth);
+        g.treadWidth = Math.max(g.treadWidth, p.treadWidth);
+      } else {
+        wallGroups.set(key, { rect: p.rect, side: p.side, treadDepth: p.treadDepth, treadWidth: p.treadWidth, idxs: [i] });
+      }
+    }
+
+    const wallPos = new Map<number, { cx: number; cz: number }>();
+
+    for (const g of wallGroups.values()) {
+      const rect = g.rect;
+      const side = g.side;
+
+      const w = rectW(rect);
+      const h = rectH(rect);
+      const sideLen = side === "top" || side === "bottom" ? w : h;
+
+      const halfW = g.treadWidth * 0.5;
+
+      // Keep the rectangular step fully outside the corner pocket:
+      // - corner pocket length along edge is treadDepth
+      // - plus half the step width so the step does not intrude into the pocket
+      const insetAlong = g.treadDepth + halfW;
+
+      const span = Math.max(0, sideLen - 2 * insetAlong);
+      const n = g.idxs.length;
+
+      for (let k = 0; k < n; k++) {
+        const i = g.idxs[k]!;
+        const tt = n === 1 ? 0.5 : k / (n - 1);
+        const along = insetAlong + tt * span;
+
+        // Place steps in the SAME clockwise order that pointAtU() walks:
+        // top:    x0 -> x1
+        // right:  z0 -> z1
+        // bottom: x1 -> x0
+        // left:   z1 -> z0
+        if (side === "top") {
+          wallPos.set(i, { cx: rect.x0 + along, cz: rect.z0 + g.treadDepth * 0.5 });
+        } else if (side === "right") {
+          wallPos.set(i, { cx: rect.x1 - g.treadDepth * 0.5, cz: rect.z0 + along });
+        } else if (side === "bottom") {
+          wallPos.set(i, { cx: rect.x1 - along, cz: rect.z1 - g.treadDepth * 0.5 });
+        } else {
+          wallPos.set(i, { cx: rect.x0 + g.treadDepth * 0.5, cz: rect.z1 - along });
+        }
+      }
+    }
+
+    // --- Render steps using the planned geometry ---
+    let lastStepWasDestCorner = false;
+
+    for (let i = 0; i < N; i++) {
+      const p = plans[i]!;
+
+      let cx = 0;
+      let cz = 0;
+      let dim: { width: number; height: number; depth: number };
+
+      if (p.kind === "corner") {
+        // Square corner step (no overlap with either wall's steps).
+        const c = cornerCenter(p.rect, p.corner, p.treadDepth);
+        cx = c.x;
+        cz = c.z;
+        dim = { width: p.treadDepth, height: STEP_THICK, depth: p.treadDepth };
+
+        if (i === N - 1 && p.rect === topRect && p.corner === destCorner) {
+          lastStepWasDestCorner = true;
+        }
+      } else {
+        // Rectangular wall step: evenly spaced along this edge.
+        const pos = wallPos.get(i);
+        if (!pos) {
+          throw new Error(`[RBS] house ${house.houseNumber}: missing wallPos for stairs step ${i}`);
+        }
+
+        cx = pos.cx;
+        cz = pos.cz;
+
+        if (p.side === "top" || p.side === "bottom") {
+          dim = { width: p.treadWidth, height: STEP_THICK, depth: p.treadDepth };
+        } else {
+          dim = { width: p.treadDepth, height: STEP_THICK, depth: p.treadWidth };
+        }
+      }
 
       const yTop = FIRST_FLOOR_Y + (i + 1) * rise;
       const yCenter = yTop - STEP_THICK * 0.5;
@@ -598,10 +674,16 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
       // Make steps behave like "floor" for floor-picking/autostep (raycasts must hit them).
       step.metadata = { rbs: { kind: "floor", layer: "stairs", houseNumber: house.houseNumber, regionName: "stairs_step" } };
     }
+
     // If the staircase terminates near a corner, the corner pocket can be empty at SECOND_FLOOR_Y,
     // making it impossible to pivot onto the open edge without falling into the void.
-    // Add a square corner landing step at the destination corner unless the last step already occupies it.
-    if (!lastStepWasDestCorner) {
+    // Add a square corner landing step at the destination corner ONLY if we never placed a dest-corner
+    // pocket step on the topRect path (otherwise this extra platform is redundant/obstructive).
+    const hasTopDestCornerPocket = plans.some(
+      (q) => q.kind === "corner" && q.rect === topRect && q.corner === destCorner
+    );
+
+    if (!lastStepWasDestCorner && !hasTopDestCornerPocket) {
       const topMinDim = Math.min(rectW(topRect), rectH(topRect));
       const topTreadDepth = clamp(topMinDim * 0.30, 0.30, 0.42) * 2;
 
