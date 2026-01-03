@@ -9,6 +9,36 @@ import { applyWorldBoxUVs } from "./uvs";
 type Rect = { x0: number; x1: number; z0: number; z1: number };
 type Side = "top" | "right" | "bottom" | "left";
 
+type Corner = "topLeft" | "topRight" | "bottomRight" | "bottomLeft";
+
+function cornerCenter(r: Rect, corner: Corner, size: number): { x: number; z: number } {
+  const h = size * 0.5;
+
+  if (corner === "topLeft") return { x: r.x0 + h, z: r.z0 + h };
+  if (corner === "topRight") return { x: r.x1 - h, z: r.z0 + h };
+  if (corner === "bottomRight") return { x: r.x1 - h, z: r.z1 - h };
+  return { x: r.x0 + h, z: r.z1 - h };
+}
+
+function cornerForTurn(prev: Side, next: Side): Corner | null {
+  // Clockwise turns only (pointAtU walks clockwise).
+  if (prev === "top" && next === "right") return "topRight";
+  if (prev === "right" && next === "bottom") return "bottomRight";
+  if (prev === "bottom" && next === "left") return "bottomLeft";
+  if (prev === "left" && next === "top") return "topLeft";
+  return null;
+}
+
+function nearestCornerOnSide(r: Rect, side: Side, x: number, z: number): Corner {
+  const mx = (r.x0 + r.x1) * 0.5;
+  const mz = (r.z0 + r.z1) * 0.5;
+
+  if (side === "top") return x <= mx ? "topLeft" : "topRight";
+  if (side === "right") return z <= mz ? "topRight" : "bottomRight";
+  if (side === "bottom") return x >= mx ? "bottomRight" : "bottomLeft";
+  return z >= mz ? "bottomLeft" : "topLeft";
+}
+
 const STEP_THICK = 0.10; // 10 cm
 const STEP_RUN_DESIRED = 0.48; // horizontal spacing target (meters)
 const TOP_STEPS_FORCE_OPENING = 6; // ensure the last few steps are definitely inside the stairs_opening shaft
@@ -397,15 +427,24 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
     // open=bottom => corner bottom-right
     // open=left   => corner bottom-left
     // open=top    => corner top-left
+    const destCorner: Corner =
+      openSide === "right"
+        ? "topRight"
+        : openSide === "bottom"
+          ? "bottomRight"
+          : openSide === "left"
+            ? "bottomLeft"
+            : "topLeft";
+
     let cornerX = topRect.x0;
     let cornerZ = topRect.z0;
-    if (openSide === "right") {
+    if (destCorner === "topRight") {
       cornerX = topRect.x1;
       cornerZ = topRect.z0;
-    } else if (openSide === "bottom") {
+    } else if (destCorner === "bottomRight") {
       cornerX = topRect.x1;
       cornerZ = topRect.z1;
-    } else if (openSide === "left") {
+    } else if (destCorner === "bottomLeft") {
       cornerX = topRect.x0;
       cornerZ = topRect.z1;
     } else {
@@ -450,6 +489,9 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
     const minPerim = Math.min(perimeterLen(baseRect), perimeterLen(topRect));
     const stepSpacing = minPerim * deltaU;
 
+    let prevSide: Side | null = null;
+    let lastStepWasDestCorner = false;
+
     for (let i = 0; i < N; i++) {
       const t = N <= 1 ? 1 : i / (N - 1);
       const u = (uStart + t * totalU) % 1;
@@ -475,37 +517,71 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
       const widthBySpacing = clamp(stepSpacing * 0.72, 0.40, 0.65);
       const treadWidth = Math.min(widthBySpacing, maxWidth);
 
-      // Place the plank so its back face is exactly on the inset wall line (no overlaps with wall collision),
-      // and clamp along the wall to keep away from corners.
+      // ---- Corner overlap fix ----
+      // Reserve a treadDepth x treadDepth "corner pocket" at both ends of each wall.
+      // - Wall steps are clamped to never enter the corner pockets.
+      // - When we turn a corner (side changes), we place a square corner step that fills that pocket.
+      const edgeClear = treadDepth;
+
       let cx = sample.x;
       let cz = sample.z;
 
-      if (sample.side === "top") {
-        cx = clamp(sample.x, r.x0 + cornerMargin + treadWidth * 0.5, r.x1 - cornerMargin - treadWidth * 0.5);
-        cz = r.z0 + treadDepth * 0.5;
-      } else if (sample.side === "right") {
-        cz = clamp(sample.z, r.z0 + cornerMargin + treadWidth * 0.5, r.z1 - cornerMargin - treadWidth * 0.5);
-        cx = r.x1 - treadDepth * 0.5;
-      } else if (sample.side === "bottom") {
-        cx = clamp(sample.x, r.x0 + cornerMargin + treadWidth * 0.5, r.x1 - cornerMargin - treadWidth * 0.5);
-        cz = r.z1 - treadDepth * 0.5;
+      let dim: { width: number; height: number; depth: number } = { width: 1, height: STEP_THICK, depth: 1 };
+
+      const turningCorner = prevSide !== null ? cornerForTurn(prevSide, sample.side) : null;
+
+      if (turningCorner) {
+        // Square corner step (no overlap with either wall's steps).
+        const c = cornerCenter(r, turningCorner, treadDepth);
+        cx = c.x;
+        cz = c.z;
+        dim = { width: treadDepth, height: STEP_THICK, depth: treadDepth };
+
+        if (i === N - 1 && r === topRect && turningCorner === destCorner) {
+          lastStepWasDestCorner = true;
+        }
       } else {
-        cz = clamp(sample.z, r.z0 + cornerMargin + treadWidth * 0.5, r.z1 - cornerMargin - treadWidth * 0.5);
-        cx = r.x0 + treadDepth * 0.5;
+        const halfW = treadWidth * 0.5;
+
+        // If the wall is too short to place a non-overlapping wall step (given fixed treadWidth),
+        // fall back to a corner step at the nearer end of this side.
+        const canPlaceWall = sideLen >= 2 * edgeClear + treadWidth + 1e-3;
+
+        if (!canPlaceWall) {
+          const corner = nearestCornerOnSide(r, sample.side, sample.x, sample.z);
+          const c = cornerCenter(r, corner, treadDepth);
+          cx = c.x;
+          cz = c.z;
+          dim = { width: treadDepth, height: STEP_THICK, depth: treadDepth };
+
+          if (i === N - 1 && r === topRect && corner === destCorner) {
+            lastStepWasDestCorner = true;
+          }
+        } else if (sample.side === "top") {
+          cx = clamp(sample.x, r.x0 + edgeClear + halfW, r.x1 - edgeClear - halfW);
+          cz = r.z0 + treadDepth * 0.5;
+          dim = { width: treadWidth, height: STEP_THICK, depth: treadDepth };
+        } else if (sample.side === "right") {
+          cz = clamp(sample.z, r.z0 + edgeClear + halfW, r.z1 - edgeClear - halfW);
+          cx = r.x1 - treadDepth * 0.5;
+          dim = { width: treadDepth, height: STEP_THICK, depth: treadWidth };
+        } else if (sample.side === "bottom") {
+          cx = clamp(sample.x, r.x0 + edgeClear + halfW, r.x1 - edgeClear - halfW);
+          cz = r.z1 - treadDepth * 0.5;
+          dim = { width: treadWidth, height: STEP_THICK, depth: treadDepth };
+        } else {
+          cz = clamp(sample.z, r.z0 + edgeClear + halfW, r.z1 - edgeClear - halfW);
+          cx = r.x0 + treadDepth * 0.5;
+          dim = { width: treadDepth, height: STEP_THICK, depth: treadWidth };
+        }
       }
+
+      prevSide = sample.side;
 
       const yTop = FIRST_FLOOR_Y + (i + 1) * rise;
       const yCenter = yTop - STEP_THICK * 0.5;
 
       const wp = lotLocalToWorld(house, cx, cz);
-
-      // Box dimensions: Babylon's CreateBox uses { width(x), height(y), depth(z) }.
-      // For top/bottom walls, the tread width is along X and depth is along Z.
-      // For left/right walls, the tread depth is along X and width is along Z.
-      const dim =
-        sample.side === "top" || sample.side === "bottom"
-          ? { width: treadWidth, height: STEP_THICK, depth: treadDepth }
-          : { width: treadDepth, height: STEP_THICK, depth: treadWidth };
 
       const step = MeshBuilder.CreateBox(`stairs_step_${house.houseNumber}_${i}`, dim, scene);
 
@@ -520,6 +596,35 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
       step.checkCollisions = true;
 
       // Make steps behave like "floor" for floor-picking/autostep (raycasts must hit them).
+      step.metadata = { rbs: { kind: "floor", layer: "stairs", houseNumber: house.houseNumber, regionName: "stairs_step" } };
+    }
+    // If the staircase terminates near a corner, the corner pocket can be empty at SECOND_FLOOR_Y,
+    // making it impossible to pivot onto the open edge without falling into the void.
+    // Add a square corner landing step at the destination corner unless the last step already occupies it.
+    if (!lastStepWasDestCorner) {
+      const topMinDim = Math.min(rectW(topRect), rectH(topRect));
+      const topTreadDepth = clamp(topMinDim * 0.30, 0.30, 0.42) * 2;
+
+      const c = cornerCenter(topRect, destCorner, topTreadDepth);
+      const wp = lotLocalToWorld(house, c.x, c.z);
+
+      const yTop = SECOND_FLOOR_Y;
+      const yCenter = yTop - STEP_THICK * 0.5;
+
+      const step = MeshBuilder.CreateBox(
+        `stairs_step_${house.houseNumber}_${N}`,
+        { width: topTreadDepth, height: STEP_THICK, depth: topTreadDepth },
+        scene
+      );
+
+      step.position.x = wp.x;
+      step.position.y = yCenter;
+      step.position.z = wp.z;
+
+      step.material = stairMat;
+      applyWorldBoxUVs(step, SURFACE_TEX_METERS);
+
+      step.checkCollisions = true;
       step.metadata = { rbs: { kind: "floor", layer: "stairs", houseNumber: house.houseNumber, regionName: "stairs_step" } };
     }
   }

@@ -2,7 +2,7 @@ import { Scene, UniversalCamera, Vector3, MeshBuilder } from "@babylonjs/core";
 import { pickFloorY } from "./floorPick";
 
 const MAX_STEP_UP = 0.5;       // max vertical step
-const STEP_PROBE_DIST = 0.35;  // how far ahead we sample the floor
+const STEP_PROBE_DIST = 0.5;  // how far ahead we sample the floor
 const STEP_NUDGE_FWD = 0.05;   // small forward push after stepping
 const STEP_LAND_TOL = 0.08;    // how close we must be to the target floor height to "count" as landed
 
