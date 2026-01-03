@@ -67,7 +67,7 @@
 2.4.2.1.1) streetSeed
 2.4.2.1.2) house.houseNumber
 2.4.2.1.3) house.bounds (x, z, zsize) and buildXsize = house.bounds.xsize - 2.0
-2.4.2.1.4) house.occupants.length
+2.4.2.1.4) house.occupantCount
 2.4.2.2) The generated `HouseModel` must be identical across runs.
 
 2.4.3) Deterministic per-house exterior brick texture
@@ -491,7 +491,7 @@ Example firstFloor output (with a couple extras):
 
 6.3) Bedroom count guidance (simple)
 
-6.3.1) Let occ = house.occupants.length.
+6.3.1) Let occ = house.occupantCount.
 6.3.2) Recommended minimum bedrooms = ceil(occ / 2).
 6.3.3) Recommended maximum bedrooms = min(4, recommended minimum bedrooms + 1).
 6.3.4) Each generated bedroom region must have:

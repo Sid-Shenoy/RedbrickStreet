@@ -575,9 +575,9 @@ export function generatePlotModel(house: HouseConfig, ctx: HouseGenContext): Flo
     throw new Error(`House ${hn} has xsize=${lotXsize}, expected xsize>=${q(12.0 + PAD_RIGHT_X, 3)} (buildXsize>=12.0)`);
   }
 
-  const occ = house.occupants.length;
+  const occ = house.occupantCount;
   if (occ < 1 || occ > 5) {
-    throw new Error(`House ${hn} has occupants.length=${occ}, expected within [1,5]`);
+    throw new Error(`House ${hn} has occupantCount=${occ}, expected within [1,5]`);
   }
 
   // Bedroom-derived minimum footprint area requirement.

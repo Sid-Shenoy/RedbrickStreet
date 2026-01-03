@@ -708,7 +708,7 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
   const tileB = pickTile(rng);
 
   // Bedroom count guidance (6.3): recommended range; we try to hit it but will remain robust.
-  const occ = house.occupants.length;
+  const occ = house.occupantCount;
   const minBeds = Math.ceil(occ / 2);
   const maxBeds = Math.min(4, minBeds + 1);
   let targetBeds = rng.int(minBeds, maxBeds);

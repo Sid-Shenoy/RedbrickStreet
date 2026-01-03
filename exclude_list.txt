@@ -1,4 +1,3 @@
-web\public\config\characters.json
 web\public\config\houses.json
 web\src\world\houseModel\generation\doors.ts
 web\src\world\houseModel\generation\plot.ts
@@ -10,5 +9,4 @@ web\src\scene\floorPick.ts
 web\src\scene\materials.ts
 web\src\scene\roof.ts
 web\src\scene\spawn.ts
-web\src\scene\stairs.ts
 web\src\scene\uvs.ts
