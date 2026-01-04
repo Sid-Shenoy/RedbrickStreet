@@ -193,18 +193,20 @@ function buildRoofPrismMesh(scene: Scene, name: string, perimeter: Pt[], y0: num
   return mesh;
 }
 
-export function renderRoofs(scene: Scene, houses: HouseWithModel[]) {
-  const roofMat = new StandardMaterial("roofing_mat", scene);
+export function renderRoofs(scene: Scene, houses: HouseWithModel[], roofMat?: StandardMaterial) {
+  const mat = roofMat ?? new StandardMaterial("roofing_mat", scene);
 
-  const tex = new Texture("/assets/textures/surfaces/roofing.jpg", scene);
-  tex.wrapU = Texture.WRAP_ADDRESSMODE;
-  tex.wrapV = Texture.WRAP_ADDRESSMODE;
+  if (!roofMat) {
+    const tex = new Texture("/assets/textures/surfaces/roofing.jpg", scene);
+    tex.wrapU = Texture.WRAP_ADDRESSMODE;
+    tex.wrapV = Texture.WRAP_ADDRESSMODE;
 
-  roofMat.diffuseTexture = tex;
-  roofMat.specularColor = new Color3(0.08, 0.08, 0.08);
+    mat.diffuseTexture = tex;
+    mat.specularColor = new Color3(0.08, 0.08, 0.08);
 
-  // Roof should be visible from below where ceilings may not cover the full houseregion.
-  roofMat.backFaceCulling = false;
+    // Roof should be visible from below where ceilings may not cover the full houseregion.
+    mat.backFaceCulling = false;
+  }
 
   const y0 = CEILING_Y;
   const y1 = CEILING_Y + ROOF_H;
@@ -217,8 +219,10 @@ export function renderRoofs(scene: Scene, houses: HouseWithModel[]) {
     const off: Pt[] = buildOffsetPolygon(orig);
 
     const roof = buildRoofPrismMesh(scene, `roof_${house.houseNumber}`, off, y0, y1);
-    roof.material = roofMat;
+    roof.material = mat;
     roof.checkCollisions = true;
     roof.isPickable = false;
   }
+
+  return mat;
 }

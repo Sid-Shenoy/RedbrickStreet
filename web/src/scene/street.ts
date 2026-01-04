@@ -1,6 +1,6 @@
 import { Scene, MeshBuilder, StandardMaterial, Texture, Color3 } from "@babylonjs/core";
 
-import type { HouseWithModel } from "../world/houseModel/types";
+import type { HouseWithModel, BrickTextureFile } from "../world/houseModel/types";
 import { surfaceMaterial } from "./materials";
 import { applyWorldUVs, applyWorldBoxUVs } from "./uvs";
 import { renderFloorLayer, renderCeilingLayer } from "./regions";
@@ -53,19 +53,22 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   const wallEast = MeshBuilder.CreateBox("wall_e", { width: wallT, height: wallH, depth: 70 }, scene);
   wallEast.position.set(230 + wallT / 2, wallH / 2, 35);
 
-
   for (const w of [wallNorth, wallSouth, wallWest, wallEast]) {
     w.material = streetBrickDarkMat;
     applyWorldBoxUVs(w, SURFACE_TEX_METERS);
     w.checkCollisions = true;
   }
 
-  // Plot + floors as stacked 2D layers
-  renderFloorLayer(scene, houses, mats, "plot", (h) => h.model.plot.regions, PLOT_Y, true);
-  renderFloorLayer(scene, houses, mats, "firstFloor", (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, true);
+  // --- Streaming setup ---
+  const SPAWN_HOUSE = 7;
 
-  // Boundary walls between rooms AND along exterior edges use the house wall texture.
-  // Doors are rendered as 0.8m gaps in these boundary walls (no door mesh yet).
+  // What we render immediately (so the player never sees “nothing” near spawn).
+  const INITIAL_EXTERIOR_RADIUS = 3; // houses 4..10 get plot+exterior immediately
+  const INITIAL_INTERIOR_RADIUS = 0; // only house 7 gets full interior immediately
+
+  // How much work to do per rendered frame (ms). Lower = smoother, higher = faster completion.
+  const FRAME_BUDGET_MS = 6;
+
   const wallMat = matsDouble.wall;
 
   // Use a slightly different material for ceilings so planes are visually distinguishable.
@@ -76,68 +79,147 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   ceilingMat.diffuseColor = new Color3(0.92, 0.92, 0.92);
   ceilingMat.specularColor = new Color3(0.03, 0.03, 0.03);
 
-  renderBoundaryWallsForLayer(
-    scene,
-    houses,
-    (h) => h.model.firstFloor.regions,
-    (h) => h.model.firstFloor.construction,
-    PLOT_Y,         // walls start at plot level (fixes "floating")
-    SECOND_FLOOR_Y, // walls end at second-floor level
-    PLOT_Y,         // door openings start at plot level (so exterior doors are traversable without porch/steps yet)
-    FIRST_FLOOR_Y,  // sill/threshold should sit at real first-floor height
-    "ff",
-    wallMat
-  );
+  const dist = (h: HouseWithModel) => Math.abs(h.houseNumber - SPAWN_HOUSE);
 
-  // Stairs: 10cm planks (same surface as the "stairs" region), clockwise ascent to the 2F opening lead edge.
-  renderStairs(scene, houses, matsDouble as unknown as Record<string, StandardMaterial>);
+  const housesByPriority = [...houses].sort((a, b) => {
+    const da = dist(a);
+    const db = dist(b);
+    if (da !== db) return da - db;
+    return a.houseNumber - b.houseNumber;
+  });
 
-  // First-floor ceiling:
-  // - Same material as walls (painted drywall look).
-  // - Offset slightly below SECOND_FLOOR_Y to avoid z-fighting with second-floor floors.
-  // - No ceiling above the first-floor stairs (stairwell opening).
-  renderCeilingLayer(
-    scene,
-    houses,
-    ceilingMat,
-    "firstCeiling",
-    (h) => h.model.firstFloor.regions.filter((r) => r.name !== "stairs"),
-    SECOND_FLOOR_Y - INTER_FLOOR_CEILING_EPS
-  );
+  const exteriorDone = new Set<number>();
+  const interiorDone = new Set<number>();
 
-  // Second floor: double-sided so underside is visible while walking below.
-  renderFloorLayer(scene, houses, matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, true);
+  // Caches so streaming does NOT recreate textures/materials repeatedly.
+  const brickMats = new Map<BrickTextureFile, StandardMaterial>();
+  let roofMat: StandardMaterial | undefined;
 
-  renderBoundaryWallsForLayer(
-    scene,
-    houses,
-    (h) => h.model.secondFloor.regions,
-    (h) => h.model.secondFloor.construction,
-    SECOND_FLOOR_Y, // walls start at second-floor level
-    CEILING_Y,      // walls end at ceiling level
-    SECOND_FLOOR_Y, // door openings start at second-floor level
-    SECOND_FLOOR_Y, // sill/threshold should sit at real second-floor height
-    "sf",
-    wallMat
-  );
+  function renderHousePlot(house: HouseWithModel) {
+    renderFloorLayer(scene, [house], mats, "plot", (h) => h.model.plot.regions, PLOT_Y, true);
+  }
 
-  // Ceiling (congruent with houseregion) at 6.2m, double-sided so underside is visible.
-  // Second-floor ceiling (roof underside) must match the second-floor footprint.
-  // Include void regions so the stairwell is capped at roof level (realistic).
-  renderCeilingLayer(
-    scene,
-    houses,
-    ceilingMat,
-    "secondCeiling",
-    (h) => h.model.secondFloor.regions,
-    CEILING_Y,
-    { includeVoid: true }
-  );
+  function renderHouseExterior(house: HouseWithModel) {
+    renderExteriorBrickPrisms(scene, [house], brickMats);
+    roofMat = renderRoofs(scene, [house], roofMat);
+  }
 
-  // Exterior envelope: brick-clad houseregion prism (no caps => no z-fighting with floors/ceilings).
-  // Offset slightly outward from the existing boundary walls to avoid coplanar overlap.
-  renderExteriorBrickPrisms(scene, houses);
+  function renderHouseInterior(house: HouseWithModel) {
+    // First floor
+    renderFloorLayer(scene, [house], mats, "firstFloor", (h) => h.model.firstFloor.regions, FIRST_FLOOR_Y, true);
 
-  // Roof: 0.2m prism on top of the brick perimeter.
-  renderRoofs(scene, houses);
+    renderBoundaryWallsForLayer(
+      scene,
+      [house],
+      (h) => h.model.firstFloor.regions,
+      (h) => h.model.firstFloor.construction,
+      PLOT_Y, // walls start at plot level (fixes "floating")
+      SECOND_FLOOR_Y, // walls end at second-floor level
+      PLOT_Y, // door openings start at plot level (so exterior doors are traversable without porch/steps yet)
+      FIRST_FLOOR_Y, // sill/threshold should sit at real first-floor height
+      "ff",
+      wallMat
+    );
+
+    // Stairs
+    renderStairs(scene, [house], matsDouble as unknown as Record<string, StandardMaterial>);
+
+    // First-floor ceiling (no ceiling above stairs)
+    renderCeilingLayer(
+      scene,
+      [house],
+      ceilingMat,
+      "firstCeiling",
+      (h) => h.model.firstFloor.regions.filter((r) => r.name !== "stairs"),
+      SECOND_FLOOR_Y - INTER_FLOOR_CEILING_EPS
+    );
+
+    // Second floor
+    renderFloorLayer(scene, [house], matsDouble, "secondFloor", (h) => h.model.secondFloor.regions, SECOND_FLOOR_Y, true);
+
+    renderBoundaryWallsForLayer(
+      scene,
+      [house],
+      (h) => h.model.secondFloor.regions,
+      (h) => h.model.secondFloor.construction,
+      SECOND_FLOOR_Y, // walls start at second-floor level
+      CEILING_Y, // walls end at ceiling level
+      SECOND_FLOOR_Y, // door openings start at second-floor level
+      SECOND_FLOOR_Y, // sill/threshold should sit at real second-floor height
+      "sf",
+      wallMat
+    );
+
+    // Second-floor ceiling (include void regions so stairwell is capped)
+    renderCeilingLayer(
+      scene,
+      [house],
+      ceilingMat,
+      "secondCeiling",
+      (h) => h.model.secondFloor.regions,
+      CEILING_Y,
+      { includeVoid: true }
+    );
+  }
+
+  function renderHousePlotAndExterior(house: HouseWithModel) {
+    renderHousePlot(house);
+    renderHouseExterior(house);
+  }
+
+  // --- Immediate render near spawn ---
+  for (const h of housesByPriority) {
+    if (dist(h) <= INITIAL_EXTERIOR_RADIUS) {
+      exteriorDone.add(h.houseNumber);
+      renderHousePlotAndExterior(h);
+    }
+  }
+
+  for (const h of housesByPriority) {
+    if (dist(h) <= INITIAL_INTERIOR_RADIUS) {
+      interiorDone.add(h.houseNumber);
+      renderHouseInterior(h);
+    }
+  }
+
+  // --- Background jobs (plot+exterior first, then interiors) ---
+  const tasks: Array<() => void> = [];
+
+  for (const h of housesByPriority) {
+    if (!exteriorDone.has(h.houseNumber)) {
+      tasks.push(() => {
+        if (exteriorDone.has(h.houseNumber)) return;
+        exteriorDone.add(h.houseNumber);
+        renderHousePlotAndExterior(h);
+      });
+    }
+  }
+
+  for (const h of housesByPriority) {
+    if (!interiorDone.has(h.houseNumber)) {
+      tasks.push(() => {
+        if (interiorDone.has(h.houseNumber)) return;
+        interiorDone.add(h.houseNumber);
+        renderHouseInterior(h);
+      });
+    }
+  }
+
+  if (tasks.length > 0) {
+    let obs: any = null;
+
+    obs = scene.onBeforeRenderObservable.add(() => {
+      const t0 = performance.now();
+
+      while (tasks.length > 0 && performance.now() - t0 < FRAME_BUDGET_MS) {
+        const job = tasks.shift();
+        if (job) job();
+      }
+
+      if (tasks.length === 0 && obs) {
+        scene.onBeforeRenderObservable.remove(obs);
+        obs = null;
+      }
+    });
+  }
 }

@@ -506,11 +506,15 @@ function renderEdgeBand(
   if (y1 > yDoor1 + 1e-6) renderSolid(yDoor1, y1);
 }
 
-export function renderExteriorBrickPrisms(scene: Scene, houses: HouseWithModel[]) {
-  const brickMats = new Map<BrickTextureFile, StandardMaterial>();
+export function renderExteriorBrickPrisms(
+  scene: Scene,
+  houses: HouseWithModel[],
+  brickMats?: Map<BrickTextureFile, StandardMaterial>
+) {
+  const matsCache = brickMats ?? new Map<BrickTextureFile, StandardMaterial>();
 
   function getHouseBrickMat(texFile: BrickTextureFile): StandardMaterial {
-    const hit = brickMats.get(texFile);
+    const hit = matsCache.get(texFile);
     if (hit) return hit;
 
     const mat = new StandardMaterial(`house_brick_${texFile.replace(".jpg", "")}`, scene);
@@ -523,7 +527,7 @@ export function renderExteriorBrickPrisms(scene: Scene, houses: HouseWithModel[]
     // Keep brick fairly matte (more realistic, avoids "shiny plastic" look).
     mat.specularColor = new Color3(0.08, 0.08, 0.08);
 
-    brickMats.set(texFile, mat);
+    matsCache.set(texFile, mat);
     return mat;
   }
 
@@ -560,4 +564,6 @@ export function renderExteriorBrickPrisms(scene: Scene, houses: HouseWithModel[]
       }
     }
   }
+
+  return matsCache;
 }
