@@ -39,7 +39,7 @@ async function boot() {
   camera.inputs.add(new UniversalCameraXZKeyboardInput());
 
   camera.attachControl(canvas, true);
-  camera.speed = 0.1;
+  camera.speed = 0.05;
   camera.angularSensibility = 4000;
 
   camera.applyGravity = true;
