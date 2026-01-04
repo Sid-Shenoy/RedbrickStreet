@@ -1,4 +1,5 @@
 import { Engine, Scene, UniversalCamera, HemisphericLight, DirectionalLight, Vector3, Color3, MeshBuilder } from "@babylonjs/core";
+import { UniversalCameraXZKeyboardInput } from "./scene/universalCameraXZKeyboardInput";
 
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
@@ -32,6 +33,11 @@ async function boot() {
 
   // WASD + mouse look
   const camera = new UniversalCamera("cam", new Vector3(100, 1.7, 35), scene);
+
+  // Fix: keep keyboard movement on the XZ plane so looking up/down doesn't change speed.
+  camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
+  camera.inputs.add(new UniversalCameraXZKeyboardInput());
+
   camera.attachControl(canvas, true);
   camera.speed = 0.1;
   camera.angularSensibility = 4000;
