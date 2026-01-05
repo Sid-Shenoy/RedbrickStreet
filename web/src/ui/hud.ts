@@ -156,6 +156,10 @@ function ensureHudStyle(): HTMLStyleElement {
   const style = document.createElement("style");
   style.id = "rbs_hud_style";
   style.textContent = `
+#rbsHudRoot, #rbsHudRoot * {
+  font-family: "Russo One", sans-serif !important;
+}
+
 #rbsHudRoot {
   position: fixed;
   left: 14px;
@@ -177,7 +181,7 @@ function ensureHudStyle(): HTMLStyleElement {
     inset 0 1px 0 rgba(255,255,255,0.06);
   backdrop-filter: blur(7px);
 
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  /* font inherited from #rbsHudRoot */
   color: rgba(240,245,255,0.92);
 }
 
