@@ -166,7 +166,7 @@ function ensureHudStyle(): HTMLStyleElement {
 }
 
 #rbsHudPanel {
-  width: 220px;
+  width: 200px;
   padding: 10px 10px 12px;
   border-radius: 16px;
 
@@ -248,9 +248,9 @@ function ensureHudStyle(): HTMLStyleElement {
 
 .rbsBarRow {
   display: grid;
-  grid-template-columns: 52px 1fr 64px;
+  grid-template-columns: 44px 1fr 54px;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rbsLabel {
