@@ -1,0 +1,16 @@
+This directory contains all weapon-related assets.
+
+There are 3 weapons:
+1) SmokeShot: A pistol
+2) SprayShot: An AR-15
+3) BlastShot: A rocket launcher
+
+Each weapon has a directory with the following 4 images:
+1) `icon.png` - A 2d icon of the weapon (for HUD and weapon wheel)
+2) `grip.png` - An image of the player holding the weapon
+3) `pull.png` - An image of the player pulling the trigger halfway
+4) `fire.png` - An image of the player pulling the trigger fullway, with a spack indicating that the weapon was fired
+
+Requirements:
+1) For every weapon, `grip.png`, `pull.png`, and `fire.png` must hve the same image size
+1.1) For every weapon, image size for there three images is relative to the actual weapon size
