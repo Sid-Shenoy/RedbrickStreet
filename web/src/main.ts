@@ -7,6 +7,7 @@ import { renderStreet } from "./scene/street";
 import { spawnPlayerAtHouse7Walkway } from "./scene/spawn";
 import { setupAutoStep } from "./scene/autoStep";
 import { pickFloorY } from "./scene/floorPick";
+import { createHud } from "./ui/hud";
 
 const STREET_SEED = "redbrick-street/v0";
 
@@ -165,6 +166,9 @@ async function boot() {
 
   renderStreet(scene, housesWithModel);
   spawnPlayerAtHouse7Walkway(scene, camera, housesWithModel);
+
+  // HUD (bottom-left): minimap (10m x 6m), health, stamina + sprint drain/regen.
+  createHud(scene, camera, housesWithModel);
 
   engine.runRenderLoop(() => scene.render());
   window.addEventListener("resize", () => engine.resize());

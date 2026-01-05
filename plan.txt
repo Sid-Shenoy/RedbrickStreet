@@ -1,5 +1,5 @@
 Product Name: Redbrick Street
-Product Description: A highly interactive first person zombie apocalypse game.
+Product Description: A first person zombie shooter game.
 Platform Details:
 - Will use Vite, TypeScript, and Babylon.js
 - Must be accessible from web browser.
