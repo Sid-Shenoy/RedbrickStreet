@@ -190,7 +190,7 @@ function ensureHudStyle(): HTMLStyleElement {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-weight: 800;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 11px;
@@ -198,7 +198,7 @@ function ensureHudStyle(): HTMLStyleElement {
 }
 
 .rbsChip {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 10px;
   letter-spacing: 0.06em;
   padding: 3px 8px;
@@ -265,7 +265,7 @@ function ensureHudStyle(): HTMLStyleElement {
 
 .rbsValue {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
   text-align: right;
   letter-spacing: 0.03em;
   opacity: 0.95;
@@ -516,16 +516,24 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     // Consider the player "moving" when Babylon input is actively pushing the camera.
     const moving = camera.cameraDirection.lengthSquared() > 1e-8;
 
-    const sprinting = shiftDown && moving && stamina > 0.01;
+    // Sprinting is only allowed if stamina is > 3% of max.
+    // Holding Shift blocks stamina regen; if Shift is held while moving, stamina continues draining
+    // even below the sprint threshold (down to 0).
+    const MIN_SPRINT_STAMINA = MAX_STAMINA * 0.03;
+    const wantsSprint = shiftDown && moving;
+    const sprinting = wantsSprint && stamina > MIN_SPRINT_STAMINA;
 
     // Stamina update
-    if (sprinting) {
-      stamina = Math.max(0, stamina - STAMINA_DRAIN_PER_S * dt);
+    if (shiftDown) {
+      if (moving) {
+        stamina = Math.max(0, stamina - STAMINA_DRAIN_PER_S * dt);
+      }
+      // No regen while Shift is held (prevents 0% <-> 1% sprint oscillation).
     } else {
       stamina = Math.min(MAX_STAMINA, stamina + STAMINA_REGEN_PER_S * dt);
     }
 
-    // Camera speed update (Shift to sprint; auto-disables when stamina empty)
+    // Camera speed update (Shift to sprint; only when stamina > 3%)
     camera.speed = baseSpeed * (sprinting ? SPRINT_MULT : 1.0);
 
     // Health color: green (full) -> red (low)
