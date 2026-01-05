@@ -360,7 +360,7 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
   }
 
   const healthUi = makeBarRow("HEALTH");
-  const staminaUi = makeBarRow("STAMINA");
+  const staminaUi = makeBarRow("SPRINT");
 
   document.body.appendChild(root);
 
