@@ -58,10 +58,14 @@ async function boot() {
   camera.keysLeft = [65]; // A
   camera.keysRight = [68]; // D
 
-  // Space: jump ~60cm (smooth), only when grounded. Gravity remains enabled.
+  // Space: jump ~60cm (smooth), only when grounded.
+  // Fix: animate BOTH ascent and descent so the fall isn't an instant "slam" under strong scene gravity.
+  // We temporarily disable Babylon gravity during the jump arc, then restore it on landing (or when the arc ends).
   const JUMP_HEIGHT_M = 0.6;
   const JUMP_ASCEND_S = 0.5;
+  const JUMP_DESCEND_S = 0.4; // slightly longer descent for a smoother, more natural fall
   const GROUND_TOL_M = 0.12;
+  const LAND_TOL_M = 0.03;
 
   // Approx standing offset: camera.position.y - floorY when grounded.
   let groundOffsetY: number | null = null;
@@ -69,6 +73,14 @@ async function boot() {
   let jumpActive = false;
   let jumpT = 0;
   let jumpStartY = 0;
+
+  // The actually-achieved jump peak delta (may be reduced if the head hits a ceiling).
+  let jumpPeakDY = JUMP_HEIGHT_M;
+
+  // Standing offset captured at jump start (used to land cleanly back on the floor).
+  let jumpGroundOffsetY = 0;
+
+  const baseApplyGravity = camera.applyGravity;
 
   // Proxy mesh used ONLY to run a collision-aware vertical move (cameras don't have moveWithCollisions).
   const jumpProxy = MeshBuilder.CreateSphere("rbs_jump_proxy", { diameter: 0.1 }, scene);
@@ -82,6 +94,10 @@ async function boot() {
 
   function easeOutQuad(t: number) {
     return 1 - (1 - t) * (1 - t);
+  }
+
+  function easeInQuad(t: number) {
+    return t * t;
   }
 
   function sampleFloorY(): number | null {
@@ -109,17 +125,28 @@ async function boot() {
     if (jumpActive) return;
     if (!isGrounded()) return;
 
+    const floorY = sampleFloorY();
+    if (floorY === null) return;
+
+    // Capture the current grounded offset so landing is stable even if the floor height changes slightly.
+    jumpGroundOffsetY = camera.position.y - floorY;
+    groundOffsetY = jumpGroundOffsetY;
+
     jumpActive = true;
     jumpT = 0;
     jumpStartY = camera.position.y;
+    jumpPeakDY = JUMP_HEIGHT_M;
+
+    // Disable gravity during the scripted jump arc.
+    camera.applyGravity = false;
   };
 
   window.addEventListener("keydown", jumpHandler);
   scene.onDisposeObservable.add(() => window.removeEventListener("keydown", jumpHandler));
 
   scene.onBeforeRenderObservable.add(() => {
-    // Keep the grounded offset fresh when we're not jumping.
     if (!jumpActive) {
+      // Keep the grounded offset fresh when we're not jumping.
       const floorY = sampleFloorY();
       if (floorY !== null) {
         const dy = camera.position.y - floorY;
@@ -134,21 +161,72 @@ async function boot() {
     const dtJump = Math.min(dtReal, 1 / 30);
     jumpT += dtJump;
 
-    const a = Math.min(1, jumpT / JUMP_ASCEND_S);
-    const targetY = jumpStartY + easeOutQuad(a) * JUMP_HEIGHT_M;
+    const total = JUMP_ASCEND_S + JUMP_DESCEND_S;
 
-    const dy = targetY - camera.position.y;
-    if (Math.abs(dy) > 1e-6) {
-      jumpProxy.setEnabled(true);
-      jumpProxy.position.copyFrom(camera.position);
-      jumpProxy.moveWithCollisions(new Vector3(0, dy, 0));
-      jumpProxy.setEnabled(false);
-      camera.position.copyFrom(jumpProxy.position);
+    // Compute targetY from a smooth, quadratic-ish arc (ease-out up, ease-in down).
+    let targetY = jumpStartY;
+
+    if (jumpT <= JUMP_ASCEND_S) {
+      const a = Math.min(1, jumpT / JUMP_ASCEND_S);
+      targetY = jumpStartY + easeOutQuad(a) * jumpPeakDY;
+    } else {
+      const d = Math.min(1, (jumpT - JUMP_ASCEND_S) / JUMP_DESCEND_S);
+      targetY = jumpStartY + (1 - easeInQuad(d)) * jumpPeakDY;
     }
 
-    if (a >= 1) {
-      // Stop forcing upward motion; gravity handles the fall naturally.
+    const desiredDy = targetY - camera.position.y;
+
+    if (Math.abs(desiredDy) > 1e-6) {
+      jumpProxy.setEnabled(true);
+      jumpProxy.position.copyFrom(camera.position);
+      jumpProxy.moveWithCollisions(new Vector3(0, desiredDy, 0));
+      jumpProxy.setEnabled(false);
+
+      const prevY = camera.position.y;
+      camera.position.copyFrom(jumpProxy.position);
+
+      // If we're ascending and collision prevented reaching the target height, treat that as the peak.
+      if (jumpT < JUMP_ASCEND_S - 1e-4) {
+        const climbed = camera.position.y - prevY;
+        const wanted = desiredDy;
+
+        // If we wanted to go up but couldn't (hit ceiling), clamp peak and begin descent.
+        if (wanted > 0 && climbed < wanted - 1e-4) {
+          jumpPeakDY = Math.max(0, camera.position.y - jumpStartY);
+          jumpT = Math.max(jumpT, JUMP_ASCEND_S);
+        }
+      }
+    }
+
+    // If descending, land smoothly when we're back at (floorY + jumpGroundOffsetY).
+    if (jumpT >= JUMP_ASCEND_S) {
+      const floorY = sampleFloorY();
+      if (floorY !== null) {
+        const desiredGroundY = floorY + jumpGroundOffsetY;
+
+        if (camera.position.y <= desiredGroundY + LAND_TOL_M) {
+          const snapDy = desiredGroundY - camera.position.y;
+          if (Math.abs(snapDy) > 1e-6) {
+            jumpProxy.setEnabled(true);
+            jumpProxy.position.copyFrom(camera.position);
+            jumpProxy.moveWithCollisions(new Vector3(0, snapDy, 0));
+            jumpProxy.setEnabled(false);
+            camera.position.copyFrom(jumpProxy.position);
+          }
+
+          groundOffsetY = jumpGroundOffsetY;
+
+          jumpActive = false;
+          camera.applyGravity = baseApplyGravity;
+          return;
+        }
+      }
+    }
+
+    // If the arc finished but we didn't land (e.g. jumped over a drop), restore gravity so normal falling continues.
+    if (jumpT >= total) {
       jumpActive = false;
+      camera.applyGravity = baseApplyGravity;
     }
   });
 
