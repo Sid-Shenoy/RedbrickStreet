@@ -62,7 +62,7 @@ export function renderStreet(scene: Scene, houses: HouseWithModel[]) {
   // --- Streaming setup ---
   const SPAWN_HOUSE = 7;
 
-  // What we render immediately (so the player never sees “nothing” near spawn).
+  // What we render immediately (so the player never sees "nothing" near spawn).
   const INITIAL_EXTERIOR_RADIUS = 3; // houses 4..10 get plot+exterior immediately
   const INITIAL_INTERIOR_RADIUS = 0; // only house 7 gets full interior immediately
 

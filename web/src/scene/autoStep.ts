@@ -8,7 +8,7 @@ const STEP_LAND_TOL = 0.08;    // how close we must be to the target floor heigh
 
 export function setupAutoStep(scene: Scene, camera: UniversalCamera) {
   // Proxy mesh used ONLY to run a collision-aware nudge.
-  // (Cameras don’t have moveWithCollisions, meshes do.)
+  // (Cameras don't have moveWithCollisions, meshes do.)
   const stepProxy = MeshBuilder.CreateSphere("rbs_step_proxy", { diameter: 0.1 }, scene);
   stepProxy.isVisible = false;
   stepProxy.isPickable = false;

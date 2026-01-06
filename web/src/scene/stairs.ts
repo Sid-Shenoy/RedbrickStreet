@@ -296,7 +296,7 @@ function inwardFromDoorOnRect(stairsRect: Rect, door: Door): { x: number; z: num
 function pickMat(mats: Record<string, StandardMaterial>, surface: Surface): StandardMaterial {
   const m = mats[surface];
   if (m) return m;
-  // Safe fallback that always exists in this project’s material set.
+  // Safe fallback that always exists in this project's material set.
   // (wood_medium is a core surface and is used elsewhere as a default stair surface.)
   return mats["wood_medium"] ?? Object.values(mats)[0]!;
 }
@@ -349,7 +349,7 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
     const clippedOpening = intersectRect(openingRect, stairsRect) ?? openingRect;
     const shaft = intersectRect(stairsRect, openingRect);
 
-    // Prefer the intersection if it’s usable; otherwise fall back to the full stairs rectangle.
+    // Prefer the intersection if it's usable; otherwise fall back to the full stairs rectangle.
     const baseRectRaw =
       shaft && rectMinDim(shaft) >= 0.9
         ? shaft
@@ -361,7 +361,7 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
     // Stair material must match the first-floor "stairs" region surface.
     const stairMat = pickMat(mats, stairs.surface);
 
-    // Identify the hallway->stairs doorway (for “enter, look left, stairs start there”).
+    // Identify the hallway->stairs doorway (for "enter, look left, stairs start there").
     const hallwayIdx = findFirstRegionIndex(first.regions, "hallway");
     const doors = first.construction.filter(isDoorElement);
 
@@ -475,12 +475,12 @@ export function renderStairs(scene: Scene, houses: HouseWithModel[], mats: Recor
     // and accept tight spacing if start/end are close.
     const baseU = cwDistU(uStart, uEnd);
 
-    // Target “meter travel” along the average perimeter.
+    // Target "meter travel" along the average perimeter.
     const Pavg = 0.5 * (perimeterLen(baseRect) + perimeterLen(topRect));
     const desiredU = (N * STEP_RUN_DESIRED) / Math.max(1e-6, Pavg);
 
     // If start->end is longer than desired, we must traverse it (spec requires reaching the open edge).
-    // If it’s shorter, we keep it shorter (tighter steps are fine; they do NOT create overlaps due to vertical separation).
+    // If it's shorter, we keep it shorter (tighter steps are fine; they do NOT create overlaps due to vertical separation).
     const totalU = Math.max(baseU, desiredU);
 
     // Physical spacing between successive steps along the (smaller) perimeter.

@@ -756,7 +756,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     equipWeapon(opt.weapon);
     closeWheel();
 
-    // Don’t steal focus. Let player click canvas to re-lock pointer.
+    // Don't steal focus. Let player click canvas to re-lock pointer.
     ev.preventDefault();
   };
 
@@ -805,7 +805,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     crosshairImg.remove();
     wheelRoot.remove();
 
-    // Remove icon only if it’s still attached where we put it.
+    // Remove icon only if it's still attached where we put it.
     iconWrap.remove();
   }
 

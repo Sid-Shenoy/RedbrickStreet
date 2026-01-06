@@ -21,7 +21,7 @@ import { makeRng } from "../../../utils/seededRng";
  *   ensuring it covers the whole band without overlap.
  * - Cover the rear-modification band (below zWideMin) with extra rooms.
  * - Validate coverage + non-overlap via interior sampling, then enforce adjacency/connectivity constraints.
- * - If any validation fails, retry with a new deterministic attempt RNG and (progressively) fewer “extras”.
+ * - If any validation fails, retry with a new deterministic attempt RNG and (progressively) fewer "extras".
  */
 
 const EPS = 1e-6;
@@ -40,7 +40,7 @@ function q(v: number, digits = 3): number {
   return Math.round(v * f) / f;
 }
 
-// Round UP to avoid “just under minimum” after quantization.
+// Round UP to avoid "just under minimum" after quantization.
 function ceilQ(v: number, digits = 3): number {
   const f = 10 ** digits;
   return Math.ceil((v - 1e-12) * f) / f;
@@ -610,7 +610,7 @@ function inferHouseShape(hn: number, poly: PolyPoints): HouseShape {
   };
 }
 
-// -------------------- Robust “rect minus corner” polygon (for pantry/office carving) --------------------
+// -------------------- Robust "rect minus corner" polygon (for pantry/office carving) --------------------
 
 function rectMinusCornerAsPoly(outer: Rect, cut: Rect): PolyPoints | null {
   const touchesLeft = Math.abs(cut.x0 - outer.x0) <= 1e-3;

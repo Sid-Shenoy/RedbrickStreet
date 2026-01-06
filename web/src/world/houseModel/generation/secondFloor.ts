@@ -831,7 +831,7 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
     const remainingBeds = Math.max(0, beds - (beds > 0 ? 1 : 0));
     for (let i = 0; i < remainingBeds; i++) plan.push("bedroom");
 
-    // Storage is a safe “filler” room if we can afford it.
+    // Storage is a safe "filler" room if we can afford it.
     if (allowStorage && w + EPS >= EXTRA_MINS.storage.minDim && rng.bool(0.6)) plan.push("storage");
 
     return plan;
@@ -928,7 +928,7 @@ function generateAttempt(house: HouseConfig, ctx: HouseGenContext, plot: FloorMo
   // Final validation: required set + touch/connectivity
   validateSecondFloorOrThrow(hn, hr.points, stairs, hall, regions);
 
-  // Enforce “1 to 2 closets” in the final output (user request).
+  // Enforce "1 to 2 closets" in the final output (user request).
   const closetCount = regions.filter((r) => r.name === "closet" && r.surface !== "void").length;
   if (closetCount < 1 || closetCount > 2) {
     throw new Error(`secondFloor: House ${hn} closet count ${closetCount} out of desired range [1,2]`);

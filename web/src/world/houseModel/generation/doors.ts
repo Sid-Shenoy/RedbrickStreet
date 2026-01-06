@@ -37,7 +37,7 @@ const MIN_SEG_PREFER = 1.0 - 1e-6; // prefer >=1.0m shared boundary when possibl
 
 type Rect = { x0: number; x1: number; z0: number; z1: number };
 
-// Segment in normalized “1D interval on a fixed axis-aligned line” form.
+// Segment in normalized "1D interval on a fixed axis-aligned line" form.
 // - orient="h": horizontal line at z=c, interval [a..b] is x
 // - orient="v": vertical line at x=c, interval [a..b] is z
 type Seg = { orient: "h" | "v"; c: number; a: number; b: number };
@@ -617,7 +617,7 @@ function ensureAllRoomsAccessible(
     }
 
     if (!bestEdge) {
-      // Provide a stable “first unreachable” diagnostic.
+      // Provide a stable "first unreachable" diagnostic.
       let firstUnreach = -1;
       for (let i = 0; i < regions.length; i++) {
         if (active[i] && !reachable[i]) {
