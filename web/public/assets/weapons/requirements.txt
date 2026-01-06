@@ -11,6 +11,13 @@ Each weapon has a directory with the following 4 images:
 3) `pull.png` - An image of the player pulling the trigger halfway
 4) `fire.png` - An image of the player pulling the trigger fullway, with a spack indicating that the weapon was fired
 
+Each weapon also has a corresponding crosshair:
+1) The SmokeShot and SprayShot use `small.svg`
+2) The BlastShot uses `large.svg`
+
 Requirements:
-1) For every weapon, `grip.png`, `pull.png`, and `fire.png` must hve the same image size
-1.1) For every weapon, image size for there three images is relative to the actual weapon size
+1) For every weapon, `grip.png`, `pull.png`, and `fire.png` must have the same image size
+1.1) For every weapon, image size for these three images is relative to the actual weapon size
+1.2) In each of these three images, the bottom-right corner has the player's right-hand wrist
+1.3) These images will appear in the bottom right corner of the screen and be sized appropriately, to simulate shooting
+2) Crosshairs are displayed in the middle of the screen

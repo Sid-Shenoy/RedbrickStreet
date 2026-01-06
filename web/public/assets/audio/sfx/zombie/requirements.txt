@@ -1,0 +1,7 @@
+This directory contains all sounds produced by zombies.
+
+There are 4 sounds:
+1) `attack.mp3`: When a zombie attacks the player
+2) `death.mp3`: When a zombie dies
+3) `gethit.mp3`: When a zombie gets shot but survives
+4) `walk.mp3`: When a zombie walks toward the player from nearby (this sound is a slow groan)

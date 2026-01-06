@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "name": "SmokeShot",
+    "toEquip": 2,
+    "fireRate": 2.5,
+    "shotVolume": 50,
+    "damage": 12,
+    "crosshair": "small"
+  },
+  {
+    "id": 2,
+    "name": "SprayShot",
+    "toEquip": 3,
+    "fireRate": 6,
+    "shotVolume": 70,
+    "damage": 18,
+    "crosshair": "small"
+  },
+  {
+    "id": 3,
+    "name": "BlastShot",
+    "toEquip": 4,
+    "fireRate": 0.8,
+    "shotVolume": 100,
+    "damage": 364,
+    "crosshair": "large"
+  }
+]
