@@ -167,7 +167,7 @@ async function boot() {
   // Log all transformed houses (HouseConfig + generated model) as soon as config is loaded (only for debugging).
   // console.log("[RBS] Houses with models:", housesWithModel);
 
-  renderStreet(scene, housesWithModel);
+  renderStreet(scene, camera, housesWithModel);
   spawnPlayerAtHouse7Walkway(scene, camera, housesWithModel);
 
   // HUD (bottom-left): minimap (10m x 6m), health, stamina + sprint drain/regen.
