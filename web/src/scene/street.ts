@@ -733,7 +733,35 @@ export function renderStreet(scene: Scene, camera: UniversalCamera, houses: Hous
     tasks.unshift(jobFirst);
   }
 
-  // --- Immediate render near spawn ---
+  // --- Hard preload: SPAWN_HOUSE must be fully ready before the first frame ---
+  const spawnHouse = houses.find((h) => h.houseNumber === SPAWN_HOUSE);
+  if (spawnHouse) {
+    // Plot (disables plot placeholder lot)
+    if (!plotDone.has(SPAWN_HOUSE)) {
+      renderHousePlot(spawnHouse);
+      plotDone.add(SPAWN_HOUSE);
+    }
+
+    // Exterior (do NOT rely on queued jobs)
+    if (!exteriorDone.has(SPAWN_HOUSE)) {
+      renderHouseExterior(spawnHouse);
+      exteriorDone.add(SPAWN_HOUSE);
+    }
+
+    // Full interior (first + second floors, walls, ceilings, stairs)
+    // Full interior makes the "entry room preload" unnecessary for spawn.
+    entryDone.add(SPAWN_HOUSE);
+
+    renderHouseFirstFloorFull(spawnHouse);
+    renderHouseSecondFloorFull(spawnHouse);
+
+    interiorDone.add(SPAWN_HOUSE);
+
+    // Now reveal the real house meshes (safe: interior already exists)
+    disablePlaceholderHouse(SPAWN_HOUSE);
+  }
+
+  // --- Immediate render near spawn (other houses can still stream) ---
   for (const h of housesByPriority) {
     if (Math.abs(h.houseNumber - SPAWN_HOUSE) <= INITIAL_EXTERIOR_RADIUS) {
       queuePlot(h, true);
