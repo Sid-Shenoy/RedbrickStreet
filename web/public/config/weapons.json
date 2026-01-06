@@ -1,6 +1,6 @@
 [
   {
-    "id": 1,
+    "id": 0,
     "name": "SmokeShot",
     "toEquip": 2,
     "fireRate": 2.5,
@@ -9,7 +9,7 @@
     "crosshair": "small"
   },
   {
-    "id": 2,
+    "id": 1,
     "name": "SprayShot",
     "toEquip": 3,
     "fireRate": 6,
@@ -18,7 +18,7 @@
     "crosshair": "small"
   },
   {
-    "id": 3,
+    "id": 2,
     "name": "BlastShot",
     "toEquip": 4,
     "fireRate": 0.8,
