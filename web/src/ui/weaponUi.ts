@@ -27,7 +27,7 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   position: fixed;
   right: 0;
   bottom: 0;
-  height: 64vh;     /* REQUIRED: always 64vh */
+  height: 64vh;     /* default; overridden per-weapon via weapons.json handHeightVh */
   width: auto;
   pointer-events: none;
   user-select: none;
@@ -123,10 +123,9 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   display: grid;
   place-items: center;
   font-family: "Russo One", sans-serif;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(240,245,255,0.88);
+  font-size: 26px;
+  line-height: 1;
+  color: rgba(240,245,255,0.92);
   border-radius: 12px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.14);
@@ -217,7 +216,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
   const iconFallback = document.createElement("div");
   iconFallback.id = "rbsWeaponIconFallback";
-  iconFallback.textContent = "UNARMED";
+  iconFallback.textContent = "🚫";
 
   iconWrap.appendChild(iconFallback);
 
@@ -276,10 +275,18 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   // Equipped weapon (null => unarmed)
   let equipped: WeaponConfig | null = null;
 
-  // Shooting state
+  // Preloaded/decoded frames for the currently equipped weapon (prevents missed frames).
+  let equippedFrames: { grip: HTMLImageElement; pull: HTMLImageElement; fire: HTMLImageElement } | null = null;
+
+  // Shooting state (render-loop driven; prevents missed frames)
   let triggerDown = false;
-  let fireTimer: number | null = null;
-  let animTimers: number[] = [];
+
+  let shotActive = false;
+  let shotPhase: 0 | 1 | 2 | 3 | 4 = 0; // 0 grip, 1 pull, 2 fire, 3 pull, 4 grip
+  let phaseStartMs = 0;
+  let phaseDurMs = 0;
+  let nextShotAtMs = 0;
+  let firedThisShot = false;
 
   // Audio pool for rapid-fire overlap.
   const gunshotPool = makeGunshotPool(10);
@@ -300,18 +307,65 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     }
   }
 
-  function clearAnimTimers() {
-    for (const t of animTimers) window.clearTimeout(t);
-    animTimers = [];
-  }
-
   function stopFiring() {
     triggerDown = false;
-    if (fireTimer !== null) {
-      window.clearTimeout(fireTimer);
-      fireTimer = null;
+    shotActive = false;
+    firedThisShot = false;
+
+    // Reset to grip if still armed.
+    if (equipped) setHandFrame("grip");
+  }
+
+  function startShot(nowMs: number) {
+    const wpn = equipped;
+    if (!wpn) return;
+
+    // Ensure frames exist (safety)
+    if (!equippedFrames) preloadFrames(wpn);
+
+    const periodMs = 1000 / Math.max(0.001, wpn.fireRate);
+
+    // 4 transitions across the period; enforce a minimum phase duration so each frame appears.
+    phaseDurMs = Math.max(1000 / 60, periodMs / 4);
+
+    shotActive = true;
+    shotPhase = 0;
+    phaseStartMs = nowMs;
+    firedThisShot = false;
+
+    setHandFrame("grip");
+
+    // Schedule next shot by fireRate.
+    nextShotAtMs = nowMs + periodMs;
+  }
+
+  function advancePhase(nowMs: number) {
+    const wpn = equipped;
+    if (!wpn) return;
+
+    // Advance at most ONE phase per render tick (prevents skipping frames).
+    if (nowMs - phaseStartMs < phaseDurMs) return;
+
+    phaseStartMs = nowMs;
+
+    if (shotPhase === 4) {
+      // End the shot after grip has been displayed for at least one phase.
+      shotActive = false;
+      return;
     }
-    clearAnimTimers();
+
+    shotPhase = (shotPhase + 1) as 0 | 1 | 2 | 3 | 4;
+
+    if (shotPhase === 0) setHandFrame("grip");
+    else if (shotPhase === 1) setHandFrame("pull");
+    else if (shotPhase === 2) {
+      setHandFrame("fire");
+      if (!firedThisShot) {
+        firedThisShot = true;
+        playGunshot(Math.max(0, Math.min(1, wpn.shotVolume / 100)));
+      }
+    } else if (shotPhase === 3) setHandFrame("pull");
+    else setHandFrame("grip");
   }
 
   function setHandVisible(v: boolean) {
@@ -324,7 +378,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
   function setWeaponIconUnarmed() {
     iconImg.remove();
-    iconFallback.textContent = "UNARMED";
+    iconFallback.textContent = "🚫";
     if (!iconFallback.isConnected) iconWrap.appendChild(iconFallback);
   }
 
@@ -340,6 +394,31 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     crosshairImg.style.width = w.crosshair === "large" ? "4.2vh" : "3.0vh";
   }
 
+  function preloadFrames(w: WeaponConfig) {
+    const grip = new Image();
+    grip.src = weaponGripSrc(w);
+
+    const pull = new Image();
+    pull.src = weaponPullSrc(w);
+
+    const fire = new Image();
+    fire.src = weaponFireSrc(w);
+
+    // Best-effort decode (avoids stutter on first swap); ignore failures.
+    void grip.decode?.().catch(() => {});
+    void pull.decode?.().catch(() => {});
+    void fire.decode?.().catch(() => {});
+
+    equippedFrames = { grip, pull, fire };
+  }
+
+  function setHandFrame(kind: "grip" | "pull" | "fire") {
+    if (!equipped || !equippedFrames) return;
+    const img = equippedFrames[kind];
+    // Only assign if different to reduce redundant work.
+    if (handImg.src !== img.src) handImg.src = img.src;
+  }
+
   function equipWeapon(next: WeaponConfig | null) {
     // Any equip action immediately stops shooting + resets animation.
     stopFiring();
@@ -348,14 +427,18 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
     if (!equipped) {
       // Unarmed: hide hand and crosshair, show fallback icon.
+      equippedFrames = null;
       setHandVisible(false);
       setCrosshairVisible(false);
       setWeaponIconUnarmed();
       return;
     }
 
-    // Equipped weapon: show grip, crosshair, icon.
-    handImg.src = weaponGripSrc(equipped);
+    // Equipped weapon: preload frames and show grip, crosshair, icon.
+    preloadFrames(equipped);
+
+    handImg.style.height = `${equipped.handHeightVh}vh`;
+    setHandFrame("grip");
     setHandVisible(true);
 
     applyCrosshairForWeapon(equipped);
@@ -527,68 +610,34 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     ctx.restore();
   }
 
-  function fireOnce() {
-    const wpn = equipped;
-    if (!wpn) return;
-
-    // Frame pacing: keep it rapid and always complete within the shot period (for auto fire).
-    const periodMs = 1000 / Math.max(0.001, wpn.fireRate);
-    const frameMs = Math.max(18, Math.min(40, periodMs / 4));
-
-    // Always start each shot from grip, then run:
-    // grip -> pull -> fire -> pull -> grip
-    clearAnimTimers();
-    handImg.src = weaponGripSrc(wpn);
-
-    animTimers.push(
-      window.setTimeout(() => {
-        handImg.src = weaponPullSrc(wpn);
-      }, 1 * frameMs)
-    );
-
-    animTimers.push(
-      window.setTimeout(() => {
-        handImg.src = weaponFireSrc(wpn);
-        playGunshot(Math.max(0, Math.min(1, wpn.shotVolume / 100)));
-      }, 2 * frameMs)
-    );
-
-    animTimers.push(
-      window.setTimeout(() => {
-        handImg.src = weaponPullSrc(wpn);
-      }, 3 * frameMs)
-    );
-
-    animTimers.push(
-      window.setTimeout(() => {
-        handImg.src = weaponGripSrc(wpn);
-      }, 4 * frameMs)
-    );
-  }
-
-  function scheduleAutoFire() {
-    if (!triggerDown) return;
-    const wpn = equipped;
-    if (!wpn) return;
-
-    const periodMs = 1000 / Math.max(0.001, wpn.fireRate);
-
-    fireTimer = window.setTimeout(() => {
-      if (!triggerDown) return;
-      fireOnce();
-      scheduleAutoFire();
-    }, periodMs);
-  }
-
   function beginFiring() {
     if (!equipped) return;
     if (wheelOpen) return;
     if (triggerDown) return;
 
     triggerDown = true;
-    fireOnce();         // immediate first shot
-    scheduleAutoFire(); // then repeat while held
+
+    // Immediate first shot (no waiting for a timeout).
+    startShot(performance.now());
   }
+
+  // Render-loop driver for firing animation + cadence.
+  const fireObs = scene.onBeforeRenderObservable.add(() => {
+    if (disposed) return;
+    if (!triggerDown) return;
+    if (!equipped) return;
+    if (wheelOpen) return;
+
+    const now = performance.now();
+
+    if (!shotActive) {
+      // Start next shot only when cadence allows.
+      if (now >= nextShotAtMs) startShot(now);
+      return;
+    }
+
+    advancePhase(now);
+  });
 
   // --- Input handlers ---
 
@@ -701,6 +750,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     disposed = true;
 
     stopFiring();
+    scene.onBeforeRenderObservable.remove(fireObs);
 
     wheelBackdrop.removeEventListener("mousedown", onBackdropClick);
     wheelCanvas.removeEventListener("pointermove", onWheelMove);

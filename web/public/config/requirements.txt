@@ -82,6 +82,10 @@ Example of a house object from `houses.json`:
 3.2.5) A shot volume from 0 to 100 inclusive (how loudly `gunshot.mp3` plays)
 3.2.6) A damage amount per shot
 3.2.7) A crosshair type (must be either "small" or "large")
+3.2.8) `handHeightVh`: the height (in vh) of the bottom-right weapon-in-hand image when equipped
+3.2.8.1) Must be a number
+3.2.8.2) Allowed values are 64 and 80
+3.2.8.3) Only BlastShot should use 80; all other weapons must use 64
 
 Example of a weapon object from `weapons.json`:
 ```
@@ -92,6 +96,7 @@ Example of a weapon object from `weapons.json`:
   "fireRate": 3,
   "shotVolume": 50,
   "damage": 12,
-  "crosshair": "small"
+  "crosshair": "small",
+  "handHeightVh": 64
 }
 ```

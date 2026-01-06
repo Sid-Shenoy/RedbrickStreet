@@ -75,9 +75,12 @@
 2.5.1) When Unarmed:
 2.5.1.1) no weapon-in-hand image is shown
 2.5.1.2) shooting is disabled
+2.5.1.3) the weapon icon above the HUD must display "🚫"
 2.5.2) When a weapon is equipped:
 2.5.2.1) show the corresponding `grip.png` at the bottom-right
-2.5.2.2) the weapon-in-hand image height must always be exactly `64vh`
+2.5.2.2) the weapon-in-hand image height must be exactly `${weapon.handHeightVh}vh`
+2.5.2.2.1) Allowed values are 64 and 80
+2.5.2.2.2) Only BlastShot should use 80; all other weapons must use 64
 2.5.2.3) show the weapon `icon.png` above the HUD
 2.5.2.3.1) icons must be displayed with `object-fit: contain` to handle varying aspect ratios
 2.5.2.4) show the correct crosshair from:

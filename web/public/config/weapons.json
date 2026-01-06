@@ -6,7 +6,8 @@
     "fireRate": 2.5,
     "shotVolume": 50,
     "damage": 12,
-    "crosshair": "small"
+    "crosshair": "small",
+    "handHeightVh": 64
   },
   {
     "id": 1,
@@ -15,7 +16,8 @@
     "fireRate": 6,
     "shotVolume": 70,
     "damage": 18,
-    "crosshair": "small"
+    "crosshair": "small",
+    "handHeightVh": 64
   },
   {
     "id": 2,
@@ -24,6 +26,7 @@
     "fireRate": 0.8,
     "shotVolume": 100,
     "damage": 364,
-    "crosshair": "large"
+    "crosshair": "large",
+    "handHeightVh": 80
   }
 ]

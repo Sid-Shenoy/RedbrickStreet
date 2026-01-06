@@ -19,4 +19,5 @@ export interface WeaponConfig {
   shotVolume: number;  // 0..100
   damage: number;      // per-shot damage (not used yet, but loaded)
   crosshair: "small" | "large";
+  handHeightVh: number; // viewport-height for the bottom-right weapon image (e.g. 64 or 80)
 }
