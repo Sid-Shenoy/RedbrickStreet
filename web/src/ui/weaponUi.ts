@@ -182,12 +182,37 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     { key: 4, label: "BlastShot", weapon: blast },
   ];
 
-  // Preload wheel icons (for drawing).
+  function preloadImage(src: string): HTMLImageElement {
+    const img = new Image();
+    img.src = src;
+    void img.decode?.().catch(() => {});
+    return img;
+  }
+
+  // Preload ALL weapon images (hand frames + icons) up front to prevent first-use stutter.
+  const weaponAssetsById = new Map<
+    number,
+    { grip: HTMLImageElement; pull: HTMLImageElement; fire: HTMLImageElement; icon: HTMLImageElement }
+  >();
+
+  for (const w of weapons) {
+    weaponAssetsById.set(w.id, {
+      grip: preloadImage(weaponGripSrc(w)),
+      pull: preloadImage(weaponPullSrc(w)),
+      fire: preloadImage(weaponFireSrc(w)),
+      icon: preloadImage(weaponIconSrc(w)),
+    });
+  }
+
+  // Preload both crosshairs (used by different weapons).
+  const crosshairSmallImg = preloadImage("/assets/weapons/crosshairs/small.svg");
+  const crosshairLargeImg = preloadImage("/assets/weapons/crosshairs/large.svg");
+
+  // Wheel icons reuse the preloaded icon images.
   for (const opt of wheelOptions) {
     if (!opt.weapon) continue;
-    const img = new Image();
-    img.src = weaponIconSrc(opt.weapon);
-    opt.iconImg = img;
+    const a = weaponAssetsById.get(opt.weapon.id);
+    if (a) opt.iconImg = a.icon;
   }
 
   // --- DOM: weapon hand image (bottom-right) ---
@@ -202,8 +227,9 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   crosshairImg.id = "rbsCrosshair";
   crosshairImg.alt = "crosshair";
   crosshairImg.style.display = "none";
-  // size defaults; will be adjusted per type on equip
-  crosshairImg.style.width = "3.0vh";
+  // Default size; overwritten per type on equip (small=25px, large=50px).
+  crosshairImg.style.width = "25px";
+  crosshairImg.style.height = "25px";
   document.body.appendChild(crosshairImg);
 
   // --- DOM: weapon icon above HUD ---
@@ -384,31 +410,36 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
   function setWeaponIconWeapon(w: WeaponConfig) {
     iconFallback.remove();
-    iconImg.src = weaponIconSrc(w);
+    const a = weaponAssetsById.get(w.id);
+    iconImg.src = a ? a.icon.src : weaponIconSrc(w);
     if (!iconImg.isConnected) iconWrap.appendChild(iconImg);
   }
 
   function applyCrosshairForWeapon(w: WeaponConfig) {
-    crosshairImg.src = crosshairSrc(w);
-    // Keep it simple: scale by type.
-    crosshairImg.style.width = w.crosshair === "large" ? "4.2vh" : "3.0vh";
+    const isLarge = w.crosshair === "large";
+
+    // Use preloaded crosshair images (both are 1:1 aspect ratio).
+    crosshairImg.src = isLarge ? crosshairLargeImg.src : crosshairSmallImg.src;
+
+    // Hard pixel sizes:
+    // - small: 25x25 px
+    // - large: 50x50 px
+    const px = isLarge ? 50 : 25;
+    crosshairImg.style.width = `${px}px`;
+    crosshairImg.style.height = `${px}px`;
   }
 
   function preloadFrames(w: WeaponConfig) {
-    const grip = new Image();
-    grip.src = weaponGripSrc(w);
+    const a = weaponAssetsById.get(w.id);
+    if (a) {
+      equippedFrames = { grip: a.grip, pull: a.pull, fire: a.fire };
+      return;
+    }
 
-    const pull = new Image();
-    pull.src = weaponPullSrc(w);
-
-    const fire = new Image();
-    fire.src = weaponFireSrc(w);
-
-    // Best-effort decode (avoids stutter on first swap); ignore failures.
-    void grip.decode?.().catch(() => {});
-    void pull.decode?.().catch(() => {});
-    void fire.decode?.().catch(() => {});
-
+    // Fallback (should not happen): load on demand.
+    const grip = preloadImage(weaponGripSrc(w));
+    const pull = preloadImage(weaponPullSrc(w));
+    const fire = preloadImage(weaponFireSrc(w));
     equippedFrames = { grip, pull, fire };
   }
 
@@ -449,6 +480,14 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
   // Start unarmed.
   equipWeapon(null);
+
+  // Idle hand bob (bottom-right). Always negative offset so the image stays below the screen edge.
+  const handBobObs = scene.onBeforeRenderObservable.add(() => {
+    if (disposed) return;
+    const ms = performance.now();
+    const offset = (4 * Math.sin(ms / 500)) - 48;
+    handImg.style.bottom = `${offset}px`;
+  });
 
   function openWheel() {
     wheelOpen = true;
@@ -751,6 +790,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
     stopFiring();
     scene.onBeforeRenderObservable.remove(fireObs);
+    scene.onBeforeRenderObservable.remove(handBobObs);
 
     wheelBackdrop.removeEventListener("mousedown", onBackdropClick);
     wheelCanvas.removeEventListener("pointermove", onWheelMove);
