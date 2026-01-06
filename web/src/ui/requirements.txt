@@ -30,3 +30,65 @@
 1.4.2) When sprinting and moving, stamina must decrease continuously.
 1.4.3) When not sprinting, stamina must replenish gradually.
 1.4.4) Sprinting must increase `camera.speed` while stamina remains above 0.
+
+2) Weapon UI module (`weaponUi.ts`)
+
+2.1) Intent
+
+2.1.1) Provide:
+2.1.1.1) A Tab-activated weapon wheel (4 options):
+2.1.1.1.1) Unarmed
+2.1.1.1.2) SmokeShot
+2.1.1.1.3) SprayShot
+2.1.1.1.4) BlastShot
+2.1.1.2) Number-key weapon switching (works whether wheel is visible or not)
+2.1.1.3) A bottom-right weapon-in-hand image when armed
+2.1.1.4) A weapon icon shown above the HUD (icons must be aspect-ratio-safe)
+2.1.1.5) Click/hold shooting with a rapid 5-frame animation sequence and `gunshot.mp3`
+
+2.2) Exported function
+
+2.2.1) Export: `createWeaponUi(scene, canvas, weapons) -> weaponUiApi`
+2.2.2) Inputs:
+2.2.2.1) `scene` is used for lifecycle cleanup via `scene.onDisposeObservable`
+2.2.2.2) `canvas` is the Babylon render canvas
+2.2.2.3) `weapons` is loaded from `/config/weapons.json` and must follow `WeaponConfig` in `types/config.ts`
+
+2.3) Weapon wheel behavior (hard)
+
+2.3.1) Pressing Tab must toggle the weapon wheel visibility.
+2.3.2) While visible:
+2.3.2.1) the wheel must display exactly 4 options (Unarmed + 3 weapons)
+2.3.2.2) clicking a segment must equip that option and close the wheel
+2.3.2.3) pressing keys 1–4 must equip and close the wheel
+2.3.3) Tab default browser behavior must be prevented.
+
+2.4) Number-key equipping (hard)
+
+2.4.1) Key 1 must equip Unarmed.
+2.4.2) Keys must equip weapons based on `weapons.json`:
+2.4.2.1) `toEquip` determines which number equips each weapon.
+2.4.3) Number-key equipping must work whether or not the wheel is visible.
+
+2.5) Weapon visuals (hard)
+
+2.5.1) When Unarmed:
+2.5.1.1) no weapon-in-hand image is shown
+2.5.1.2) shooting is disabled
+2.5.2) When a weapon is equipped:
+2.5.2.1) show the corresponding `grip.png` at the bottom-right
+2.5.2.2) the weapon-in-hand image height must always be exactly `64vh`
+2.5.2.3) show the weapon `icon.png` above the HUD
+2.5.2.3.1) icons must be displayed with `object-fit: contain` to handle varying aspect ratios
+2.5.2.4) show the correct crosshair from:
+2.5.2.4.1) `/assets/weapons/crosshairs/small.svg`
+2.5.2.4.2) `/assets/weapons/crosshairs/large.svg`
+2.5.2.4.3) chosen by `weapon.crosshair`
+
+2.6) Shooting (hard)
+
+2.6.1) When a weapon is equipped, holding left mouse must fire repeatedly at `weapon.fireRate` shots/second.
+2.6.2) Each shot must animate frames in this exact order:
+2.6.2.1) grip -> pull -> fire -> pull -> grip
+2.6.3) Each shot must play `/assets/audio/sfx/gunshot.mp3`.
+2.6.4) Playback volume must be `weapon.shotVolume / 100` (clamped to [0,1]).

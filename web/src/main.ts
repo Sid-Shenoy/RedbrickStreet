@@ -8,6 +8,8 @@ import { spawnPlayerAtHouse7Walkway } from "./scene/spawn";
 import { setupAutoStep } from "./scene/autoStep";
 import { pickFloorY } from "./scene/floorPick";
 import { createHud } from "./ui/hud";
+import { loadWeaponsConfig } from "./config/loadWeaponsConfig";
+import { createWeaponUi } from "./ui/weaponUi";
 
 const STREET_SEED = "redbrick-street/v0";
 
@@ -159,6 +161,7 @@ async function boot() {
 
   // Load config + attach seeded models
   const { houses } = await loadStreetConfig();
+  const { weapons } = await loadWeaponsConfig();
   const housesWithModel = houses.map((h) => attachHouseModel(h, STREET_SEED));
 
   // Log all transformed houses (HouseConfig + generated model) as soon as config is loaded (only for debugging).
@@ -169,6 +172,7 @@ async function boot() {
 
   // HUD (bottom-left): minimap (10m x 6m), health, stamina + sprint drain/regen.
   createHud(scene, camera, housesWithModel);
+  createWeaponUi(scene, canvas, weapons);
 
   engine.runRenderLoop(() => scene.render());
   window.addEventListener("resize", () => engine.resize());
