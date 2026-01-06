@@ -349,10 +349,14 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     // Ensure frames exist (safety)
     if (!equippedFrames) preloadFrames(wpn);
 
-    const periodMs = 1000 / Math.max(0.001, wpn.fireRate);
+    // Fixed animation speed: always 150ms total.
+    // Make the FIRE frame last longer than the others for better visibility.
+    // Frames: grip -> pull -> fire -> pull -> grip
+    const SHOT_ANIM_MS = 150;
+    const FIRE_MS = 60;
+    const OTHER_MS = (SHOT_ANIM_MS - FIRE_MS) / 4;
 
-    // 4 transitions across the period; enforce a minimum phase duration so each frame appears.
-    phaseDurMs = Math.max(1000 / 60, periodMs / 4);
+    phaseDurMs = OTHER_MS;
 
     shotActive = true;
     shotPhase = 0;
@@ -361,37 +365,56 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
     setHandFrame("grip");
 
-    // Schedule next shot by fireRate.
-    nextShotAtMs = nowMs + periodMs;
+    // Schedule next shot strictly by fireRate (avoid drift / unintended slowdown).
+    const periodMs = 1000 / Math.max(0.001, wpn.fireRate);
+
+    // Advance the cadence clock from its prior "ideal" value, snapping forward if we fell behind.
+    if (nextShotAtMs <= 0) nextShotAtMs = nowMs;
+    nextShotAtMs += periodMs;
+    if (nextShotAtMs < nowMs) nextShotAtMs = nowMs + periodMs;
   }
 
   function advancePhase(nowMs: number) {
     const wpn = equipped;
     if (!wpn) return;
 
-    // Advance at most ONE phase per render tick (prevents skipping frames).
-    if (nowMs - phaseStartMs < phaseDurMs) return;
+    // Fixed 150ms total; FIRE frame is longer than the others.
+    const SHOT_ANIM_MS = 150;
+    const FIRE_MS = 60;
+    const OTHER_MS = (SHOT_ANIM_MS - FIRE_MS) / 4;
 
-    phaseStartMs = nowMs;
-
-    if (shotPhase === 4) {
-      // End the shot after grip has been displayed for at least one phase.
-      shotActive = false;
-      return;
+    function durForPhase(phase: 0 | 1 | 2 | 3 | 4) {
+      return phase === 2 ? FIRE_MS : OTHER_MS;
     }
 
-    shotPhase = (shotPhase + 1) as 0 | 1 | 2 | 3 | 4;
+    // Time-based animation (not frame-based) to keep timing stable even if FPS fluctuates.
+    let guard = 0;
+    while (nowMs - phaseStartMs >= phaseDurMs && guard < 8) {
+      phaseStartMs += phaseDurMs;
+      guard++;
 
-    if (shotPhase === 0) setHandFrame("grip");
-    else if (shotPhase === 1) setHandFrame("pull");
-    else if (shotPhase === 2) {
-      setHandFrame("fire");
-      if (!firedThisShot) {
-        firedThisShot = true;
-        playGunshot(Math.max(0, Math.min(1, wpn.shotVolume / 100)));
+      if (shotPhase === 4) {
+        // End the shot after the final grip has been displayed for its full duration.
+        shotActive = false;
+        return;
       }
-    } else if (shotPhase === 3) setHandFrame("pull");
-    else setHandFrame("grip");
+
+      shotPhase = (shotPhase + 1) as 0 | 1 | 2 | 3 | 4;
+
+      if (shotPhase === 0) setHandFrame("grip");
+      else if (shotPhase === 1) setHandFrame("pull");
+      else if (shotPhase === 2) {
+        setHandFrame("fire");
+        if (!firedThisShot) {
+          firedThisShot = true;
+          playGunshot(Math.max(0, Math.min(1, wpn.shotVolume / 100)));
+        }
+      } else if (shotPhase === 3) setHandFrame("pull");
+      else setHandFrame("grip");
+
+      // Update duration for the *new* phase (so FIRE lasts longer).
+      phaseDurMs = durForPhase(shotPhase);
+    }
   }
 
   function setHandVisible(v: boolean) {
