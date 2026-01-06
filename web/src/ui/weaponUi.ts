@@ -334,12 +334,19 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   }
 
   function stopFiring() {
+    // Hard abort: cancels any in-progress shot immediately (used for equip/blur/etc).
     triggerDown = false;
     shotActive = false;
     firedThisShot = false;
 
     // Reset to grip if still armed.
     if (equipped) setHandFrame("grip");
+  }
+
+  function releaseTrigger() {
+    // Soft release: stop continuous firing, but ALWAYS let the current shot finish
+    // (so quick clicks still produce a shot every time).
+    triggerDown = false;
   }
 
   function startShot(nowMs: number) {
@@ -686,19 +693,22 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   // Render-loop driver for firing animation + cadence.
   const fireObs = scene.onBeforeRenderObservable.add(() => {
     if (disposed) return;
-    if (!triggerDown) return;
     if (!equipped) return;
     if (wheelOpen) return;
 
     const now = performance.now();
 
-    if (!shotActive) {
-      // Start next shot only when cadence allows.
-      if (now >= nextShotAtMs) startShot(now);
+    // ALWAYS advance an in-progress shot, even if the trigger was released.
+    // This guarantees quick clicks still reach the FIRE phase every time.
+    if (shotActive) {
+      advancePhase(now);
       return;
     }
 
-    advancePhase(now);
+    // Only start new shots while the trigger is held.
+    if (!triggerDown) return;
+
+    if (nextShotAtMs <= 0 || now >= nextShotAtMs) startShot(now);
   });
 
   // --- Input handlers ---
@@ -737,20 +747,41 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     }
   };
 
-  const onMouseDown = (ev: MouseEvent) => {
+  let firingPointerId: number | null = null;
+
+  const onPointerDown = (ev: PointerEvent) => {
     if (disposed) return;
-    if (ev.button !== 0) return; // left click only
+    if (ev.button !== 0) return; // primary button only
     if (wheelOpen) return;
+
+    // Deduplicate / ignore extra pointers.
+    if (firingPointerId !== null) return;
+    firingPointerId = ev.pointerId;
+
     beginFiring();
   };
 
-  const onMouseUp = (ev: MouseEvent) => {
+  const onPointerUp = (ev: PointerEvent) => {
     if (disposed) return;
     if (ev.button !== 0) return;
-    stopFiring();
+    if (firingPointerId === null) return;
+    if (ev.pointerId !== firingPointerId) return;
+
+    firingPointerId = null;
+    releaseTrigger();
+  };
+
+  const onPointerCancel = (ev: PointerEvent) => {
+    if (disposed) return;
+    if (firingPointerId === null) return;
+    if (ev.pointerId !== firingPointerId) return;
+
+    firingPointerId = null;
+    releaseTrigger();
   };
 
   const onBlur = () => {
+    firingPointerId = null;
     stopFiring();
     closeWheel();
   };
@@ -795,8 +826,13 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   wheelCanvas.addEventListener("mousedown", onWheelClick);
 
   window.addEventListener("keydown", onKeyDown);
-  window.addEventListener("mousedown", onMouseDown);
-  window.addEventListener("mouseup", onMouseUp);
+
+  // Capture pointer events at the document level so firing works reliably
+  // during pointer lock and while other keys are held.
+  document.addEventListener("pointerdown", onPointerDown, true);
+  document.addEventListener("pointerup", onPointerUp, true);
+  document.addEventListener("pointercancel", onPointerCancel, true);
+
   window.addEventListener("blur", onBlur);
 
   // Redraw if icons finish loading.
@@ -820,8 +856,11 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     wheelCanvas.removeEventListener("mousedown", onWheelClick);
 
     window.removeEventListener("keydown", onKeyDown);
-    window.removeEventListener("mousedown", onMouseDown);
-    window.removeEventListener("mouseup", onMouseUp);
+
+    document.removeEventListener("pointerdown", onPointerDown, true);
+    document.removeEventListener("pointerup", onPointerUp, true);
+    document.removeEventListener("pointercancel", onPointerCancel, true);
+
     window.removeEventListener("blur", onBlur);
 
     handImg.remove();
