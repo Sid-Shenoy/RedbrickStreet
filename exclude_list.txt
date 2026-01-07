@@ -3,13 +3,15 @@ web\src\world\houseModel\generation\doors.ts
 web\src\world\houseModel\generation\plot.ts
 web\src\world\houseModel\generation\firstFloor.ts
 web\src\world\houseModel\generation\secondFloor.ts
+web\src\scene\autoStep.ts
 web\src\scene\boundaryWalls.ts
 web\src\scene\curb.ts
 web\src\scene\exteriorBrick.ts
+web\src\scene\floorPick.ts
 web\src\scene\materials.ts
+web\src\scene\regions.ts
 web\src\scene\roof.ts
 web\src\scene\spawn.ts
 web\src\scene\stairs.ts
 web\src\scene\universalCameraXZKeyboardInput.ts
 web\src\scene\uvs.ts
-web\src\ui\weaponUi.ts

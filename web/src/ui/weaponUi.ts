@@ -115,6 +115,13 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   object-fit: contain; /* IMPORTANT: icons have different aspect ratios */
   pointer-events: none;
   user-select: none;
+
+  /* 1px light-grey outline */
+  filter:
+    drop-shadow(0px 0 1px rgba(210,210,210,0.6))
+    drop-shadow(0px 0 1px rgba(210,210,210,0.6))
+    drop-shadow(0px 0 1px rgba(210,210,210,0.6))
+    drop-shadow(0px 0 1px rgba(210,210,210,0.6));
 }
 
 #rbsWeaponIconFallback {
@@ -129,6 +136,17 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   border-radius: 12px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.14);
+
+  /* 2px light-grey outline for the fallback glyph */
+  text-shadow:
+    1px 0 0 rgba(210,210,210,0.6),
+    -1px 0 0 rgba(210,210,210,0.6),
+    0 1px 0 rgba(210,210,210,0.6),
+    0 -1px 0 rgba(210,210,210,0.6),
+    1px 1px 0 rgba(210,210,210,0.6),
+    -1px 1px 0 rgba(210,210,210,0.6),
+    1px -1px 0 rgba(210,210,210,0.6),
+    -1px -1px 0 rgba(210,210,210,0.6);
 }
 `;
   document.head.appendChild(style);
@@ -624,36 +642,35 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
       ctx.stroke();
       ctx.restore();
 
-      // Label + icon.
+      // Icon first, then text below it (weapon name + key). Text is smaller to avoid overlaps.
       const mid = (centerDeg * Math.PI) / 180;
-      const labelR = innerR + (outerR - innerR) * 0.62;
-      const lx = cx + Math.cos(mid) * labelR;
-      const ly = cy + Math.sin(mid) * labelR;
+      const ux = Math.cos(mid);
+      const uy = Math.sin(mid);
 
       const opt = wheelOptions[i]!;
-      const keyText = `${opt.key}`;
-      const labelText = opt.weapon ? opt.weapon.name : "Unarmed";
+      const labelText = `${opt.weapon ? opt.weapon.name : "Unarmed"} (${opt.key})`;
+
+      // Anchor point for this quadrant label stack.
+      const labelR = innerR + (outerR - innerR) * 0.60;
+      const xTighten = Math.abs(ux) > Math.abs(uy) ? 0.91 : 1.0;
+      const ax = cx + ux * labelR * xTighten;
+      const ay = cy + uy * labelR;
+
+      // Put the icon above the anchor, then put text below the icon.
+      const maxSize = 44 * dpr;
+      const iconCx = ax;
+      const iconCy = ay - 10 * dpr;
+
+      // Default text position if there is no icon.
+      let textY = ay + 12 * dpr;
 
       ctx.save();
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "rgba(240,245,255,0.92)";
-      ctx.font = `${Math.round(13 * dpr)}px "Russo One", sans-serif`;
-
-      // Key number (slightly above)
-      ctx.fillText(keyText, lx, ly - 18 * dpr);
-
-      // Weapon name (below)
-      ctx.font = `${Math.round(14 * dpr)}px "Russo One", sans-serif`;
-      ctx.fillText(labelText, lx, ly + 16 * dpr);
 
       // Icon (if weapon has one)
       if (opt.weapon && opt.iconImg && opt.iconImg.complete) {
-        const iconR = innerR + (outerR - innerR) * 0.40;
-        const ix = cx + Math.cos(mid) * iconR;
-        const iy = cy + Math.sin(mid) * iconR;
-
-        const maxSize = 44 * dpr;
         const iw = opt.iconImg.naturalWidth || maxSize;
         const ih = opt.iconImg.naturalHeight || maxSize;
 
@@ -661,8 +678,30 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
         const dw = iw * s;
         const dh = ih * s;
 
-        ctx.drawImage(opt.iconImg, ix - dw / 2, iy - dh / 2, dw, dh);
+        // 1px light-grey outline (match #rbsWeaponIconImg CSS drop-shadow).
+        const blurPx = Math.max(1, Math.round(1 * dpr));
+
+        // Draw once with filter to generate the outline, then draw again with no filter for crispness.
+        ctx.filter =
+          `drop-shadow(0px 0 ${blurPx}px rgba(210,210,210,0.6)) ` +
+          `drop-shadow(0px 0 ${blurPx}px rgba(210,210,210,0.6)) ` +
+          `drop-shadow(0px 0 ${blurPx}px rgba(210,210,210,0.6)) ` +
+          `drop-shadow(0px 0 ${blurPx}px rgba(210,210,210,0.6))`;
+
+        ctx.drawImage(opt.iconImg, iconCx - dw / 2, iconCy - dh / 2, dw, dh);
+
+        ctx.filter = "none";
+
+        // Actual icon on top.
+        ctx.drawImage(opt.iconImg, iconCx - dw / 2, iconCy - dh / 2, dw, dh);
+
+        // Text sits below the drawn icon with a small gap.
+        textY = iconCy + dh / 2 + 10 * dpr;
       }
+
+      // Smaller label to prevent overlaps.
+      ctx.font = `${Math.round(11 * dpr)}px "Russo One", sans-serif`;
+      ctx.fillText(labelText, ax, textY);
 
       ctx.restore();
     }
