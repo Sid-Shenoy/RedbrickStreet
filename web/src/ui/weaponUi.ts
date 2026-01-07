@@ -64,6 +64,35 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   box-shadow: 0 10px 24px rgba(0,0,0,0.32);
 }
 
+#rbsAmmoReadout.rbsEmpty {
+  color: rgba(255,80,80,0.92);
+  border-color: rgba(255,80,80,0.26);
+}
+
+#rbsHomeReloadNote {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 14;
+  pointer-events: none;
+  user-select: none;
+
+  font-family: "Russo One", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: rgba(240,245,255,0.90);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+
+  background: rgba(8,10,14,0.46);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+}
+
 #rbsCrosshair {
   position: fixed;
   left: 50%;
@@ -316,6 +345,12 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   ammoReadout.textContent = "";
   document.body.appendChild(ammoReadout);
 
+  const homeReloadNote = document.createElement("div");
+  homeReloadNote.id = "rbsHomeReloadNote";
+  homeReloadNote.style.display = "none";
+  homeReloadNote.textContent = "All weapons were reloaded";
+  document.body.appendChild(homeReloadNote);
+
   function setAmmoReadoutVisible(v: boolean) {
     ammoReadout.style.display = v ? "block" : "none";
   }
@@ -323,13 +358,20 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   function updateAmmoReadout() {
     if (!equipped) {
       ammoReadout.textContent = "";
+      ammoReadout.classList.remove("rbsEmpty");
       setAmmoReadoutVisible(false);
       return;
     }
     const st = ensureAmmoState(equipped);
     const clip = Math.max(0, Math.floor(st.clip));
     const res = Math.max(0, Math.floor(st.reserve));
-    ammoReadout.textContent = `CLIP ${clip}/${equipped.clipSize}  |  RES ${res}`;
+
+    const total = clip + res;
+    ammoReadout.textContent = `AMMO ${total}/${equipped.capacity} (${clip}/${equipped.clipSize})`;
+
+    if (clip === 0 && res === 0) ammoReadout.classList.add("rbsEmpty");
+    else ammoReadout.classList.remove("rbsEmpty");
+
     setAmmoReadoutVisible(true);
   }
 
@@ -711,6 +753,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
       setAmmoReadoutVisible(false);
       ammoReadout.textContent = "";
+      ammoReadout.classList.remove("rbsEmpty");
 
       return;
     }
@@ -822,7 +865,9 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     const dx = cam.position.x - homeX;
     const dz = cam.position.z - homeZ;
 
-    if (Math.hypot(dx, dz) > HOME_REFILL_DIST_M) return;
+    const atHome = Math.hypot(dx, dz) <= HOME_REFILL_DIST_M;
+    homeReloadNote.style.display = atHome ? "block" : "none";
+    if (!atHome) return;
 
     // Only do work if any weapon is not already full.
     let needs = false;
@@ -1325,6 +1370,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
     handImg.remove();
     ammoReadout.remove();
+    homeReloadNote.remove();
     crosshairImg.remove();
     wheelRoot.remove();
 

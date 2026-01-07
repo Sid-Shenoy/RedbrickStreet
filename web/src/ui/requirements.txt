@@ -128,7 +128,7 @@
 2.7.4) When Unarmed, the ammo readout must not be visible.
 
 Example format (one line):
-`CLIP 7/8 | RES 66`
+`AMMO 98/120 (8/30)`
 
 2.8) Reloading (hard)
 
@@ -152,3 +152,10 @@ Example format (one line):
 2.9.3) "Full" means:
 2.9.3.1) clip rounds = `weapon.clipSize`
 2.9.3.2) reserve rounds = `weapon.capacity - weapon.clipSize`
+
+2.10) Ammo UI
+2.10.1) Home reload note (hard)
+2.10.1.1) While within 3.0m of home (XZ), show a bottom-center note: "All weapons were reloaded".
+2.10.1.2) When outside 3.0m of home (XZ), the note must not be visible.
+2.10.2) Ammo readout red state (hard)
+2.10.2.1) Only when the equipped weapon has no ammo at all (clip=0 AND reserve=0), the ammo readout text must be red.
