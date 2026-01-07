@@ -27,7 +27,7 @@
     "id": 2,
     "name": "BlastShot",
     "toEquip": 4,
-    "fireRate": 0.75,
+    "fireRate": 1.2,
     "shotVolume": 100,
     "damage": 364,
     "crosshair": "large",

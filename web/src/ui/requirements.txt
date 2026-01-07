@@ -139,6 +139,8 @@ Example format (one line):
 2.8.3) Reload animation (hard):
 2.8.3.1) Reload must use the exact same transition animation as weapon switching (down off-screen, then back up),
 2.8.3.2) but re-equipping the currently equipped weapon (same weapon).
+2.8.3.3) After the weapon-in-hand image has moved fully off-screen, it must remain hidden for 0.8 seconds before returning.
+2.8.3.4) During reload, `/assets/audio/sfx/reload.mp3` must play once 0.4 seconds after the weapon-in-hand image has moved fully off-screen (i.e. halfway through the 0.8s hidden delay).
 2.8.4) While reloading:
 2.8.4.1) shooting must be disabled
 2.8.4.2) the ammo readout must update after reload completes.

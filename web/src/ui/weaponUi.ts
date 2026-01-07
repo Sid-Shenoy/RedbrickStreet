@@ -484,6 +484,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   // If the equipped clip hits 0 during a held trigger, we queue a reload to start after the shot finishes.
   let reloadQueued = false;
   let reloadInProgress = false;
+  let reloadSfxPending = false; // play reload.mp3 right before the hand comes back up (reload only)
 
   // Audio pool for rapid-fire overlap.
   const gunshotPool = makeGunshotPool(10);
@@ -506,6 +507,8 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   type EquipAnimMode = "none" | "downSwapUp" | "upOnly" | "downOnly";
 
   const EQUIP_DOWN_MS = 110;
+  const RELOAD_WAIT_MS = 800;
+  const RELOAD_SFX_DELAY_MS = 400; // play reload.mp3 halfway through the hidden delay
   const EQUIP_UP_MS = 130;
 
   let equipAnimMode: EquipAnimMode = "none";
@@ -551,6 +554,8 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     equipExtraDownPx = 0;
     equipAnimTarget = null;
     equipAnimSwapDone = false;
+
+    reloadSfxPending = false;
 
     // If the animation was a reload, actually move ammo *after* the reload completes.
     completeReloadIfNeeded();
@@ -851,6 +856,10 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     // Any equip request immediately stops shooting + resets animation.
     stopFiring();
 
+    // Cancel any pending reload transfer if the player switches weapons mid-reload.
+    reloadInProgress = false;
+    reloadSfxPending = false;
+
     // No change => no-op (prevents replaying reload/animation).
     if (equipped && next && equipped.id === next.id) return;
     if (!equipped && !next) return;
@@ -912,7 +921,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     // Reset cadence so the next shot can happen immediately after reload completes.
     nextShotAtMs = 0;
 
-    playReload();
+    reloadSfxPending = true;
 
     const now = performance.now();
 
@@ -968,7 +977,6 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     // Equip transition: dip off-screen, swap while hidden, return.
     if (equipAnimMode !== "none") {
       const t = ms - equipAnimStartMs;
-
       if (equipAnimMode === "downSwapUp") {
         if (t < EQUIP_DOWN_MS) {
           equipExtraDownPx = equipAnimOffscreenPx * easeInQuad(t / EQUIP_DOWN_MS);
@@ -981,11 +989,31 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
             if (equipped) equipAnimOffscreenPx = handOffscreenPxForVh(equipped.handHeightVh);
           }
 
-          const u = (t - EQUIP_DOWN_MS) / EQUIP_UP_MS;
-          if (u < 1) {
-            equipExtraDownPx = equipAnimOffscreenPx * (1 - easeOutQuad(u));
+          const holdMs = reloadInProgress ? RELOAD_WAIT_MS : 0;
+
+          if (t < EQUIP_DOWN_MS + holdMs) {
+            // Reload delay: keep weapon fully hidden before returning.
+            equipExtraDownPx = equipAnimOffscreenPx;
+
+            // For reloads: play reload SFX halfway through the hidden delay (after 400ms).
+            if (reloadInProgress && reloadSfxPending && t >= EQUIP_DOWN_MS + RELOAD_SFX_DELAY_MS) {
+              reloadSfxPending = false;
+              playReload();
+            }
           } else {
-            finishEquipAnim();
+            // Safety: if we somehow skipped past the midpoint due to a frame hitch,
+            // still play once before finishing the reload.
+            if (reloadInProgress && reloadSfxPending) {
+              reloadSfxPending = false;
+              playReload();
+            }
+
+            const u = (t - EQUIP_DOWN_MS - holdMs) / EQUIP_UP_MS;
+            if (u < 1) {
+              equipExtraDownPx = equipAnimOffscreenPx * (1 - easeOutQuad(u));
+            } else {
+              finishEquipAnim();
+            }
           }
         }
       } else if (equipAnimMode === "upOnly") {
