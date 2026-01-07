@@ -159,3 +159,40 @@ Example format (one line):
 2.10.1.2) When outside 3.0m of home (XZ), the note must not be visible.
 2.10.2) Ammo readout red state (hard)
 2.10.2.1) Only when the equipped weapon has no ammo at all (clip=0 AND reserve=0), the ammo readout text must be red.
+
+3) Intro module (`intro.ts`)
+
+3.1) Intent
+
+3.1.1) Provide a full-screen intro/briefing overlay at boot:
+3.1.1.1) A short story briefing themed to Redbrick Street
+3.1.1.2) A clear list of controls
+3.1.1.3) A "Press Space to begin" prompt
+
+3.2) Exported function
+
+3.2.1) Export: `createIntroOverlay(scene) -> introUiApi`
+3.2.2) The intro UI must attach DOM elements to `document.body`.
+3.2.3) The overlay must be visible immediately when created and remain until started or disposed.
+3.2.4) Pressing Space must start the game:
+3.2.4.1) start trigger is a `keydown` event where `ev.code === "Space"`
+3.2.4.2) it must ignore key repeat
+3.2.4.3) it must prevent default Space behavior for that key press
+
+3.3) Lifecycle and cleanup (hard)
+
+3.3.1) The intro overlay must remove all DOM nodes and event listeners when it closes.
+3.3.2) The intro overlay must also clean itself up when `scene` is disposed.
+
+3.4) API format
+
+3.4.1) The returned `introUiApi` must provide:
+3.4.1.1) `waitForStart() -> Promise<void>` which resolves when Space is pressed, and closes the overlay
+3.4.1.2) `dispose() -> void` which closes the overlay without starting
+
+Example usage:
+```
+const intro = createIntroOverlay(scene);
+await intro.waitForStart();
+// now enable gameplay input and HUD
+```

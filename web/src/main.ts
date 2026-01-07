@@ -10,6 +10,7 @@ import { pickFloorY } from "./scene/floorPick";
 import { createHud } from "./ui/hud";
 import { loadWeaponsConfig } from "./config/loadWeaponsConfig";
 import { createWeaponUi } from "./ui/weaponUi";
+import { createIntroOverlay } from "./ui/intro";
 
 const STREET_SEED = "redbrick-street/v0";
 
@@ -34,14 +35,14 @@ async function boot() {
   key.position = new Vector3(115, 50, 35); // above the street center
   key.intensity = 0.35;
 
-  // WASD + mouse look
+  // Camera is created immediately so the scene can render behind the intro overlay,
+  // but controls are not attached until the player presses Space to begin.
   const camera = new UniversalCamera("cam", new Vector3(100, 1.7, 35), scene);
 
   // Fix: keep keyboard movement on the XZ plane so looking up/down doesn't change speed.
   camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
   camera.inputs.add(new UniversalCameraXZKeyboardInput());
 
-  camera.attachControl(canvas, true);
   camera.speed = 0.05;
   camera.angularSensibility = 4000;
 
@@ -57,6 +58,32 @@ async function boot() {
   camera.keysDown = [83]; // S
   camera.keysLeft = [65]; // A
   camera.keysRight = [68]; // D
+
+  // Load config + attach seeded models
+  const { houses } = await loadStreetConfig();
+  const { weapons } = await loadWeaponsConfig();
+  const housesWithModel = houses.map((h) => attachHouseModel(h, STREET_SEED));
+
+  renderStreet(scene, camera, housesWithModel);
+  spawnPlayerAtHouse7Walkway(scene, camera, housesWithModel);
+
+  // Start rendering immediately so the world is visible behind the intro.
+  engine.runRenderLoop(() => scene.render());
+  window.addEventListener("resize", () => engine.resize());
+
+  // Intro overlay (Space to begin)
+  const intro = createIntroOverlay(scene);
+  await intro.waitForStart();
+
+  // Click-to-pointer-lock (better mouse look)
+  scene.onPointerDown = () => {
+    canvas.requestPointerLock?.();
+  };
+
+  // Enable WASD + mouse look now that the player has started.
+  camera.attachControl(canvas, true);
+
+  setupAutoStep(scene, camera);
 
   // Space: jump ~60cm (smooth), only when grounded.
   // Fix: animate BOTH ascent and descent so the fall isn't an instant "slam" under strong scene gravity.
@@ -230,30 +257,9 @@ async function boot() {
     }
   });
 
-  // Click-to-pointer-lock (better mouse look)
-  scene.onPointerDown = () => {
-    canvas.requestPointerLock?.();
-  };
-
-  setupAutoStep(scene, camera);
-
-  // Load config + attach seeded models
-  const { houses } = await loadStreetConfig();
-  const { weapons } = await loadWeaponsConfig();
-  const housesWithModel = houses.map((h) => attachHouseModel(h, STREET_SEED));
-
-  // Log all transformed houses (HouseConfig + generated model) as soon as config is loaded (only for debugging).
-  // console.log("[RBS] Houses with models:", housesWithModel);
-
-  renderStreet(scene, camera, housesWithModel);
-  spawnPlayerAtHouse7Walkway(scene, camera, housesWithModel);
-
-  // HUD (bottom-left): minimap (10m x 6m), health, stamina + sprint drain/regen.
+  // HUD + weapon UI (created after start so they don't clutter the intro)
   createHud(scene, camera, housesWithModel);
   createWeaponUi(scene, canvas, weapons);
-
-  engine.runRenderLoop(() => scene.render());
-  window.addEventListener("resize", () => engine.resize());
 }
 
 boot().catch(console.error);
