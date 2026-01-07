@@ -54,7 +54,7 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   user-select: none;
 
   font-family: "Russo One", sans-serif;
-  font-size: ${16 * WEAPON_UI_SCALE}px;
+  font-size: ${12 * WEAPON_UI_SCALE}px;
   line-height: 1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
