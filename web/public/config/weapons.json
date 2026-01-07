@@ -7,7 +7,9 @@
     "shotVolume": 50,
     "damage": 12,
     "crosshair": "small",
-    "handHeightVh": 64
+    "handHeightVh": 64,
+    "clipSize": 8,
+    "capacity": 80
   },
   {
     "id": 1,
@@ -17,7 +19,9 @@
     "shotVolume": 70,
     "damage": 18,
     "crosshair": "small",
-    "handHeightVh": 64
+    "handHeightVh": 64,
+    "clipSize": 30,
+    "capacity": 120
   },
   {
     "id": 2,
@@ -27,6 +31,8 @@
     "shotVolume": 100,
     "damage": 364,
     "crosshair": "large",
-    "handHeightVh": 80
+    "handHeightVh": 80,
+    "clipSize": 6,
+    "capacity": 24
   }
 ]
