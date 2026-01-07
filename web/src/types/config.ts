@@ -20,4 +20,7 @@ export interface WeaponConfig {
   damage: number;      // per-shot damage (not used yet, but loaded)
   crosshair: "small" | "large";
   handHeightVh: number; // viewport-height for the bottom-right weapon image (e.g. 64 or 80)
+  clipSize: number;    // shots per magazine > 0 (integer in config)
+  capacity: number;    // max ammo player can hold for this weapon >= clipSize (integer in config)
 }
+

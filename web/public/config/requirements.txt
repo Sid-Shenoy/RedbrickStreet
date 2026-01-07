@@ -86,6 +86,13 @@ Example of a house object from `houses.json`:
 3.2.8.1) Must be a number
 3.2.8.2) Allowed values are 64 and 80
 3.2.8.3) Only BlastShot should use 80; all other weapons must use 64
+3.2.9) A clip size (shots per magazine)
+3.2.9.1) `clipSize` must be an integer
+3.2.9.2) `clipSize` must be strictly greater than 0
+3.2.10) A capacity (max ammo the player can hold for this weapon)
+3.2.10.1) `capacity` must be an integer
+3.2.10.2) `capacity` must be strictly greater than 0
+3.2.10.3) `capacity` must be >= `clipSize`
 
 Example of a weapon object from `weapons.json`:
 ```
@@ -97,6 +104,8 @@ Example of a weapon object from `weapons.json`:
   "shotVolume": 50,
   "damage": 12,
   "crosshair": "small",
-  "handHeightVh": 64
+  "handHeightVh": 64,
+  "clipSize": 8,
+  "capacity": 80
 }
 ```
