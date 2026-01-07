@@ -1,5 +1,6 @@
 import type { Scene } from "@babylonjs/core";
 import type { WeaponConfig } from "../types/config";
+import { ensureAmbience, setWeaponWheelOpen } from "../audio/ambience";
 
 type WheelOption = {
   key: number; // 1..4
@@ -183,6 +184,7 @@ function makeGunshotPool(size: number): HTMLAudioElement[] {
 
 export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons: WeaponConfig[]): WeaponUiApi {
   ensureWeaponUiStyle();
+  ensureAmbience();
 
   // Map by equip key (2..N from weapons.json).
   const byKey = new Map<number, WeaponConfig>();
@@ -541,6 +543,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     wheelOpen = true;
     hoveredIdx = null;
     wheelRoot.classList.add("rbsOpen");
+    setWeaponWheelOpen(true);
     document.exitPointerLock?.();
     drawWheel();
   }
@@ -549,6 +552,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     wheelOpen = false;
     hoveredIdx = null;
     wheelRoot.classList.remove("rbsOpen");
+    setWeaponWheelOpen(false);
   }
 
   function toggleWheel() {
@@ -886,7 +890,9 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     if (disposed) return;
     disposed = true;
 
+    setWeaponWheelOpen(false);
     stopFiring();
+
     scene.onBeforeRenderObservable.remove(fireObs);
     scene.onBeforeRenderObservable.remove(handBobObs);
 
