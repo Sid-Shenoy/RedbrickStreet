@@ -77,6 +77,11 @@
 2.4.2.1) `toEquip` determines which number equips each weapon.
 2.4.3) Number-key equipping must work whether or not the wheel is visible.
 
+2.4.4) Reload sound on weapon equip (hard)
+2.4.4.1) When switching to a weapon (SmokeShot / SprayShot / BlastShot), play `/assets/audio/sfx/reload.mp3` once.
+2.4.4.2) This must trigger whether the switch happens via number keys or via weapon wheel.
+2.4.4.3) This must NOT play when switching to Unarmed.
+
 2.5) Weapon visuals (hard)
 
 2.5.1) When Unarmed:

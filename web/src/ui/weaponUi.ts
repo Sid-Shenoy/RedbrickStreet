@@ -16,6 +16,7 @@ export interface WeaponUiApi {
 }
 
 const GUNSHOT_SRC = "/assets/audio/sfx/gunshot.mp3";
+const RELOAD_SRC = "/assets/audio/sfx/reload.mp3";
 
 function ensureWeaponUiStyle(): HTMLStyleElement {
   const existing = document.getElementById("rbs_weapon_ui_style") as HTMLStyleElement | null;
@@ -338,6 +339,11 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   const gunshotPool = makeGunshotPool(10);
   let gunshotIdx = 0;
 
+  // Reload SFX (played once on weapon equip; not used for unarmed).
+  const reloadSfx = new Audio(RELOAD_SRC);
+  reloadSfx.preload = "auto";
+  reloadSfx.volume = 0.2;
+
   // Weapon-hand recoil (CSS px). Triggered on each shot FIRE frame.
   const RECOIL_PX = 8;
   const RECOIL_SNAP_MS = 40;   // hold max recoil briefly (jerky snap)
@@ -349,6 +355,18 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   function triggerRecoil(nowMs: number) {
     recoilStartMs = nowMs;
     recoilActive = true;
+  }
+
+  function playReload() {
+    // Reset and play (ignore failures if browser blocks unexpectedly).
+    try {
+      reloadSfx.pause();
+      reloadSfx.currentTime = 0;
+      reloadSfx.volume = 0.2;
+      void reloadSfx.play();
+    } catch {
+      // no-op
+    }
   }
 
   function playGunshot(volume01: number) {
@@ -518,6 +536,9 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     // Any equip action immediately stops shooting + resets animation.
     stopFiring();
 
+    const prev = equipped;
+    const shouldPlayReload = !!next && (!prev || prev.id !== next.id);
+
     equipped = next;
 
     if (!equipped) {
@@ -528,6 +549,8 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
       setWeaponIconUnarmed();
       return;
     }
+
+    if (shouldPlayReload) playReload();
 
     // Equipped weapon: preload frames and show grip, crosshair, icon.
     preloadFrames(equipped);
