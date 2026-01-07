@@ -20,6 +20,11 @@ const RELOAD_SRC = "/assets/audio/sfx/reload.mp3";
 
 const HOME_REFILL_DIST_M = 3.0;
 
+const WEAPON_WHEEL_SCALE = 1.5;
+const WEAPON_WHEEL_CSS_SIZE = 360 * WEAPON_WHEEL_SCALE;
+const WEAPON_WHEEL_PANEL_H = 420 * WEAPON_WHEEL_SCALE;
+const WEAPON_UI_SCALE = WEAPON_WHEEL_SCALE;
+
 type AmmoState = { clip: number; reserve: number };
 
 function ensureWeaponUiStyle(): HTMLStyleElement {
@@ -42,26 +47,26 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
 
 #rbsAmmoReadout {
   position: fixed;
-  right: 14px;
-  bottom: 18px;
+  right: ${14 * WEAPON_UI_SCALE}px;
+  bottom: ${18 * WEAPON_UI_SCALE}px;
   z-index: 13;
   pointer-events: none;
   user-select: none;
 
   font-family: "Russo One", sans-serif;
-  font-size: 16px;
+  font-size: ${16 * WEAPON_UI_SCALE}px;
   line-height: 1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 
   color: rgba(240,245,255,0.92);
-  text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+  text-shadow: 0 ${2 * WEAPON_UI_SCALE}px ${12 * WEAPON_UI_SCALE}px rgba(0,0,0,0.55);
 
   background: rgba(8,10,14,0.46);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 8px 10px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.32);
+  border: ${1 * WEAPON_UI_SCALE}px solid rgba(255,255,255,0.12);
+  border-radius: ${12 * WEAPON_UI_SCALE}px;
+  padding: ${8 * WEAPON_UI_SCALE}px ${10 * WEAPON_UI_SCALE}px;
+  box-shadow: 0 ${10 * WEAPON_UI_SCALE}px ${24 * WEAPON_UI_SCALE}px rgba(0,0,0,0.32);
 }
 
 #rbsAmmoReadout.rbsEmpty {
@@ -72,25 +77,25 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
 #rbsHomeReloadNote {
   position: fixed;
   left: 50%;
-  bottom: 22px;
+  bottom: ${22 * WEAPON_UI_SCALE}px;
   transform: translateX(-50%);
   z-index: 14;
   pointer-events: none;
   user-select: none;
 
   font-family: "Russo One", sans-serif;
-  font-size: 12px;
+  font-size: ${12 * WEAPON_UI_SCALE}px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 
   color: rgba(240,245,255,0.90);
-  text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+  text-shadow: 0 ${2 * WEAPON_UI_SCALE}px ${12 * WEAPON_UI_SCALE}px rgba(0,0,0,0.55);
 
   background: rgba(8,10,14,0.46);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 8px 12px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+  border: ${1 * WEAPON_UI_SCALE}px solid rgba(255,255,255,0.12);
+  border-radius: ${12 * WEAPON_UI_SCALE}px;
+  padding: ${8 * WEAPON_UI_SCALE}px ${12 * WEAPON_UI_SCALE}px;
+  box-shadow: 0 ${10 * WEAPON_UI_SCALE}px ${24 * WEAPON_UI_SCALE}px rgba(0,0,0,0.28);
 }
 
 #rbsCrosshair {
@@ -129,23 +134,23 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 360px;
-  height: 420px;
+  width: ${WEAPON_WHEEL_CSS_SIZE}px;
+  height: ${WEAPON_WHEEL_PANEL_H}px;
   display: grid;
   place-items: center;
 }
 
 #rbsWeaponWheelCanvas {
-  width: 360px;
-  height: 360px;
+  width: ${WEAPON_WHEEL_CSS_SIZE}px;
+  height: ${WEAPON_WHEEL_CSS_SIZE}px;
   display: block;
-  border-radius: 999px;
+  border-radius: ${999 * WEAPON_WHEEL_SCALE}px;
 }
 
 #rbsWeaponWheelHint {
-  margin-top: 10px;
+  margin-top: ${10 * WEAPON_WHEEL_SCALE}px;
   font-family: "Russo One", sans-serif;
-  font-size: 12px;
+  font-size: ${12 * WEAPON_WHEEL_SCALE}px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(240,245,255,0.90);
@@ -153,59 +158,59 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
 }
 
 #rbsWeaponIconWrap {
-  width: 62px;
-  height: 62px;
-  border-radius: 16px;
+  width: ${62 * WEAPON_UI_SCALE}px;
+  height: ${62 * WEAPON_UI_SCALE}px;
+  border-radius: ${16 * WEAPON_UI_SCALE}px;
   display: grid;
   place-items: center;
-  margin-bottom: 10px;
+  margin-bottom: ${10 * WEAPON_UI_SCALE}px;
 
   background: linear-gradient(180deg, rgba(12,14,18,0.78), rgba(8,10,14,0.62));
-  border: 1px solid rgba(255,255,255,0.14);
+  border: ${1 * WEAPON_UI_SCALE}px solid rgba(255,255,255,0.14);
   box-shadow:
-    0 10px 28px rgba(0,0,0,0.40),
-    inset 0 1px 0 rgba(255,255,255,0.06);
-  backdrop-filter: blur(7px);
+    0 ${10 * WEAPON_UI_SCALE}px ${28 * WEAPON_UI_SCALE}px rgba(0,0,0,0.40),
+    inset 0 ${1 * WEAPON_UI_SCALE}px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(${7 * WEAPON_UI_SCALE}px);
 }
 
 #rbsWeaponIconImg {
-  width: 48px;
-  height: 48px;
+  width: ${48 * WEAPON_UI_SCALE}px;
+  height: ${48 * WEAPON_UI_SCALE}px;
   object-fit: contain; /* IMPORTANT: icons have different aspect ratios */
   pointer-events: none;
   user-select: none;
 
-  /* 1px light-grey outline */
+  /* light-grey outline (scaled) */
   filter:
-    drop-shadow(0px 0 1px rgba(210,210,210,0.6))
-    drop-shadow(0px 0 1px rgba(210,210,210,0.6))
-    drop-shadow(0px 0 1px rgba(210,210,210,0.6))
-    drop-shadow(0px 0 1px rgba(210,210,210,0.6));
+    drop-shadow(0px 0 ${1 * WEAPON_UI_SCALE}px rgba(210,210,210,0.6))
+    drop-shadow(0px 0 ${1 * WEAPON_UI_SCALE}px rgba(210,210,210,0.6))
+    drop-shadow(0px 0 ${1 * WEAPON_UI_SCALE}px rgba(210,210,210,0.6))
+    drop-shadow(0px 0 ${1 * WEAPON_UI_SCALE}px rgba(210,210,210,0.6));
 }
 
 #rbsWeaponIconFallback {
-  width: 48px;
-  height: 48px;
+  width: ${48 * WEAPON_UI_SCALE}px;
+  height: ${48 * WEAPON_UI_SCALE}px;
   display: grid;
   place-items: center;
   font-family: "Russo One", sans-serif;
-  font-size: 26px;
+  font-size: ${26 * WEAPON_UI_SCALE}px;
   line-height: 1;
   color: rgba(240,245,255,0.92);
-  border-radius: 12px;
+  border-radius: ${12 * WEAPON_UI_SCALE}px;
   background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.14);
+  border: ${1 * WEAPON_UI_SCALE}px solid rgba(255,255,255,0.14);
 
-  /* 2px light-grey outline for the fallback glyph */
+  /* light-grey outline for the fallback glyph (scaled) */
   text-shadow:
-    1px 0 0 rgba(210,210,210,0.6),
-    -1px 0 0 rgba(210,210,210,0.6),
-    0 1px 0 rgba(210,210,210,0.6),
-    0 -1px 0 rgba(210,210,210,0.6),
-    1px 1px 0 rgba(210,210,210,0.6),
-    -1px 1px 0 rgba(210,210,210,0.6),
-    1px -1px 0 rgba(210,210,210,0.6),
-    -1px -1px 0 rgba(210,210,210,0.6);
+    ${1 * WEAPON_UI_SCALE}px 0 0 rgba(210,210,210,0.6),
+    ${-1 * WEAPON_UI_SCALE}px 0 0 rgba(210,210,210,0.6),
+    0 ${1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6),
+    0 ${-1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6),
+    ${1 * WEAPON_UI_SCALE}px ${1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6),
+    ${-1 * WEAPON_UI_SCALE}px ${1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6),
+    ${1 * WEAPON_UI_SCALE}px ${-1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6),
+    ${-1 * WEAPON_UI_SCALE}px ${-1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6);
 }
 `;
   document.head.appendChild(style);
@@ -390,8 +395,8 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   crosshairImg.alt = "crosshair";
   crosshairImg.style.display = "none";
   // Default size; overwritten per type on equip (small=25px, large=50px).
-  crosshairImg.style.width = "25px";
-  crosshairImg.style.height = "25px";
+  crosshairImg.style.width = `${25 * WEAPON_UI_SCALE}px`;
+  crosshairImg.style.height = `${25 * WEAPON_UI_SCALE}px`;
   document.body.appendChild(crosshairImg);
 
   // --- DOM: weapon icon above HUD ---
@@ -415,8 +420,8 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     hudRoot.insertBefore(iconWrap, hudRoot.firstChild);
   } else {
     iconWrap.style.position = "fixed";
-    iconWrap.style.left = "14px";
-    iconWrap.style.bottom = "260px";
+    iconWrap.style.left = `${14 * WEAPON_UI_SCALE}px`;
+    iconWrap.style.bottom = `${260 * WEAPON_UI_SCALE}px`;
     iconWrap.style.zIndex = "10";
     document.body.appendChild(iconWrap);
   }
@@ -447,7 +452,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
   // High-DPI canvas for crisp wheel.
   const dpr = Math.max(1, window.devicePixelRatio || 1);
-  const CSS_SIZE = 360;
+  const CSS_SIZE = WEAPON_WHEEL_CSS_SIZE;
   wheelCanvas.width = Math.round(CSS_SIZE * dpr);
   wheelCanvas.height = Math.round(CSS_SIZE * dpr);
 
@@ -779,7 +784,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     // Hard pixel sizes:
     // - small: 25x25 px
     // - large: 50x50 px
-    const px = isLarge ? 50 : 25;
+    const px = isLarge ? 50 * WEAPON_UI_SCALE : 25 * WEAPON_UI_SCALE;
     crosshairImg.style.width = `${px}px`;
     crosshairImg.style.height = `${px}px`;
   }
@@ -1140,7 +1145,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
       ctx.fill();
 
       ctx.strokeStyle = isHover ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.14)";
-      ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
+      ctx.lineWidth = Math.max(1, Math.round(2 * WEAPON_WHEEL_SCALE * dpr));
       ctx.stroke();
       ctx.restore();
 
@@ -1159,12 +1164,12 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
       const ay = cy + uy * labelR;
 
       // Put the icon above the anchor, then put text below the icon.
-      const maxSize = 44 * dpr;
+      const maxSize = 44 * WEAPON_WHEEL_SCALE * dpr;
       const iconCx = ax;
-      const iconCy = ay - 10 * dpr;
+      const iconCy = ay - 10 * WEAPON_WHEEL_SCALE * dpr;
 
       // Default text position if there is no icon.
-      let textY = ay + 12 * dpr;
+      let textY = ay + 12 * WEAPON_WHEEL_SCALE * dpr;
 
       ctx.save();
       ctx.textAlign = "center";
@@ -1181,7 +1186,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
         const dh = ih * s;
 
         // 1px light-grey outline (match #rbsWeaponIconImg CSS drop-shadow).
-        const blurPx = Math.max(1, Math.round(1 * dpr));
+        const blurPx = Math.max(1, Math.round(1 * WEAPON_WHEEL_SCALE * dpr));
 
         // Draw once with filter to generate the outline, then draw again with no filter for crispness.
         ctx.filter =
@@ -1198,11 +1203,11 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
         ctx.drawImage(opt.iconImg, iconCx - dw / 2, iconCy - dh / 2, dw, dh);
 
         // Text sits below the drawn icon with a small gap.
-        textY = iconCy + dh / 2 + 10 * dpr;
+        textY = iconCy + dh / 2 + 10 * WEAPON_WHEEL_SCALE * dpr;
       }
 
       // Smaller label to prevent overlaps.
-      ctx.font = `${Math.round(11 * dpr)}px "Russo One", sans-serif`;
+      ctx.font = `${Math.round(11 * WEAPON_WHEEL_SCALE * dpr)}px "Russo One", sans-serif`;
       ctx.fillText(labelText, ax, textY);
 
       ctx.restore();
@@ -1215,7 +1220,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.10)";
-    ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
+    ctx.lineWidth = Math.max(1, Math.round(2 * WEAPON_WHEEL_SCALE * dpr));
     ctx.stroke();
     ctx.restore();
   }

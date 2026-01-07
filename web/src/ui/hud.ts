@@ -13,9 +13,11 @@ type MapPoly = {
 const MAP_METERS_W = 40;
 const MAP_METERS_H = 24;
 
-// Keep HUD compact.
-const MAP_CSS_W = 200; // px
-const MAP_CSS_H = 120; // px (200 * 0.6 = 120)
+const HUD_SCALE = 1.5;
+
+// Keep HUD compact (scaled).
+const MAP_CSS_W = 200 * HUD_SCALE; // px
+const MAP_CSS_H = 120 * HUD_SCALE; // px (200 * 0.6 = 120)
 
 // Simple gameplay constants for now.
 const MAX_HEALTH = 100;
@@ -153,6 +155,8 @@ function ensureHudStyle(): HTMLStyleElement {
   const existing = document.getElementById("rbs_hud_style") as HTMLStyleElement | null;
   if (existing) return existing;
 
+  const px = (v: number) => `${v * HUD_SCALE}px`;
+
   const style = document.createElement("style");
   style.id = "rbs_hud_style";
   style.textContent = `
@@ -162,24 +166,24 @@ function ensureHudStyle(): HTMLStyleElement {
 
 #rbsHudRoot {
   position: fixed;
-  left: 14px;
-  bottom: 14px;
+  left: ${px(14)};
+  bottom: ${px(14)};
   z-index: 10;
   pointer-events: none;
   user-select: none;
 }
 
 #rbsHudPanel {
-  width: 200px;
-  padding: 10px 10px 12px;
-  border-radius: 16px;
+  width: ${MAP_CSS_W}px;
+  padding: ${px(10)} ${px(10)} ${px(12)};
+  border-radius: ${px(16)};
 
   background: linear-gradient(180deg, rgba(12,14,18,0.78), rgba(8,10,14,0.62));
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow:
-    0 10px 28px rgba(0,0,0,0.40),
-    inset 0 1px 0 rgba(255,255,255,0.06);
-  backdrop-filter: blur(7px);
+    0 ${px(10)} ${px(28)} rgba(0,0,0,0.40),
+    inset 0 ${px(1)} 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(${px(7)});
 
   /* font inherited from #rbsHudRoot */
   color: rgba(240,245,255,0.92);
@@ -189,39 +193,39 @@ function ensureHudStyle(): HTMLStyleElement {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: ${px(8)};
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: ${px(11)};
   opacity: 0.9;
 }
 
 .rbsChip {
   font-weight: 500;
-  font-size: 10px;
+  font-size: ${px(10)};
   letter-spacing: 0.06em;
-  padding: 3px 8px;
-  border-radius: 999px;
+  padding: ${px(3)} ${px(8)};
+  border-radius: ${px(999)};
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.06);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: inset 0 ${px(1)} 0 rgba(255,255,255,0.06);
 }
 
 .rbsMapWrap {
   width: ${MAP_CSS_W}px;
   height: ${MAP_CSS_H}px;
-  border-radius: 14px;
+  border-radius: ${px(14)};
   overflow: hidden;
 
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(0,0,0,0.22);
   box-shadow:
-    inset 0 0 0 1px rgba(0,0,0,0.20),
-    0 6px 16px rgba(0,0,0,0.35);
+    inset 0 0 0 ${px(1)} rgba(0,0,0,0.20),
+    0 ${px(6)} ${px(16)} rgba(0,0,0,0.35);
 
   position: relative;
-  margin-bottom: 10px;
+  margin-bottom: ${px(10)};
 }
 
 .rbsMapCanvas {
@@ -233,13 +237,13 @@ function ensureHudStyle(): HTMLStyleElement {
 .rbsScanlines {
   position: absolute;
   inset: 0;
-  border-radius: 14px;
+  border-radius: ${px(14)};
   background:
     repeating-linear-gradient(
       to bottom,
       rgba(255,255,255,0.00) 0px,
-      rgba(255,255,255,0.00) 3px,
-      rgba(255,255,255,0.03) 4px
+      rgba(255,255,255,0.00) ${px(3)},
+      rgba(255,255,255,0.03) ${px(4)}
     );
   opacity: 0.35;
   mix-blend-mode: overlay;
@@ -247,24 +251,24 @@ function ensureHudStyle(): HTMLStyleElement {
 
 .rbsBars {
   display: grid;
-  gap: 8px;
+  gap: ${px(8)};
 }
 
 .rbsBarRow {
   display: grid;
-  grid-template-columns: 44px 1fr 54px;
+  grid-template-columns: ${px(44)} 1fr ${px(54)};
   align-items: center;
-  gap: 6px;
+  gap: ${px(6)};
 }
 
 .rbsLabel {
-  font-size: 11px;
+  font-size: ${px(11)};
   opacity: 0.9;
   letter-spacing: 0.04em;
 }
 
 .rbsValue {
-  font-size: 12px;
+  font-size: ${px(12)};
   font-weight: 500;
   text-align: right;
   letter-spacing: 0.03em;
@@ -272,22 +276,22 @@ function ensureHudStyle(): HTMLStyleElement {
 }
 
 .rbsBar {
-  height: 11px;
-  border-radius: 999px;
+  height: ${px(11)};
+  border-radius: ${px(999)};
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.06);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: inset 0 ${px(1)} 0 rgba(255,255,255,0.06);
   position: relative;
 }
 
 .rbsBarFill {
   height: 100%;
   width: 100%;
-  border-radius: 999px;
+  border-radius: ${px(999)};
   box-shadow:
-    0 0 14px rgba(255,255,255,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.18);
+    0 0 ${px(14)} rgba(255,255,255,0.10),
+    inset 0 ${px(1)} 0 rgba(255,255,255,0.18);
 }
 
 .rbsBarGloss {
@@ -424,8 +428,8 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     // Subtle grid (pixel space)
     ctx.save();
     ctx.globalAlpha = 0.18;
-    const gridStep = Math.round(18 * dpr);
-    ctx.lineWidth = Math.max(1, Math.round(1 * dpr));
+    const gridStep = Math.round(18 * HUD_SCALE * dpr);
+    ctx.lineWidth = Math.max(1, Math.round(1 * HUD_SCALE * dpr));
     ctx.strokeStyle = "rgba(255,255,255,0.06)";
     for (let x = 0; x <= w; x += gridStep) {
       ctx.beginPath();
@@ -487,11 +491,11 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     let sx = w / 2 + rx * scale;
     let sy = h / 2 - rz * scale;
 
-    const haloR = 9 * dpr;
+    const haloR = 9 * HUD_SCALE * dpr;
 
-    const baseW = 16 * dpr;
-    const baseH = 12 * dpr;
-    const roofH = 10 * dpr;
+    const baseW = 16 * HUD_SCALE * dpr;
+    const baseH = 12 * HUD_SCALE * dpr;
+    const roofH = 10 * HUD_SCALE * dpr;
 
     // If "home" is offscreen, clamp it to the minimap edge (direction indicator).
     // NOTE: Roof only extends upward, so top and bottom padding must be asymmetric.
@@ -575,7 +579,7 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
 
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
+    ctx.lineWidth = Math.max(1, Math.round(2 * HUD_SCALE * dpr));
     ctx.strokeStyle = "rgba(0,0,0,0.75)";
     ctx.fillStyle = offscreen ? "rgb(150 156 164)" : "rgb(240 245 255)";
 
@@ -596,7 +600,7 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
 
     // Door notch
     ctx.beginPath();
-    ctx.rect(sx - 2.2 * dpr, y1 - 6.2 * dpr, 4.4 * dpr, 6.2 * dpr);
+    ctx.rect(sx - 2.2 * HUD_SCALE * dpr, y1 - 6.2 * HUD_SCALE * dpr, 4.4 * HUD_SCALE * dpr, 6.2 * HUD_SCALE * dpr);
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fill();
 
@@ -606,9 +610,9 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     ctx.save();
     ctx.translate(w / 2, h / 2);
 
-    const tip = 10 * dpr;
-    const wing = 7 * dpr;
-    const tail = 9 * dpr;
+    const tip = 10 * HUD_SCALE * dpr;
+    const wing = 7 * HUD_SCALE * dpr;
+    const tail = 9 * HUD_SCALE * dpr;
 
     ctx.beginPath();
     ctx.moveTo(0, -tip);
@@ -619,14 +623,14 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
 
     ctx.fillStyle = "rgb(255 214 102)";
     ctx.strokeStyle = "rgba(0,0,0,0.65)";
-    ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
+    ctx.lineWidth = Math.max(1, Math.round(2 * HUD_SCALE * dpr));
 
     ctx.fill();
     ctx.stroke();
 
     // A tiny core dot for readability
     ctx.beginPath();
-    ctx.arc(0, 0, 1.6 * dpr, 0, Math.PI * 2);
+    ctx.arc(0, 0, 1.6 * HUD_SCALE * dpr, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fill();
 
