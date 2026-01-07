@@ -10,8 +10,8 @@ type MapPoly = {
   stroke: string;
 };
 
-const MAP_METERS_W = 10;
-const MAP_METERS_H = 6;
+const MAP_METERS_W = 40;
+const MAP_METERS_H = 24;
 
 // Keep HUD compact.
 const MAP_CSS_W = 200; // px
@@ -374,6 +374,10 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
 
   const mapPolys = buildMapPolys(houses);
 
+  // Capture spawn point (world XZ) once so the minimap can mark "home".
+  const spawnX = camera.position.x;
+  const spawnZ = camera.position.z;
+
   let disposed = false;
 
   let health = MAX_HEALTH;
@@ -465,6 +469,66 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
       ctx.strokeStyle = poly.stroke;
       ctx.stroke();
     }
+
+    ctx.restore();
+
+    // Spawn/home icon (screen space; does NOT rotate with minimap)
+    ctx.save();
+
+    const dx = spawnX - playerX;
+    const dz = spawnZ - playerZ;
+
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+
+    const rx = dx * c - dz * s;
+    const rz = dx * s + dz * c;
+
+    const sx = w / 2 + rx * scale;
+    const sy = h / 2 - rz * scale;
+
+    const haloR = 9 * dpr;
+
+    ctx.beginPath();
+    ctx.arc(sx, sy, haloR, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fill();
+
+    const baseW = 16 * dpr;
+    const baseH = 12 * dpr;
+    const roofH = 10 * dpr;
+
+    const x0 = sx - baseW / 2;
+    const x1 = sx + baseW / 2;
+    const y0 = sy - baseH / 2;
+    const y1 = sy + baseH / 2;
+
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
+    ctx.strokeStyle = "rgba(0,0,0,0.75)";
+    ctx.fillStyle = "rgb(240 245 255)";
+
+    // Roof (points upward on screen)
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y0);
+    ctx.lineTo(sx, y0 - roofH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Base
+    ctx.beginPath();
+    ctx.rect(x0, y0, baseW, baseH);
+    ctx.fill();
+    ctx.stroke();
+
+    // Door notch
+    ctx.beginPath();
+    ctx.rect(sx - 2.2 * dpr, y1 - 6.2 * dpr, 4.4 * dpr, 6.2 * dpr);
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fill();
 
     ctx.restore();
 

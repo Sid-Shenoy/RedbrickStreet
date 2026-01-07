@@ -19,10 +19,14 @@
 
 1.3) Minimap behavior (hard)
 
-1.3.1) The minimap must show a 10m x 6m area centered on the player.
+1.3.1) The minimap must show a 40m x 24m area centered on the player.
 1.3.2) The minimap must rotate to reflect player orientation so that "forward" is always up.
 1.3.3) The minimap must draw a centered triangular arrow representing the player:
 1.3.3.1) the arrow must always point "forward"/up on the minimap.
+
+1.3.4) The minimap must draw a small "house" icon at the player's spawn point.
+1.3.4.1) The spawn point must be captured once when `createHud` is called (world XZ).
+1.3.4.2) The icon must be drawn in minimap screen-space so it stays upright (does not rotate with the minimap), but its position must be computed from world coordinates under the minimap transform.
 
 1.4) Stamina behavior (hard)
 

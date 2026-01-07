@@ -15,3 +15,5 @@ web\src\scene\spawn.ts
 web\src\scene\stairs.ts
 web\src\scene\universalCameraXZKeyboardInput.ts
 web\src\scene\uvs.ts
+web\src\ui\hud.ts
+web\src\ui\weaponUi.ts
