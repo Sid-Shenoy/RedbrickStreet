@@ -647,6 +647,24 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     triggerDown = false;
   }
 
+  function shotTimingMs(wpn: WeaponConfig) {
+    const periodMs = 1000 / Math.max(0.001, wpn.fireRate);
+
+    // IMPORTANT:
+    // If the shot animation lasts longer than the firing period, it caps the fire rate.
+    // Keep a tiny safety margin so the next shot can start on time.
+    const SAFETY_MS = 2;
+
+    // Keep animation snappy, but NEVER exceed the firing period (minus safety).
+    const totalMs = Math.max(1, Math.min(150, periodMs - SAFETY_MS));
+
+    // FIRE frame is longer than the others for visibility.
+    const fireMs = Math.max(1, Math.min(totalMs - 1, totalMs * 0.4));
+    const otherMs = Math.max(0.001, (totalMs - fireMs) / 4);
+
+    return { periodMs, fireMs, otherMs };
+  }
+
   function startShot(nowMs: number) {
     const wpn = equipped;
     if (!wpn) return;
@@ -657,14 +675,10 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     // Ensure frames exist (safety)
     if (!equippedFrames) preloadFrames(wpn);
 
-    // Fixed animation speed: always 150ms total.
-    // Make the FIRE frame last longer than the others for better visibility.
-    // Frames: grip -> pull -> fire -> pull -> grip
-    const SHOT_ANIM_MS = 150;
-    const FIRE_MS = 60;
-    const OTHER_MS = (SHOT_ANIM_MS - FIRE_MS) / 4;
+    const { periodMs, otherMs } = shotTimingMs(wpn);
 
-    phaseDurMs = OTHER_MS;
+    // Start on grip, then advance by time.
+    phaseDurMs = otherMs;
 
     shotActive = true;
     shotPhase = 0;
@@ -674,25 +688,22 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     setHandFrame("grip");
 
     // Schedule next shot strictly by fireRate (avoid drift / unintended slowdown).
-    const periodMs = 1000 / Math.max(0.001, wpn.fireRate);
+    const period = periodMs;
 
     // Advance the cadence clock from its prior "ideal" value, snapping forward if we fell behind.
     if (nextShotAtMs <= 0) nextShotAtMs = nowMs;
-    nextShotAtMs += periodMs;
-    if (nextShotAtMs < nowMs) nextShotAtMs = nowMs + periodMs;
+    nextShotAtMs += period;
+    if (nextShotAtMs < nowMs) nextShotAtMs = nowMs + period;
   }
 
   function advancePhase(nowMs: number) {
     const wpn = equipped;
     if (!wpn) return;
 
-    // Fixed 150ms total; FIRE frame is longer than the others.
-    const SHOT_ANIM_MS = 150;
-    const FIRE_MS = 60;
-    const OTHER_MS = (SHOT_ANIM_MS - FIRE_MS) / 4;
+    const { fireMs, otherMs } = shotTimingMs(wpn);
 
     function durForPhase(phase: 0 | 1 | 2 | 3 | 4) {
-      return phase === 2 ? FIRE_MS : OTHER_MS;
+      return phase === 2 ? fireMs : otherMs;
     }
 
     // Time-based animation (not frame-based) to keep timing stable even if FPS fluctuates.
