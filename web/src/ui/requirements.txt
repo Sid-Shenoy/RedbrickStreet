@@ -114,3 +114,41 @@
 2.6.2.1) grip -> pull -> fire -> pull -> grip
 2.6.3) Each shot must play `/assets/audio/sfx/gunshot.mp3`.
 2.6.4) Playback volume must be `weapon.shotVolume / 100` (clamped to [0,1]).
+
+2.7) Ammunition display (hard)
+
+2.7.1) When a weapon is equipped (not Unarmed), an ammo readout must be shown below the weapon-in-hand image.
+2.7.2) The readout must clearly show:
+2.7.2.1) current rounds in the clip
+2.7.2.2) clip size
+2.7.2.3) reserve rounds (ammo not currently loaded)
+2.7.3) The readout must NOT be redundant:
+2.7.3.1) it must NOT display both reserve and total ammo simultaneously
+2.7.3.2) it must NOT display both clip size and capacity simultaneously
+2.7.4) When Unarmed, the ammo readout must not be visible.
+
+Example format (one line):
+`CLIP 7/8 | RES 66`
+
+2.8) Reloading (hard)
+
+2.8.1) Each weapon must track:
+2.8.1.1) rounds currently loaded in the clip
+2.8.1.2) reserve rounds carried (not in clip)
+2.8.2) When the clip reaches 0 and reserve ammo is available, the weapon must reload.
+2.8.3) Reload animation (hard):
+2.8.3.1) Reload must use the exact same transition animation as weapon switching (down off-screen, then back up),
+2.8.3.2) but re-equipping the currently equipped weapon (same weapon).
+2.8.4) While reloading:
+2.8.4.1) shooting must be disabled
+2.8.4.2) the ammo readout must update after reload completes.
+2.8.5) Reloading must move ammo from reserve into the clip up to `weapon.clipSize`.
+
+2.9) Home ammo refill (hard)
+
+2.9.1) The weapon UI must capture the player's home position (world XZ) once when `createWeaponUi` is called.
+2.9.2) If the player is within 3.0 meters of home (2D distance in XZ):
+2.9.2.1) ammo must automatically refill to full for all weapons.
+2.9.3) "Full" means:
+2.9.3.1) clip rounds = `weapon.clipSize`
+2.9.3.2) reserve rounds = `weapon.capacity - weapon.clipSize`

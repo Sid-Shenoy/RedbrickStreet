@@ -18,6 +18,10 @@ export interface WeaponUiApi {
 const GUNSHOT_SRC = "/assets/audio/sfx/gunshot.mp3";
 const RELOAD_SRC = "/assets/audio/sfx/reload.mp3";
 
+const HOME_REFILL_DIST_M = 3.0;
+
+type AmmoState = { clip: number; reserve: number };
+
 function ensureWeaponUiStyle(): HTMLStyleElement {
   const existing = document.getElementById("rbs_weapon_ui_style") as HTMLStyleElement | null;
   if (existing) return existing;
@@ -34,6 +38,30 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   pointer-events: none;
   user-select: none;
   z-index: 12;
+}
+
+#rbsAmmoReadout {
+  position: fixed;
+  right: 14px;
+  bottom: 18px;
+  z-index: 13;
+  pointer-events: none;
+  user-select: none;
+
+  font-family: "Russo One", sans-serif;
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  color: rgba(240,245,255,0.92);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+
+  background: rgba(8,10,14,0.46);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.32);
 }
 
 #rbsCrosshair {
@@ -168,9 +196,7 @@ function weaponIconSrc(w: WeaponConfig) {
   return `/assets/weapons/${w.name}/icon.png`;
 }
 function crosshairSrc(w: WeaponConfig) {
-  return w.crosshair === "large"
-    ? "/assets/weapons/crosshairs/large.svg"
-    : "/assets/weapons/crosshairs/small.svg";
+  return w.crosshair === "large" ? "/assets/weapons/crosshairs/large.svg" : "/assets/weapons/crosshairs/small.svg";
 }
 
 function makeGunshotPool(size: number): HTMLAudioElement[] {
@@ -186,6 +212,49 @@ function makeGunshotPool(size: number): HTMLAudioElement[] {
 export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons: WeaponConfig[]): WeaponUiApi {
   ensureWeaponUiStyle();
   ensureAmbience();
+
+  // Capture "home" once: weapon UI is created after spawn, so active camera is already at home/spawn.
+  const homeX = scene.activeCamera?.position.x ?? 0;
+  const homeZ = scene.activeCamera?.position.z ?? 0;
+
+  function validateWeaponAmmoFields(w: WeaponConfig) {
+    if (!Number.isFinite(w.clipSize) || w.clipSize <= 0 || Math.floor(w.clipSize) !== w.clipSize) {
+      throw new Error(`[RBS] weapons.json invalid clipSize for ${w.name}: ${String(w.clipSize)}`);
+    }
+    if (!Number.isFinite(w.capacity) || w.capacity <= 0 || Math.floor(w.capacity) !== w.capacity) {
+      throw new Error(`[RBS] weapons.json invalid capacity for ${w.name}: ${String(w.capacity)}`);
+    }
+    if (w.capacity < w.clipSize) {
+      throw new Error(`[RBS] weapons.json capacity < clipSize for ${w.name}: ${w.capacity} < ${w.clipSize}`);
+    }
+  }
+
+  // Ammo state per weapon (persists across weapon switching).
+  const ammoByWeaponId = new Map<number, AmmoState>();
+
+  function ensureAmmoState(w: WeaponConfig): AmmoState {
+    const s = ammoByWeaponId.get(w.id);
+    if (s) return s;
+
+    validateWeaponAmmoFields(w);
+    const st: AmmoState = { clip: w.clipSize, reserve: w.capacity - w.clipSize };
+    ammoByWeaponId.set(w.id, st);
+    return st;
+  }
+
+  function ammoFullForWeapon(w: WeaponConfig) {
+    const st = ensureAmmoState(w);
+    st.clip = w.clipSize;
+    st.reserve = w.capacity - w.clipSize;
+  }
+
+  function isAmmoFullForWeapon(w: WeaponConfig): boolean {
+    const st = ensureAmmoState(w);
+    return st.clip === w.clipSize && st.reserve === w.capacity - w.clipSize;
+  }
+
+  // Initialize ammo for all weapons immediately.
+  for (const w of weapons) ensureAmmoState(w);
 
   // Map by equip key (2..N from weapons.json).
   const byKey = new Map<number, WeaponConfig>();
@@ -211,10 +280,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   }
 
   // Preload ALL weapon images (hand frames + icons) up front to prevent first-use stutter.
-  const weaponAssetsById = new Map<
-    number,
-    { grip: HTMLImageElement; pull: HTMLImageElement; fire: HTMLImageElement; icon: HTMLImageElement }
-  >();
+  const weaponAssetsById = new Map<number, { grip: HTMLImageElement; pull: HTMLImageElement; fire: HTMLImageElement; icon: HTMLImageElement }>();
 
   for (const w of weapons) {
     weaponAssetsById.set(w.id, {
@@ -242,6 +308,30 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   handImg.alt = "weapon";
   handImg.style.display = "none";
   document.body.appendChild(handImg);
+
+  // --- DOM: ammo readout (bottom-right, below weapon UI) ---
+  const ammoReadout = document.createElement("div");
+  ammoReadout.id = "rbsAmmoReadout";
+  ammoReadout.style.display = "none";
+  ammoReadout.textContent = "";
+  document.body.appendChild(ammoReadout);
+
+  function setAmmoReadoutVisible(v: boolean) {
+    ammoReadout.style.display = v ? "block" : "none";
+  }
+
+  function updateAmmoReadout() {
+    if (!equipped) {
+      ammoReadout.textContent = "";
+      setAmmoReadoutVisible(false);
+      return;
+    }
+    const st = ensureAmmoState(equipped);
+    const clip = Math.max(0, Math.floor(st.clip));
+    const res = Math.max(0, Math.floor(st.reserve));
+    ammoReadout.textContent = `CLIP ${clip}/${equipped.clipSize}  |  RES ${res}`;
+    setAmmoReadoutVisible(true);
+  }
 
   // --- DOM: crosshair (center) ---
   const crosshairImg = document.createElement("img");
@@ -335,18 +425,22 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   let nextShotAtMs = 0;
   let firedThisShot = false;
 
+  // If the equipped clip hits 0 during a held trigger, we queue a reload to start after the shot finishes.
+  let reloadQueued = false;
+  let reloadInProgress = false;
+
   // Audio pool for rapid-fire overlap.
   const gunshotPool = makeGunshotPool(10);
   let gunshotIdx = 0;
 
-  // Reload SFX (played once on weapon equip; not used for unarmed).
+  // Reload SFX (played once on weapon equip; used for reload too; not used for unarmed).
   const reloadSfx = new Audio(RELOAD_SRC);
   reloadSfx.preload = "auto";
   reloadSfx.volume = 0.2;
 
   // Weapon-hand recoil (CSS px). Triggered on each shot FIRE frame.
   const RECOIL_PX = 8;
-  const RECOIL_SNAP_MS = 40;   // hold max recoil briefly (jerky snap)
+  const RECOIL_SNAP_MS = 40; // hold max recoil briefly (jerky snap)
   const RECOIL_RETURN_MS = 80; // return back to neutral
 
   let recoilStartMs = 0;
@@ -379,11 +473,31 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     return Math.max(200, Math.round(window.innerHeight * (vh / 100) + 120));
   }
 
+  function completeReloadIfNeeded() {
+    if (!reloadInProgress) return;
+    reloadInProgress = false;
+
+    const wpn = equipped;
+    if (!wpn) return;
+
+    const st = ensureAmmoState(wpn);
+    const need = Math.max(0, wpn.clipSize - st.clip);
+    const take = Math.min(need, st.reserve);
+
+    st.clip += take;
+    st.reserve -= take;
+
+    updateAmmoReadout();
+  }
+
   function finishEquipAnim() {
     equipAnimMode = "none";
     equipExtraDownPx = 0;
     equipAnimTarget = null;
     equipAnimSwapDone = false;
+
+    // If the animation was a reload, actually move ammo *after* the reload completes.
+    completeReloadIfNeeded();
   }
 
   function triggerRecoil(nowMs: number) {
@@ -423,6 +537,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     triggerDown = false;
     shotActive = false;
     firedThisShot = false;
+    reloadQueued = false;
 
     // Reset to grip if still armed.
     if (equipped) setHandFrame("grip");
@@ -437,6 +552,9 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   function startShot(nowMs: number) {
     const wpn = equipped;
     if (!wpn) return;
+
+    const st = ensureAmmoState(wpn);
+    if (st.clip <= 0) return;
 
     // Ensure frames exist (safety)
     if (!equippedFrames) preloadFrames(wpn);
@@ -499,6 +617,18 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
         setHandFrame("fire");
         if (!firedThisShot) {
           firedThisShot = true;
+
+          const st = ensureAmmoState(wpn);
+          if (st.clip > 0) {
+            st.clip -= 1;
+            if (st.clip < 0) st.clip = 0;
+            updateAmmoReadout();
+
+            if (st.clip === 0 && st.reserve > 0) {
+              reloadQueued = true;
+            }
+          }
+
           triggerRecoil(nowMs);
           playGunshot(Math.max(0, Math.min(1, wpn.shotVolume / 100)));
         }
@@ -578,6 +708,10 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
       setHandVisible(false);
       setCrosshairVisible(false);
       setWeaponIconUnarmed();
+
+      setAmmoReadoutVisible(false);
+      ammoReadout.textContent = "";
+
       return;
     }
 
@@ -594,6 +728,8 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     setCrosshairVisible(true);
 
     setWeaponIconWeapon(equipped);
+
+    updateAmmoReadout();
   }
 
   function requestEquip(next: WeaponConfig | null) {
@@ -642,8 +778,69 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     }
   }
 
+  function requestReloadCurrentWeapon() {
+    if (!equipped) return;
+    if (wheelOpen) return;
+    if (equipAnimMode !== "none") return;
+    if (shotActive) return;
+
+    const wpn = equipped;
+    const st = ensureAmmoState(wpn);
+
+    if (st.reserve <= 0) return;
+    if (st.clip >= wpn.clipSize) return;
+
+    // Keep triggerDown as-is (holding LMB should continue firing after reload).
+    reloadQueued = false;
+    reloadInProgress = true;
+
+    // Reset cadence so the next shot can happen immediately after reload completes.
+    nextShotAtMs = 0;
+
+    playReload();
+
+    const now = performance.now();
+
+    // Use the exact same animation as weapon switching, but to the same weapon.
+    equipAnimMode = "downSwapUp";
+    equipAnimStartMs = now;
+    equipAnimOffscreenPx = handOffscreenPxForVh(wpn.handHeightVh);
+    equipAnimTarget = wpn;
+    equipAnimSwapDone = false;
+  }
+
   // Start unarmed.
   applyEquipImmediate(null);
+
+  // Auto-refill ammo at home (within 3m in XZ) for ALL weapons.
+  const homeAmmoObs = scene.onBeforeRenderObservable.add(() => {
+    if (disposed) return;
+
+    const cam = scene.activeCamera;
+    if (!cam) return;
+
+    const dx = cam.position.x - homeX;
+    const dz = cam.position.z - homeZ;
+
+    if (Math.hypot(dx, dz) > HOME_REFILL_DIST_M) return;
+
+    // Only do work if any weapon is not already full.
+    let needs = false;
+    for (const w of weapons) {
+      if (!isAmmoFullForWeapon(w)) {
+        needs = true;
+        break;
+      }
+    }
+    if (!needs) return;
+
+    // If we refill at home, cancel any pending reload transfers.
+    reloadQueued = false;
+    reloadInProgress = false;
+
+    for (const w of weapons) ammoFullForWeapon(w);
+    updateAmmoReadout();
+  });
 
   // Idle hand bob + recoil (bottom-right).
   // Bob is always negative so the image stays below the screen edge.
@@ -700,6 +897,13 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     const bob = equipAnimMode === "none" ? 4 * Math.sin(ms / 500) : 0;
     const offset = bob - 48 - equipExtraDownPx;
     handImg.style.bottom = `${offset}px`;
+
+    // Fade ammo while weapon is hidden / reloading / switching.
+    if (equipped) {
+      ammoReadout.style.opacity = equipAnimMode === "none" ? "1" : "0";
+    } else {
+      ammoReadout.style.opacity = "0";
+    }
 
     // Recoil: snap right, then return to neutral.
     let recoilX = 0;
@@ -910,7 +1114,20 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     if (equipAnimMode !== "none") return;
     if (triggerDown) return;
 
+    const st = ensureAmmoState(equipped);
+
     triggerDown = true;
+
+    // If clip is empty, force reload (same animation as switching, same weapon).
+    if (st.clip <= 0) {
+      if (st.reserve > 0) {
+        requestReloadCurrentWeapon();
+      } else {
+        // No ammo at all: do nothing (require re-press later).
+        triggerDown = false;
+      }
+      return;
+    }
 
     // Immediate first shot (no waiting for a timeout).
     startShot(performance.now());
@@ -923,6 +1140,12 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     if (wheelOpen) return;
     if (equipAnimMode !== "none") return;
 
+    // If we finished a shot and the clip is empty (but reserve exists), reload before trying to fire again.
+    if (!shotActive && reloadQueued) {
+      requestReloadCurrentWeapon();
+      return;
+    }
+
     const now = performance.now();
 
     // ALWAYS advance an in-progress shot, even if the trigger was released.
@@ -934,6 +1157,13 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
     // Only start new shots while the trigger is held.
     if (!triggerDown) return;
+
+    const st = ensureAmmoState(equipped);
+    if (st.clip <= 0) {
+      if (st.reserve > 0) requestReloadCurrentWeapon();
+      else triggerDown = false;
+      return;
+    }
 
     if (nextShotAtMs <= 0 || now >= nextShotAtMs) startShot(now);
   });
@@ -1079,6 +1309,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
     scene.onBeforeRenderObservable.remove(fireObs);
     scene.onBeforeRenderObservable.remove(handBobObs);
+    scene.onBeforeRenderObservable.remove(homeAmmoObs);
 
     wheelBackdrop.removeEventListener("mousedown", onBackdropClick);
     wheelCanvas.removeEventListener("pointermove", onWheelMove);
@@ -1093,6 +1324,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     window.removeEventListener("blur", onBlur);
 
     handImg.remove();
+    ammoReadout.remove();
     crosshairImg.remove();
     wheelRoot.remove();
 
