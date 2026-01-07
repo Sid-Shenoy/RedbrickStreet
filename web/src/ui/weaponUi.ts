@@ -352,6 +352,40 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   let recoilStartMs = 0;
   let recoilActive = false;
 
+  // Equip transition animation (hand dips off-screen, swaps, returns).
+  type EquipAnimMode = "none" | "downSwapUp" | "upOnly" | "downOnly";
+
+  const EQUIP_DOWN_MS = 110;
+  const EQUIP_UP_MS = 130;
+
+  let equipAnimMode: EquipAnimMode = "none";
+  let equipAnimStartMs = 0;
+  let equipAnimOffscreenPx = 0;
+  let equipAnimTarget: WeaponConfig | null = null;
+  let equipAnimSwapDone = false;
+
+  // Additional downward offset applied to the weapon-hand image (px).
+  let equipExtraDownPx = 0;
+
+  function easeInQuad(t: number) {
+    return t * t;
+  }
+
+  function easeOutQuad(t: number) {
+    return 1 - (1 - t) * (1 - t);
+  }
+
+  function handOffscreenPxForVh(vh: number) {
+    return Math.max(200, Math.round(window.innerHeight * (vh / 100) + 120));
+  }
+
+  function finishEquipAnim() {
+    equipAnimMode = "none";
+    equipExtraDownPx = 0;
+    equipAnimTarget = null;
+    equipAnimSwapDone = false;
+  }
+
   function triggerRecoil(nowMs: number) {
     recoilStartMs = nowMs;
     recoilActive = true;
@@ -532,10 +566,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     if (handImg.src !== img.src) handImg.src = img.src;
   }
 
-  function equipWeapon(next: WeaponConfig | null) {
-    // Any equip action immediately stops shooting + resets animation.
-    stopFiring();
-
+  function applyEquipImmediate(next: WeaponConfig | null) {
     const prev = equipped;
     const shouldPlayReload = !!next && (!prev || prev.id !== next.id);
 
@@ -565,8 +596,54 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     setWeaponIconWeapon(equipped);
   }
 
+  function requestEquip(next: WeaponConfig | null) {
+    // Any equip request immediately stops shooting + resets animation.
+    stopFiring();
+
+    // No change => no-op (prevents replaying reload/animation).
+    if (equipped && next && equipped.id === next.id) return;
+    if (!equipped && !next) return;
+
+    const now = performance.now();
+
+    // Weapon -> weapon: dip down, swap while hidden, return.
+    if (equipped && next) {
+      equipAnimMode = "downSwapUp";
+      equipAnimStartMs = now;
+      equipAnimOffscreenPx = handOffscreenPxForVh(equipped.handHeightVh);
+      equipAnimTarget = next;
+      equipAnimSwapDone = false;
+      return;
+    }
+
+    // Unarmed -> weapon: spawn hidden, then rise with the new weapon.
+    if (!equipped && next) {
+      applyEquipImmediate(next);
+      equipAnimMode = "upOnly";
+      equipAnimStartMs = now;
+      equipAnimOffscreenPx = handOffscreenPxForVh(next.handHeightVh);
+      equipExtraDownPx = equipAnimOffscreenPx;
+
+      // Force it to start hidden immediately (avoids a 1-frame pop-in before the render-loop runs).
+      handImg.style.bottom = `${-48 - equipExtraDownPx}px`;
+
+      equipAnimTarget = null;
+      equipAnimSwapDone = true;
+      return;
+    }
+
+    // Weapon -> unarmed: dip down, then hide.
+    if (equipped && !next) {
+      equipAnimMode = "downOnly";
+      equipAnimStartMs = now;
+      equipAnimOffscreenPx = handOffscreenPxForVh(equipped.handHeightVh);
+      equipAnimTarget = null;
+      equipAnimSwapDone = false;
+    }
+  }
+
   // Start unarmed.
-  equipWeapon(null);
+  applyEquipImmediate(null);
 
   // Idle hand bob + recoil (bottom-right).
   // Bob is always negative so the image stays below the screen edge.
@@ -574,7 +651,54 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     if (disposed) return;
     const ms = performance.now();
 
-    const offset = (4 * Math.sin(ms / 500)) - 48;
+    // Equip transition: dip off-screen, swap while hidden, return.
+    if (equipAnimMode !== "none") {
+      const t = ms - equipAnimStartMs;
+
+      if (equipAnimMode === "downSwapUp") {
+        if (t < EQUIP_DOWN_MS) {
+          equipExtraDownPx = equipAnimOffscreenPx * easeInQuad(t / EQUIP_DOWN_MS);
+        } else {
+          if (!equipAnimSwapDone) {
+            applyEquipImmediate(equipAnimTarget);
+            equipAnimSwapDone = true;
+
+            // If the new weapon has a different hand height, keep it fully hidden while returning.
+            if (equipped) equipAnimOffscreenPx = handOffscreenPxForVh(equipped.handHeightVh);
+          }
+
+          const u = (t - EQUIP_DOWN_MS) / EQUIP_UP_MS;
+          if (u < 1) {
+            equipExtraDownPx = equipAnimOffscreenPx * (1 - easeOutQuad(u));
+          } else {
+            finishEquipAnim();
+          }
+        }
+      } else if (equipAnimMode === "upOnly") {
+        const u = t / EQUIP_UP_MS;
+        if (u < 1) {
+          equipExtraDownPx = equipAnimOffscreenPx * (1 - easeOutQuad(u));
+        } else {
+          finishEquipAnim();
+        }
+      } else if (equipAnimMode === "downOnly") {
+        if (t < EQUIP_DOWN_MS) {
+          equipExtraDownPx = equipAnimOffscreenPx * easeInQuad(t / EQUIP_DOWN_MS);
+        } else {
+          if (!equipAnimSwapDone) {
+            applyEquipImmediate(null);
+            equipAnimSwapDone = true;
+          }
+          finishEquipAnim();
+        }
+      }
+    } else {
+      equipExtraDownPx = 0;
+    }
+
+    // Disable bob during equip transitions to keep the dip/return crisp.
+    const bob = equipAnimMode === "none" ? 4 * Math.sin(ms / 500) : 0;
+    const offset = bob - 48 - equipExtraDownPx;
     handImg.style.bottom = `${offset}px`;
 
     // Recoil: snap right, then return to neutral.
@@ -783,6 +907,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   function beginFiring() {
     if (!equipped) return;
     if (wheelOpen) return;
+    if (equipAnimMode !== "none") return;
     if (triggerDown) return;
 
     triggerDown = true;
@@ -796,6 +921,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     if (disposed) return;
     if (!equipped) return;
     if (wheelOpen) return;
+    if (equipAnimMode !== "none") return;
 
     const now = performance.now();
 
@@ -836,14 +962,14 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
     // 1 is always unarmed.
     if (n === 1) {
-      equipWeapon(null);
+      requestEquip(null);
       if (wheelOpen) closeWheel();
       return;
     }
 
     const wpn = byKey.get(n) ?? null;
     if (wpn) {
-      equipWeapon(wpn);
+      requestEquip(wpn);
       if (wheelOpen) closeWheel();
     }
   };
@@ -908,7 +1034,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     }
 
     const opt = wheelOptions[idx]!;
-    equipWeapon(opt.weapon);
+    requestEquip(opt.weapon);
     closeWheel();
 
     // Don't steal focus. Let player click canvas to re-lock pointer.
@@ -981,13 +1107,13 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
     getEquipped: () => equipped,
     setEquippedByKey: (key: number) => {
       if (key === 1) {
-        equipWeapon(null);
+        requestEquip(null);
         closeWheel();
         return;
       }
       const wpn = byKey.get(key) ?? null;
       if (wpn) {
-        equipWeapon(wpn);
+        requestEquip(wpn);
         closeWheel();
       }
     },
