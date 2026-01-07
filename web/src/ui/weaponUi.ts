@@ -338,6 +338,19 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   const gunshotPool = makeGunshotPool(10);
   let gunshotIdx = 0;
 
+  // Weapon-hand recoil (CSS px). Triggered on each shot FIRE frame.
+  const RECOIL_PX = 8;
+  const RECOIL_SNAP_MS = 40;   // hold max recoil briefly (jerky snap)
+  const RECOIL_RETURN_MS = 80; // return back to neutral
+
+  let recoilStartMs = 0;
+  let recoilActive = false;
+
+  function triggerRecoil(nowMs: number) {
+    recoilStartMs = nowMs;
+    recoilActive = true;
+  }
+
   function playGunshot(volume01: number) {
     const a = gunshotPool[gunshotIdx]!;
     gunshotIdx = (gunshotIdx + 1) % gunshotPool.length;
@@ -434,6 +447,7 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
         setHandFrame("fire");
         if (!firedThisShot) {
           firedThisShot = true;
+          triggerRecoil(nowMs);
           playGunshot(Math.max(0, Math.min(1, wpn.shotVolume / 100)));
         }
       } else if (shotPhase === 3) setHandFrame("pull");
@@ -531,12 +545,33 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   // Start unarmed.
   equipWeapon(null);
 
-  // Idle hand bob (bottom-right). Always negative offset so the image stays below the screen edge.
+  // Idle hand bob + recoil (bottom-right).
+  // Bob is always negative so the image stays below the screen edge.
   const handBobObs = scene.onBeforeRenderObservable.add(() => {
     if (disposed) return;
     const ms = performance.now();
+
     const offset = (4 * Math.sin(ms / 500)) - 48;
     handImg.style.bottom = `${offset}px`;
+
+    // Recoil: snap right, then return to neutral.
+    let recoilX = 0;
+    if (recoilActive) {
+      const t = ms - recoilStartMs;
+
+      if (t <= RECOIL_SNAP_MS) {
+        recoilX = RECOIL_PX;
+      } else if (t <= RECOIL_SNAP_MS + RECOIL_RETURN_MS) {
+        const u = (t - RECOIL_SNAP_MS) / RECOIL_RETURN_MS;
+        recoilX = RECOIL_PX * (1 - Math.max(0, Math.min(1, u)));
+      } else {
+        recoilActive = false;
+        recoilX = 0;
+      }
+    }
+
+    // hand is positioned with `right: 0`; negative right shifts it to the right (offscreen) for recoil.
+    handImg.style.right = `${-recoilX}px`;
   });
 
   function openWheel() {
