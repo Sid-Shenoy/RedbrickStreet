@@ -484,19 +484,89 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     const rx = dx * c - dz * s;
     const rz = dx * s + dz * c;
 
-    const sx = w / 2 + rx * scale;
-    const sy = h / 2 - rz * scale;
+    let sx = w / 2 + rx * scale;
+    let sy = h / 2 - rz * scale;
 
     const haloR = 9 * dpr;
+
+    const baseW = 16 * dpr;
+    const baseH = 12 * dpr;
+    const roofH = 10 * dpr;
+
+    // If "home" is offscreen, clamp it to the minimap edge (direction indicator).
+    // NOTE: Roof only extends upward, so top and bottom padding must be asymmetric.
+    const iconHalfW = baseW / 2;
+    const iconHalfH = baseH / 2 + roofH;
+
+    const marginLeft = iconHalfW;
+    const marginRight = iconHalfW;
+    const marginTop = iconHalfH;
+    const marginBottom = baseH / 2;
+
+    const minX = marginLeft;
+    const maxX = w - marginRight;
+    const minY = marginTop;
+    const maxY = h - marginBottom;
+
+    const offscreen = sx < minX || sx > maxX || sy < minY || sy > maxY;
+
+    if (offscreen) {
+      const cx = w / 2;
+      const cy = h / 2;
+      const vx = sx - cx;
+      const vy = sy - cy;
+
+      let bestU = Infinity;
+      let bestX = sx;
+      let bestY = sy;
+
+      const eps = 1e-6;
+
+      // Intersect ray (cx,cy) + u*(vx,vy) with the inset rectangle.
+      if (Math.abs(vx) > eps) {
+        const uL = (minX - cx) / vx;
+        const yL = cy + vy * uL;
+        if (uL > 0 && yL >= minY - eps && yL <= maxY + eps && uL < bestU) {
+          bestU = uL;
+          bestX = minX;
+          bestY = yL;
+        }
+
+        const uR = (maxX - cx) / vx;
+        const yR = cy + vy * uR;
+        if (uR > 0 && yR >= minY - eps && yR <= maxY + eps && uR < bestU) {
+          bestU = uR;
+          bestX = maxX;
+          bestY = yR;
+        }
+      }
+
+      if (Math.abs(vy) > eps) {
+        const uT = (minY - cy) / vy;
+        const xT = cx + vx * uT;
+        if (uT > 0 && xT >= minX - eps && xT <= maxX + eps && uT < bestU) {
+          bestU = uT;
+          bestX = xT;
+          bestY = minY;
+        }
+
+        const uB = (maxY - cy) / vy;
+        const xB = cx + vx * uB;
+        if (uB > 0 && xB >= minX - eps && xB <= maxX + eps && uB < bestU) {
+          bestU = uB;
+          bestX = xB;
+          bestY = maxY;
+        }
+      }
+
+      sx = bestX;
+      sy = bestY;
+    }
 
     ctx.beginPath();
     ctx.arc(sx, sy, haloR, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     ctx.fill();
-
-    const baseW = 16 * dpr;
-    const baseH = 12 * dpr;
-    const roofH = 10 * dpr;
 
     const x0 = sx - baseW / 2;
     const x1 = sx + baseW / 2;
@@ -507,7 +577,7 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     ctx.lineCap = "round";
     ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
     ctx.strokeStyle = "rgba(0,0,0,0.75)";
-    ctx.fillStyle = "rgb(240 245 255)";
+    ctx.fillStyle = offscreen ? "rgb(150 156 164)" : "rgb(240 245 255)";
 
     // Roof (points upward on screen)
     ctx.beginPath();
