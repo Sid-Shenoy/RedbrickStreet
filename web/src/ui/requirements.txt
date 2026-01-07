@@ -187,8 +187,15 @@ Example format (one line):
 3.4) API format
 
 3.4.1) The returned `introUiApi` must provide:
-3.4.1.1) `waitForStart() -> Promise<void>` which resolves when Space is pressed, and closes the overlay
+3.4.1.1) `waitForStart() -> Promise<void>` which resolves when the intro is started (Space key or Start mission button), and closes the overlay
 3.4.1.2) `dispose() -> void` which closes the overlay without starting
+
+3.5) Start briefing audio (hard)
+
+3.5.1) When the intro overlay is started (via Space key or Start mission button), play:
+3.5.1.1) `/assets/audio/dialogue/conversations/start.mp3`
+3.5.2) The audio must play exactly once per intro start.
+3.5.3) The audio must begin immediately when the intro closes/starts.
 
 Example usage:
 ```

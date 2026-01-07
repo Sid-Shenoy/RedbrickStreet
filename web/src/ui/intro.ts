@@ -1,5 +1,7 @@
 import type { Scene } from "@babylonjs/core";
 
+const START_CONVO_SRC = "/assets/audio/dialogue/conversations/start.mp3";
+
 export interface IntroUiApi {
   waitForStart(): Promise<void>;
   dispose(): void;
@@ -179,6 +181,15 @@ function keyLabel(text: string): HTMLSpanElement {
 export function createIntroOverlay(scene: Scene): IntroUiApi {
   ensureIntroStyle();
 
+  // Preload the start-of-game radio conversation (playable via user gesture).
+  const startConvo = new Audio(START_CONVO_SRC);
+  startConvo.preload = "auto";
+  try {
+    startConvo.load();
+  } catch {
+    // no-op
+  }
+
   const root = document.createElement("div");
   root.id = "rbsIntroRoot";
 
@@ -271,10 +282,30 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
   startBtn.appendChild(document.createTextNode("Start mission"));
   startBtn.appendChild(keyLabel("Space"));
 
+  let started = false;
+
+  function triggerStart() {
+    if (disposed) return;
+    if (started) return;
+    started = true;
+
+    // Play immediately on the user gesture to avoid autoplay blocking.
+    try {
+      startConvo.currentTime = 0;
+    } catch {
+      // no-op
+    }
+    void startConvo.play().catch(() => {
+      // no-op (browser may still block in edge cases)
+    });
+
+    resolveStart?.();
+  }
+
   const onStartClick = (ev: MouseEvent) => {
     if (disposed) return;
     ev.preventDefault();
-    resolveStart?.();
+    triggerStart();
   };
 
   startBtn.addEventListener("click", onStartClick);
@@ -302,7 +333,7 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
     if (disposed) return;
     if (ev.code !== "Space" || ev.repeat) return;
     ev.preventDefault();
-    resolveStart?.();
+    triggerStart();
   };
 
   window.addEventListener("keydown", onKeyDown);
