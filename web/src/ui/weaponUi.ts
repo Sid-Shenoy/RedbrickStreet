@@ -231,8 +231,17 @@ function crosshairSrc(w: WeaponConfig) {
 function makeGunshotPool(size: number): HTMLAudioElement[] {
   const pool: HTMLAudioElement[] = [];
   for (let i = 0; i < size; i++) {
-    const a = new Audio(GUNSHOT_SRC);
+    const a = new Audio();
+    a.src = GUNSHOT_SRC;
     a.preload = "auto";
+
+    // Best-effort: start fetching/validating the source early.
+    try {
+      a.load();
+    } catch {
+      // no-op
+    }
+
     pool.push(a);
   }
   return pool;
@@ -560,17 +569,64 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
   }
 
   function playGunshot(volume01: number) {
-    const a = gunshotPool[gunshotIdx]!;
-    gunshotIdx = (gunshotIdx + 1) % gunshotPool.length;
+    const idx = gunshotIdx;
+    const a = gunshotPool[idx]!;
+    gunshotIdx = (idx + 1) % gunshotPool.length;
 
-    // Reset and play (ignore failures if browser blocks unexpectedly).
+    const vol = Math.max(0, Math.min(1, volume01));
+
+    // If this element ever fell into a "no source" state, reattach the src and reload.
+    if (!a.src || a.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+      a.src = GUNSHOT_SRC;
+      a.preload = "auto";
+      try {
+        a.load();
+      } catch {
+        // no-op
+      }
+    }
+
+    // Reset and play.
     try {
       a.pause();
-      a.currentTime = 0;
-      a.volume = Math.max(0, Math.min(1, volume01));
-      void a.play();
     } catch {
       // no-op
+    }
+
+    try {
+      a.currentTime = 0;
+    } catch {
+      // no-op
+    }
+
+    try {
+      a.volume = vol;
+    } catch {
+      // no-op
+    }
+
+    // IMPORTANT: play() rejects asynchronously; try/catch won't catch it.
+    const p = a.play();
+    if (p) {
+      p.catch(() => {
+        // Replace this pool entry with a fresh element and try once more.
+        const fresh = new Audio();
+        fresh.src = GUNSHOT_SRC;
+        fresh.preload = "auto";
+        fresh.volume = vol;
+
+        try {
+          fresh.load();
+        } catch {
+          // no-op
+        }
+
+        gunshotPool[idx] = fresh;
+
+        void fresh.play().catch(() => {
+          // no-op
+        });
+      });
     }
   }
 
