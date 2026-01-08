@@ -125,6 +125,11 @@ async function boot() {
 
     // Trigger death overlay (fade + gif + audio)
     wasted.trigger();
+
+    // Restart the game shortly after death.
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 6000);
   }
 
   function applyDamage(dmg: number) {
