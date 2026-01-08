@@ -13,6 +13,7 @@ import { loadWeaponsConfig } from "./config/loadWeaponsConfig";
 import { createWeaponUi } from "./ui/weaponUi";
 import { createIntroOverlay } from "./ui/intro";
 import { createWastedOverlay } from "./ui/wasted";
+import { SECOND_FLOOR_Y } from "./scene/constants";
 
 const STREET_SEED = "redbrick-street/v0";
 
@@ -99,6 +100,10 @@ async function boot() {
   let health = 100;
   hud.setHealth(health);
 
+  // If the camera (eye) is above this Y, the player is considered "upstairs" and cannot be damaged.
+  // This prevents first-floor zombies from damaging the player through ceilings/floors.
+  const PLAYER_INVULNERABLE_Y = SECOND_FLOOR_Y + 0.5;
+
   function killPlayer() {
     if (dead) return;
     dead = true;
@@ -125,6 +130,9 @@ async function boot() {
   function applyDamage(dmg: number) {
     if (dead) return;
     if (!isFinite(dmg) || dmg <= 0) return;
+
+    // Upstairs invulnerability: prevents first-floor zombies from damaging the player through floors.
+    if (camera.position.y > PLAYER_INVULNERABLE_Y) return;
 
     health = Math.max(0, health - dmg);
     hud.setHealth(health);
