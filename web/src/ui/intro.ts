@@ -31,17 +31,17 @@ function ensureIntroStyle(): HTMLStyleElement {
 
 #rbsIntroPanel {
   position: relative;
-  width: min(820px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  width: min(1230px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
   overflow: auto;
 
-  border-radius: 18px;
-  padding: 22px 22px 18px;
+  border-radius: 27px;
+  padding: 33px 33px 27px;
 
   background: rgba(10,12,16,0.88);
-  border: 1px solid rgba(255,255,255,0.14);
-  box-shadow: 0 18px 60px rgba(0,0,0,0.55);
-  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255,255,255,0.14);
+  box-shadow: 0 27px 90px rgba(0,0,0,0.55);
+  backdrop-filter: blur(12px);
 
   color: rgba(240,245,255,0.92);
   font-family: "Russo One", sans-serif;
@@ -49,47 +49,47 @@ function ensureIntroStyle(): HTMLStyleElement {
 
 #rbsIntroTitle {
   margin: 0;
-  font-size: 30px;
+  font-size: 45px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 #rbsIntroSub {
-  margin-top: 6px;
-  font-size: 13px;
+  margin-top: 9px;
+  font-size: 19.5px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
   color: rgba(240,245,255,0.78);
 }
 
 #rbsIntroLead {
-  margin-top: 14px;
-  font-size: 15px;
+  margin-top: 21px;
+  font-size: 22.5px;
   line-height: 1.5;
   color: rgba(240,245,255,0.88);
 }
 
 #rbsIntroGrid {
-  margin-top: 14px;
+  margin-top: 21px;
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
-  gap: 16px;
+  gap: 24px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1080px) {
   #rbsIntroGrid { grid-template-columns: 1fr; }
 }
 
 #rbsIntroBlock {
   background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 14px;
-  padding: 14px 14px 12px;
+  border: 1.5px solid rgba(255,255,255,0.10);
+  border-radius: 21px;
+  padding: 21px 21px 18px;
 }
 
 #rbsIntroH {
-  margin: 0 0 10px 0;
-  font-size: 13px;
+  margin: 0 0 15px 0;
+  font-size: 19.5px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
   color: rgba(240,245,255,0.84);
@@ -97,56 +97,69 @@ function ensureIntroStyle(): HTMLStyleElement {
 
 #rbsIntroList {
   margin: 0;
-  padding-left: 18px;
-  font-size: 14px;
+  padding-left: 27px;
+  font-size: 21px;
   line-height: 1.55;
   color: rgba(240,245,255,0.88);
 }
 
-#rbsIntroList li { margin: 6px 0; }
+#rbsIntroList li { margin: 9px 0; }
 
 .rbsKey {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
-  margin-right: 8px;
+  padding: 3px 12px;
+  border-radius: 15px;
+  margin-right: 12px;
 
   background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1.5px solid rgba(255,255,255,0.14);
 
-  font-size: 12px;
+  font-size: 18px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(240,245,255,0.92);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.06);
+}
+
+/* Readability: increase tracking ONLY for the story + controls text (inside the grid blocks). */
+#rbsIntroGrid #rbsIntroH {
+  letter-spacing: 0.14em;
+}
+
+#rbsIntroGrid #rbsIntroList {
+  letter-spacing: 0.06em;
+}
+
+#rbsIntroGrid .rbsKey {
+  letter-spacing: 0.12em;
 }
 
 #rbsIntroFooter {
-  margin-top: 14px;
+  margin-top: 21px;
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 15px;
   align-items: center;
   flex-wrap: wrap;
 
-  border-top: 1px solid rgba(255,255,255,0.10);
-  padding-top: 12px;
+  border-top: 1.5px solid rgba(255,255,255,0.10);
+  padding-top: 18px;
 }
 
 #rbsIntroStartBtn {
   appearance: none;
-  border: 1px solid rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.18);
   background: rgba(255,255,255,0.10);
   color: rgba(240,245,255,0.92);
-  border-radius: 14px;
-  padding: 10px 14px;
+  border-radius: 21px;
+  padding: 15px 21px;
   cursor: pointer;
 
   font-family: "Russo One", sans-serif;
-  font-size: 13px;
+  font-size: 19.5px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: 0 15px 45px rgba(0,0,0,0.35), inset 0 1.5px 0 rgba(255,255,255,0.06);
 }
 
 #rbsIntroStartBtn:hover {
@@ -158,13 +171,13 @@ function ensureIntroStyle(): HTMLStyleElement {
 }
 
 #rbsIntroStartBtn:focus {
-  outline: 2px solid rgba(240,245,255,0.35);
-  outline-offset: 2px;
+  outline: 3px solid rgba(240,245,255,0.35);
+  outline-offset: 3px;
 }
 
 #rbsIntroStartBtn .rbsKey {
   margin-right: 0;
-  margin-left: 8px;
+  margin-left: 12px;
 }
 `;
   document.head.appendChild(style);
