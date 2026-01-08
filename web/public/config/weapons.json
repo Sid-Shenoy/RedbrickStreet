@@ -32,7 +32,7 @@
     "damage": 364,
     "crosshair": "large",
     "handHeightVh": 80,
-    "clipSize": 6,
-    "capacity": 24
+    "clipSize": 1,
+    "capacity": 10
   }
 ]
