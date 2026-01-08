@@ -320,7 +320,13 @@ export function createZombieHouseStreamer(
     const dist = Math.hypot(dx, dz);
     if (dist <= 1e-6) return;
 
-    const step = Math.min(dist, ZOMBIE_WALK_SPEED_MPS * dt);
+    const indoorMul =
+      z.nav.nodeId !== null && nav.nodes[z.nav.nodeId] && nav.nodes[z.nav.nodeId]!.kind === "firstFloor"
+        ? 0.5
+        : 1.0;
+
+    const step = Math.min(dist, ZOMBIE_WALK_SPEED_MPS * indoorMul * dt);
+
     const vx = (dx / dist) * step;
     const vz = (dz / dist) * step;
 
