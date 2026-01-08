@@ -31,7 +31,7 @@ type Playing = {
 let current: Playing | null = null;
 
 // Remember where each track was when we last switched away,
-// so toggling the wheel doesn’t constantly restart from 0.
+// so toggling the wheel doesn't constantly restart from 0.
 const savedOffset = new Map<TrackKey, number>();
 
 function getAudioContext(): AudioContext {

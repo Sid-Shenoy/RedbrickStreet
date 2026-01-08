@@ -220,7 +220,7 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
 
   const storyH = document.createElement("div");
   storyH.id = "rbsIntroH";
-  storyH.textContent = "Tonight’s situation";
+  storyH.textContent = "Tonight's situation";
 
   const storyList = document.createElement("ul");
   storyList.id = "rbsIntroList";
