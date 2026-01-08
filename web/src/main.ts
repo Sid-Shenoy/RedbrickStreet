@@ -12,6 +12,7 @@ import { createHud } from "./ui/hud";
 import { loadWeaponsConfig } from "./config/loadWeaponsConfig";
 import { createWeaponUi } from "./ui/weaponUi";
 import { createIntroOverlay } from "./ui/intro";
+import { createWastedOverlay } from "./ui/wasted";
 
 const STREET_SEED = "redbrick-street/v0";
 
@@ -88,6 +89,51 @@ async function boot() {
   const intro = createIntroOverlay(scene);
   await intro.waitForStart();
 
+  // HUD + weapon UI + death overlay (created after start so they don't clutter the intro)
+  const hud = createHud(scene, camera, housesWithModel);
+  createWeaponUi(scene, canvas, weapons);
+  const wasted = createWastedOverlay(scene);
+
+  // Player health state (driven by zombie attacks)
+  let dead = false;
+  let health = 100;
+  hud.setHealth(health);
+
+  function killPlayer() {
+    if (dead) return;
+    dead = true;
+
+    hud.setHealth(0);
+
+    // Stop player input + pointer lock attempts.
+    scene.onPointerDown = null;
+    try {
+      camera.detachControl();
+    } catch {
+      // ignore
+    }
+    document.exitPointerLock?.();
+
+    // Stop zombie updates/spawns (optional, but prevents further damage work).
+    zombieStreamer?.dispose();
+    zombieStreamer = null;
+
+    // Trigger death overlay (fade + gif + audio)
+    wasted.trigger();
+  }
+
+  function applyDamage(dmg: number) {
+    if (dead) return;
+    if (!isFinite(dmg) || dmg <= 0) return;
+
+    health = Math.max(0, health - dmg);
+    hud.setHealth(health);
+
+    if (health <= 0) {
+      killPlayer();
+    }
+  }
+
   // Create a per-house zombie streamer AFTER the intro starts, so we don't hitch during boot.
   // Player hasn't moved yet here, so camera.position is the game-start origin for MIN_ZOMBIE_SPAWN_DIST_M.
   const zombieAssets = await zombieAssetsPromise;
@@ -96,7 +142,8 @@ async function boot() {
     housesWithModel,
     { x: camera.position.x, z: camera.position.z },
     zombieAssets,
-    () => ({ x: camera.position.x, z: camera.position.z })
+    () => ({ x: camera.position.x, z: camera.position.z }),
+    (damage) => applyDamage(damage)
   );
 
   // Spawn zombies for any interiors that were already loaded while the intro was up.
@@ -285,10 +332,6 @@ async function boot() {
       camera.applyGravity = baseApplyGravity;
     }
   });
-
-  // HUD + weapon UI (created after start so they don't clutter the intro)
-  createHud(scene, camera, housesWithModel);
-  createWeaponUi(scene, canvas, weapons);
 }
 
 boot().catch(console.error);

@@ -21,6 +21,10 @@ export const MIN_ZOMBIE_SPAWN_DIST_M = 30;
 export const ZOMBIE_AI_FOLLOW_DIST_M = 20;
 export const ZOMBIE_AI_ATTACK_DIST_M = 1;
 
+// Player damage while being attacked (new)
+export const ZOMBIE_AI_HIT_DAMAGE = 8;          // health per hit
+export const ZOMBIE_AI_HIT_COOLDOWN_S = 0.9;    // seconds between hits per zombie while attacking
+
 // Internal tuning (not part of config yet)
 const ZOMBIE_WALK_SPEED_MPS = 1.6;
 
@@ -44,6 +48,7 @@ type ZombieInstance = {
   walkAnim: AnimationGroup | null;
   attackAnim: AnimationGroup | null;
   state: ZombieState;
+  hitCooldownS: number;
 };
 
 export interface ZombieHouseStreamer {
@@ -64,6 +69,9 @@ export async function preloadZombieAssets(scene: Scene): Promise<AssetContainer>
  * - if ZOMBIE_AI_ATTACK_DIST_M < dist <= ZOMBIE_AI_FOLLOW_DIST_M => walk toward player + walk anim
  * - if dist <= ZOMBIE_AI_ATTACK_DIST_M => attack anim, no movement
  *
+ * While attacking, zombies damage the player via onPlayerDamaged (if provided),
+ * at most once every ZOMBIE_AI_HIT_COOLDOWN_S seconds per zombie.
+ *
  * Zombies do not use collision-based movement (can pass through walls),
  * and are clamped to FIRST_FLOOR_Y (cannot climb stairs).
  */
@@ -72,8 +80,11 @@ export function createZombieHouseStreamer(
   houses: HouseWithModel[],
   playerStartXZ: { x: number; z: number },
   zombieAssets: AssetContainer,
-  getPlayerXZ: () => { x: number; z: number }
+  getPlayerXZ: () => { x: number; z: number },
+  onPlayerDamaged?: (damage: number) => void
 ): ZombieHouseStreamer {
+  const damageCb = onPlayerDamaged ?? (() => {});
+
   const candidates = buildCandidates(houses);
   if (candidates.length === 0) {
     throw new Error("createZombieHouseStreamer: no first-floor spawn regions found");
@@ -159,7 +170,7 @@ export function createZombieHouseStreamer(
       attackAnim?.stop();
       walkAnim?.stop();
 
-      zombies.push({ root, walkAnim, attackAnim, state: "idle" });
+      zombies.push({ root, walkAnim, attackAnim, state: "idle", hitCooldownS: 0 });
       roots.push(root);
     }
   }
@@ -171,6 +182,9 @@ export function createZombieHouseStreamer(
     const p = getPlayerXZ();
 
     for (const z of zombies) {
+      // Cooldown tick (always counts down).
+      z.hitCooldownS = Math.max(0, z.hitCooldownS - dt);
+
       const zx = z.root.position.x;
       const zz = z.root.position.z;
 
@@ -184,6 +198,12 @@ export function createZombieHouseStreamer(
 
       if (dist <= ZOMBIE_AI_ATTACK_DIST_M) {
         setZombieState(z, "attack");
+
+        // Damage the player at a fixed cadence while attacking.
+        if (z.hitCooldownS <= 1e-6) {
+          damageCb(ZOMBIE_AI_HIT_DAMAGE);
+          z.hitCooldownS = ZOMBIE_AI_HIT_COOLDOWN_S;
+        }
 
         // Face the player while attacking.
         z.root.rotation.y = Math.atan2(dx, dz);

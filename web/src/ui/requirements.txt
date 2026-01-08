@@ -67,7 +67,7 @@
 2.3.2) While visible:
 2.3.2.1) the wheel must display exactly 4 options (Unarmed + 3 weapons)
 2.3.2.2) clicking a segment must equip that option and close the wheel
-2.3.2.3) pressing keys 1–4 must equip and close the wheel
+2.3.2.3) pressing keys 1ΓÇô4 must equip and close the wheel
 2.3.3) Tab default browser behavior must be prevented.
 
 2.4) Number-key equipping (hard)
@@ -94,7 +94,7 @@
 2.5.1) When Unarmed:
 2.5.1.1) no weapon-in-hand image is shown
 2.5.1.2) shooting is disabled
-2.5.1.3) the weapon icon above the HUD must display "🚫"
+2.5.1.3) the weapon icon above the HUD must display "≡ƒÜ½"
 2.5.2) When a weapon is equipped:
 2.5.2.1) show the corresponding `grip.png` at the bottom-right
 2.5.2.2) the weapon-in-hand image height must be exactly `${weapon.handHeightVh}vh`
@@ -205,3 +205,32 @@ const intro = createIntroOverlay(scene);
 await intro.waitForStart();
 // now enable gameplay input and HUD
 ```
+
+4) "Wasted" overlay module (`wasted.ts`)
+
+4.1) Intent
+
+4.1.1) When the player dies (health reaches 0), provide a full-screen death overlay:
+4.1.1.1) the screen must gradually fade to black
+4.1.1.2) `/assets/wasted-text.gif` must appear along with the fade
+4.1.1.3) `/assets/audio/sfx/wasted.mp3` must play when the overlay triggers
+
+4.2) Exported function
+
+4.2.1) Export: `createWastedOverlay(scene) -> wastedApi`
+4.2.2) The overlay must attach DOM elements to `document.body`.
+4.2.3) The overlay must use `pointer-events: none`.
+
+4.3) Behavior (hard)
+
+4.3.1) `wastedApi.trigger()` must:
+4.3.1.1) show the overlay
+4.3.1.2) start a gradual fade to black
+4.3.1.3) fade in the wasted gif along with the screen fade
+4.3.1.4) play `/assets/audio/sfx/wasted.mp3` exactly once
+4.3.2) `wastedApi.trigger()` must be idempotent (calling it multiple times must not re-trigger audio or restart the fade).
+
+4.4) Lifecycle and cleanup (hard)
+
+4.4.1) The overlay must remove all DOM nodes when disposed.
+4.4.2) The overlay must also clean itself up when `scene` is disposed.
