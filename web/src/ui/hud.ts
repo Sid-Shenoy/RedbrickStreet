@@ -311,9 +311,9 @@ function ensureHudStyle(): HTMLStyleElement {
   background: radial-gradient(
     circle at center,
     rgba(255, 0, 0, 0) 0%,
-    rgba(255, 0, 0, 0) 52%,
-    rgba(255, 0, 0, 0.28) 70%,
-    rgba(255, 0, 0, 0.62) 100%
+    rgba(255, 0, 0, 0) 48%,
+    rgba(255, 0, 0, 0.40) 70%,
+    rgba(255, 0, 0, 0.78) 100%
   );
 }
 `;
@@ -419,7 +419,7 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     if (disposed) return;
 
     const p = Math.max(0, Math.min(1, damage01));
-    const peak = 0.35 + p * 0.45; // 0.35..0.80
+    const peak = 0.50 + p * 0.40; // 0.50..0.90
 
     // Prefer WAAPI; fallback if unavailable.
     const anyEl = damageVignette as unknown as { animate?: HTMLElement["animate"] };
