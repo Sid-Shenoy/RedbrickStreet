@@ -596,12 +596,19 @@ export function createZombieHouseStreamer(
         const nextId = path[z.nav.cursor + 1]!;
         const wp = getWaypoint(nav, z.nav.nodeId!, nextId);
         if (wp) {
+          // Default: aim for the portal waypoint.
           tx = wp.x;
           tz = wp.z;
 
-          // If we're basically at the portal, allow the next node to become current as soon as we step through.
           const dwp = Math.hypot(z.root.position.x - wp.x, z.root.position.z - wp.z);
+
+          // If we're basically at the portal, aim INTO the next node so we actually cross the boundary.
+          // This allows outdoor->indoor (re-entering houses) and indoor->outdoor reliably using a single waypoint.
           if (dwp <= NAV_ENTER_TOL_M) {
+            const nc = nav.nodes[nextId]!.center;
+            tx = nc.x;
+            tz = nc.z;
+
             // If we've already stepped into next, advance.
             if (nodeContainsWorldXZ(nav, houseByNumber, nextId, z.root.position.x, z.root.position.z)) {
               z.nav.nodeId = nextId;
@@ -790,47 +797,77 @@ function buildNavGraph(houses: HouseWithModel[], houseByNumber: Map<number, Hous
         addUndirectedEdge(adj, aNode, bNode, cost, waypoint);
       } else {
         // Exterior door: connect to the plot region just outside the door.
-        const aRegion = house.model.firstFloor.regions[d.aRegion];
-        if (!aRegion) continue;
 
         // Door midpoint in lot-local space.
         const mx = (d.hinge[0] + d.end[0]) * 0.5;
         const mz = (d.hinge[1] + d.end[1]) * 0.5;
 
-        // Candidate points just outside the door (try several depths to avoid "midpoint inside wall" cases).
-        const outsideLocal = pickOutsideOfDoorLocal(aRegion, d);
-        const outsideLocalAlt = pickOutsideOfDoorLocalAlt(d);
-
-        const candidatesLocal: Array<[number, number]> = [];
-
-        function pushRay(base: [number, number]) {
-          const dx = base[0] - mx;
-          const dz = base[1] - mz;
-          const len = Math.hypot(dx, dz) || 1;
-          const ux = dx / len;
-          const uz = dz / len;
-
-          // base (near), then progressively farther outside.
-          candidatesLocal.push(
-            base,
-            [mx + ux * 0.45, mz + uz * 0.45],
-            [mx + ux * 0.9, mz + uz * 0.9],
-            [mx + ux * 1.35, mz + uz * 1.35]
-          );
-        }
-
-        pushRay(outsideLocal);
-        pushRay(outsideLocalAlt);
+        const plotRegions = house.model.plot.regions;
 
         let chosenPlotIdx: number | null = null;
         let chosenOutsideLocal: [number, number] | null = null;
 
-        for (const c of candidatesLocal) {
-          const idx = findPlotRegionIndexContainingLocal(house.model.plot.regions, c);
-          if (idx !== null) {
-            chosenPlotIdx = idx;
-            chosenOutsideLocal = c;
-            break;
+        // (1) Robust probe using the plot "houseregion" footprint.
+        // This avoids accidentally snapping the door to the wrong yard region (common cause of "stuck at back door").
+        const houseRegion = plotRegions.find((r) => r.name === "houseregion") ?? null;
+
+        const vertical = Math.abs(d.hinge[0] - d.end[0]) < 1e-6;
+        const normals: Array<[number, number]> = vertical ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]];
+        const probeDists = [0.35, 0.7, 1.05, 1.4];
+
+        outerProbe: for (const [nx, nz] of normals) {
+          for (const dist of probeDists) {
+            const pLocal: [number, number] = [mx + nx * dist, mz + nz * dist];
+
+            // Must be outside the house footprint (if we can identify it).
+            if (houseRegion && pointInRegionLocal(pLocal[0], pLocal[1], houseRegion)) continue;
+
+            const idx = findPlotRegionIndexContainingLocal(plotRegions, pLocal);
+            if (idx !== null) {
+              chosenPlotIdx = idx;
+              chosenOutsideLocal = pLocal;
+              break outerProbe;
+            }
+          }
+        }
+
+        // (2) Fallback probe using the first-floor region (older method).
+        if (chosenPlotIdx === null) {
+          const aRegion = house.model.firstFloor.regions[d.aRegion];
+          if (!aRegion) continue;
+
+          // Candidate points just outside the door (try several depths to avoid "midpoint inside wall" cases).
+          const outsideLocal = pickOutsideOfDoorLocal(aRegion, d);
+          const outsideLocalAlt = pickOutsideOfDoorLocalAlt(d);
+
+          const candidatesLocal: Array<[number, number]> = [];
+
+          function pushRay(base: [number, number]) {
+            const dx = base[0] - mx;
+            const dz = base[1] - mz;
+            const len = Math.hypot(dx, dz) || 1;
+            const ux = dx / len;
+            const uz = dz / len;
+
+            // base (near), then progressively farther outside.
+            candidatesLocal.push(
+              base,
+              [mx + ux * 0.45, mz + uz * 0.45],
+              [mx + ux * 0.9, mz + uz * 0.9],
+              [mx + ux * 1.35, mz + uz * 1.35]
+            );
+          }
+
+          pushRay(outsideLocal);
+          pushRay(outsideLocalAlt);
+
+          for (const c of candidatesLocal) {
+            const idx = findPlotRegionIndexContainingLocal(plotRegions, c);
+            if (idx !== null) {
+              chosenPlotIdx = idx;
+              chosenOutsideLocal = c;
+              break;
+            }
           }
         }
 
@@ -839,7 +876,7 @@ function buildNavGraph(houses: HouseWithModel[], houseByNumber: Map<number, Hous
           plotNode = plotNodeMap.get(chosenPlotIdx);
         }
 
-        // Prefer a waypoint that is actually OUTSIDE (inside the plot region) so zombies can step through the door.
+        // Prefer a waypoint that is actually OUTSIDE (inside the chosen plot region) so zombies can step through the door.
         let edgeWaypoint = waypoint;
         if (plotNode !== undefined && chosenOutsideLocal) {
           const wOut = lotLocalToWorld(house, chosenOutsideLocal[0], chosenOutsideLocal[1]);
@@ -1179,6 +1216,22 @@ function tryNavMove(
     // Outdoors: allow free crossing between outdoor nodes while still forbidding entry into firstFloor/houseregion.
     // (We only accept the move if the candidate position is actually INSIDE a plot/road node.)
     if (curIsOutdoor) {
+      // Allow stepping into the planned next node (including firstFloor) when we're at a portal.
+      // This is what lets zombies re-enter houses through doors.
+      if (nextNode !== null && nodeContainsWorldXZ(nav, houseByNumber, nextNode, nx, nz)) {
+        z.root.position.x = nx;
+        z.root.position.z = nz;
+        z.nav.nodeId = nextNode;
+
+        // Advance cursor if this is our planned next.
+        if (z.nav.path.length > 0 && z.nav.cursor + 1 < z.nav.path.length && z.nav.path[z.nav.cursor + 1] === nextNode) {
+          z.nav.cursor++;
+        }
+        return true;
+      }
+
+      // Otherwise, allow free crossing between outdoor nodes while still forbidding entry into firstFloor/houseregion.
+      // (We only accept the move if the candidate position is actually INSIDE a plot/road node.)
       const nid = findNodeForWorldXZ(nav, houseByNumber, nx, nz);
       if (
         nid !== null &&
