@@ -275,7 +275,13 @@ export function createZombieHouseStreamer(
     if (zNode === null || pNode === null) return true;
     if (zNode === pNode) return true;
 
-    // Allow attacks across an open adjacency/door ONLY if both are near the portal waypoint.
+    // Outdoors: allow attacks even if regions differ (no walls between plot/road regions).
+    const zk = nav.nodes[zNode]!.kind;
+    const pk = nav.nodes[pNode]!.kind;
+    if (zk !== "firstFloor" && pk !== "firstFloor") return true;
+
+    // Indoors (or indoor<->outdoor): only allow attacking across a real portal (door/open adjacency)
+    // and only if both are near it (prevents "through walls" attacks).
     const wp = getWaypoint(nav, zNode, pNode);
     if (!wp) return false;
 
@@ -403,6 +409,19 @@ export function createZombieHouseStreamer(
 
       // If we don't know nodes, fallback to naive chase (still clamped to first floor height).
       if (zNode === null || pNode === null) {
+        moveToward(z, px, pz, dt);
+        continue;
+      }
+
+      // Outdoors (plot/road): follow the player directly (no waypoint-hopping).
+      // Movement remains constrained to outdoor navigable space by tryNavMove (cannot enter firstFloor/houseregion).
+      const zKind = nav.nodes[zNode]!.kind;
+      const pKind = nav.nodes[pNode]!.kind;
+      if (zKind !== "firstFloor" && pKind !== "firstFloor") {
+        z.nav.targetNodeId = pNode;
+        z.nav.path = [zNode];
+        z.nav.cursor = 0;
+
         moveToward(z, px, pz, dt);
         continue;
       }
@@ -963,10 +982,41 @@ function tryNavMove(
     [0, vz],
   ];
 
+  const curKind = curNode !== null ? nav.nodes[curNode]!.kind : null;
+  const curIsOutdoor = curKind === "plot" || curKind === "road";
+
   for (const [tx, tz] of tries) {
     const nx = x0 + tx;
     const nz = z0 + tz;
 
+    // Outdoors: allow free crossing between outdoor nodes while still forbidding entry into firstFloor/houseregion.
+    // (We only accept the move if the candidate position is actually INSIDE a plot/road node.)
+    if (curIsOutdoor) {
+      const nid = findNodeForWorldXZ(nav, houseByNumber, nx, nz);
+      if (
+        nid !== null &&
+        (nav.nodes[nid]!.kind === "plot" || nav.nodes[nid]!.kind === "road") &&
+        nodeContainsWorldXZ(nav, houseByNumber, nid, nx, nz)
+      ) {
+        z.root.position.x = nx;
+        z.root.position.z = nz;
+        z.nav.nodeId = nid;
+
+        // Keep cursor coherent if we happened to enter the planned next node.
+        if (z.nav.path.length > 0) {
+          if (z.nav.cursor + 1 < z.nav.path.length && z.nav.path[z.nav.cursor + 1] === nid) {
+            z.nav.cursor++;
+          } else if (z.nav.path[z.nav.cursor] !== nid) {
+            const idx = z.nav.path.indexOf(nid);
+            if (idx >= 0) z.nav.cursor = idx;
+          }
+        }
+
+        return true;
+      }
+    }
+
+    // Indoors (or any constrained move): stay inside current node unless stepping into the planned next node.
     if (curNode !== null && nodeContainsWorldXZ(nav, houseByNumber, curNode, nx, nz)) {
       z.root.position.x = nx;
       z.root.position.z = nz;
