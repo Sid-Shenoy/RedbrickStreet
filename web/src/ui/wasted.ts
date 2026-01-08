@@ -103,6 +103,40 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
   // Hard input block: capture-phase listeners that prevent the weapon UI from seeing clicks/keys.
   let inputBlocked = false;
 
+  function forceReleaseInputs() {
+    // If the player died while holding the trigger (mouse down),
+    // the weapon UI may never receive the corresponding "up" event once we start blocking input.
+    // Emit synthetic release events once so any held-to-fire loops can shut down cleanly.
+    const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
+    const targets: EventTarget[] = [window, document];
+    if (canvas) targets.push(canvas);
+
+    for (const t of targets) {
+      try {
+        if (typeof PointerEvent !== "undefined") {
+          t.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, button: 0, buttons: 0 }));
+          t.dispatchEvent(
+            new PointerEvent("pointercancel", { bubbles: true, cancelable: true, button: 0, buttons: 0 })
+          );
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        t.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, button: 0, buttons: 0 }));
+      } catch {
+        // ignore
+      }
+    }
+
+    try {
+      window.dispatchEvent(new Event("blur"));
+    } catch {
+      // ignore
+    }
+  }
+
   const blockEvent = (ev: Event) => {
     // Prevent any gameplay input after death.
     ev.preventDefault();
@@ -155,6 +189,10 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
 
     // Drop pointer lock so the cursor can reappear / no more FPS-look.
     document.exitPointerLock?.();
+
+    // Ensure any held inputs (e.g. holding the trigger) are released in gameplay systems
+    // BEFORE we start blocking events.
+    forceReleaseInputs();
 
     // Block all gameplay input immediately (prevents gunshot + weapon UI actions).
     installInputBlockers();
