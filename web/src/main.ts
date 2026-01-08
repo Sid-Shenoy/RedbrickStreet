@@ -1,5 +1,6 @@
 import { Engine, Scene, UniversalCamera, HemisphericLight, DirectionalLight, Vector3, Color3, MeshBuilder } from "@babylonjs/core";
 import { UniversalCameraXZKeyboardInput } from "./scene/universalCameraXZKeyboardInput";
+import { preloadZombieAssets, spawnZombiesAtGameStart } from "./world/zombies/spawnZombies";
 
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
@@ -23,6 +24,9 @@ async function boot() {
 
   scene.collisionsEnabled = true;
   scene.gravity = new Vector3(0, -0.35, 0);
+
+  // Preload zombie model while the intro is visible.
+  const zombieAssetsPromise = preloadZombieAssets(scene);
 
   const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
   light.intensity = 0.95;
@@ -74,6 +78,10 @@ async function boot() {
   // Intro overlay (Space to begin)
   const intro = createIntroOverlay(scene);
   await intro.waitForStart();
+
+  // Spawn zombies at start (player hasn't moved yet).
+  const zombieAssets = await zombieAssetsPromise;
+  await spawnZombiesAtGameStart(scene, housesWithModel, { x: camera.position.x, z: camera.position.z }, zombieAssets);
 
   // Click-to-pointer-lock (better mouse look)
   scene.onPointerDown = () => {
