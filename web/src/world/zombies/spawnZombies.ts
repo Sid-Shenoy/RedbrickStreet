@@ -28,6 +28,31 @@ export const ZOMBIE_AI_HIT_COOLDOWN_S = 0.9;    // seconds between hits per zomb
 // Internal tuning (not part of config yet)
 const ZOMBIE_WALK_SPEED_MPS = 1.6;
 
+// Nav tuning (simple, static)
+const NAV_PORTAL_MIN_OVERLAP_M = 0.25;  // minimum shared edge overlap to be considered connected (outdoors/road)
+const NAV_REPLAN_COOLDOWN_S = 0.6;      // per-zombie replanning cooldown
+const NAV_ENTER_TOL_M = 0.35;           // how close we need to be to consider ourselves "through" a portal
+
+type Door = {
+  kind: "door";
+  aRegion: number;
+  bRegion: number | null;
+  hinge: [number, number];
+  end: [number, number];
+};
+
+function asDoor(x: unknown): Door | null {
+  const d = x as Partial<Door> | null | undefined;
+  if (!d || d.kind !== "door") return null;
+  if (typeof d.aRegion !== "number") return null;
+  if (!(typeof d.bRegion === "number" || d.bRegion === null)) return null;
+  if (!Array.isArray(d.hinge) || d.hinge.length !== 2) return null;
+  if (!Array.isArray(d.end) || d.end.length !== 2) return null;
+  if (typeof d.hinge[0] !== "number" || typeof d.hinge[1] !== "number") return null;
+  if (typeof d.end[0] !== "number" || typeof d.end[1] !== "number") return null;
+  return d as Door;
+}
+
 type Candidate = {
   house: HouseWithModel;
   region: Region;
@@ -43,12 +68,57 @@ type ZombiePlan = {
 
 type ZombieState = "idle" | "walk" | "attack";
 
+type NavNodeKind = "road" | "plot" | "firstFloor";
+
+type NavNode = {
+  id: number;
+  kind: NavNodeKind;
+
+  // For house-associated nodes only
+  houseNumber?: number;
+  regionIndex?: number; // index into plot.regions or firstFloor.regions (depending on kind)
+  region?: Region;      // lot-local region
+
+  // World-space AABB + centroid for fast tests / heuristics
+  aabb: { x0: number; z0: number; x1: number; z1: number };
+  center: { x: number; z: number };
+
+  // Precomputed world edges (axis-aligned segments)
+  edges: Seg2[];
+};
+
+type NavEdge = {
+  to: number;
+  cost: number;
+  waypoint: { x: number; z: number }; // midpoint of portal/shared boundary in world XZ
+};
+
+type NavGraph = {
+  nodes: NavNode[];
+  adj: NavEdge[][];
+
+  roadNodeId: number;
+
+  // Node lookup per house/region index (fast mapping for doors + point location)
+  plotNodeIdByHouseRegion: Map<number, Map<number, number>>;
+  firstFloorNodeIdByHouseRegion: Map<number, Map<number, number>>;
+};
+
+type ZombieNavState = {
+  nodeId: number | null;
+  targetNodeId: number | null;
+  path: number[];          // node ids, starting at nodeId
+  cursor: number;          // index into path (current node position within path)
+  replanCooldownS: number; // time until next allowed plan
+};
+
 type ZombieInstance = {
   root: TransformNode;
   walkAnim: AnimationGroup | null;
   attackAnim: AnimationGroup | null;
   state: ZombieState;
   hitCooldownS: number;
+  nav: ZombieNavState;
 };
 
 export interface ZombieHouseStreamer {
@@ -64,16 +134,16 @@ export async function preloadZombieAssets(scene: Scene): Promise<AssetContainer>
  * Plans ZOMBIE_COUNT spawns across all houses (area-weighted), but only instantiates zombies for a house
  * when ensureHouse(houseNumber) is called (typically when that house interior is streamed in).
  *
- * Also runs lightweight AI:
- * - if XZ dist > ZOMBIE_AI_FOLLOW_DIST_M => idle, no animation, no movement
- * - if ZOMBIE_AI_ATTACK_DIST_M < dist <= ZOMBIE_AI_FOLLOW_DIST_M => walk toward player + walk anim
- * - if dist <= ZOMBIE_AI_ATTACK_DIST_M => attack anim, no movement
+ * New behavior:
+ * - Zombies do NOT use engine collisions.
+ * - Zombies do NOT walk through walls.
+ * - Zombies pathfind using a lightweight region/door graph:
+ *   - firstFloor regions connect only via doors
+ *   - plot (outdoor) regions connect via shared boundaries (open)
+ *   - road connects to curb regions via shared boundaries (open)
+ *   - exterior doors connect firstFloor <-> plot
  *
- * While attacking, zombies damage the player via onPlayerDamaged (if provided),
- * at most once every ZOMBIE_AI_HIT_COOLDOWN_S seconds per zombie.
- *
- * Zombies do not use collision-based movement (can pass through walls),
- * and are clamped to FIRST_FLOOR_Y (cannot climb stairs).
+ * Zombies can chase the player regardless of indoor/outdoor status.
  */
 export function createZombieHouseStreamer(
   scene: Scene,
@@ -97,6 +167,9 @@ export function createZombieHouseStreamer(
 
   const houseByNumber = new Map<number, HouseWithModel>();
   for (const h of houses) houseByNumber.set(h.houseNumber, h);
+
+  // Build navigation graph once (static).
+  const nav = buildNavGraph(houses, houseByNumber);
 
   // Plan spawns up-front, but group them per house.
   const planByHouse = new Map<number, ZombiePlan[]>();
@@ -170,8 +243,95 @@ export function createZombieHouseStreamer(
       attackAnim?.stop();
       walkAnim?.stop();
 
-      zombies.push({ root, walkAnim, attackAnim, state: "idle", hitCooldownS: 0 });
+      const startNode = findNodeForWorldXZ(nav, houseByNumber, root.position.x, root.position.z);
+
+      zombies.push({
+        root,
+        walkAnim,
+        attackAnim,
+        state: "idle",
+        hitCooldownS: 0,
+        nav: {
+          nodeId: startNode,
+          targetNodeId: null,
+          path: startNode !== null ? [startNode] : [],
+          cursor: 0,
+          replanCooldownS: 0,
+        },
+      });
+
       roots.push(root);
+    }
+  }
+
+  function canAttack(
+    zNode: number | null,
+    pNode: number | null,
+    zx: number,
+    zz: number,
+    px: number,
+    pz: number
+  ): boolean {
+    if (zNode === null || pNode === null) return true;
+    if (zNode === pNode) return true;
+
+    // Allow attacks across an open adjacency/door ONLY if both are near the portal waypoint.
+    const wp = getWaypoint(nav, zNode, pNode);
+    if (!wp) return false;
+
+    const dz = Math.hypot(zx - wp.x, zz - wp.z);
+    const dp = Math.hypot(px - wp.x, pz - wp.z);
+    return dz <= 1.2 && dp <= 1.2;
+  }
+
+  function maybeAdvancePath(z: ZombieInstance) {
+    const path = z.nav.path;
+    if (path.length === 0) return;
+
+    // Ensure cursor points at the actual node, if possible.
+    if (z.nav.nodeId !== null && path[z.nav.cursor] !== z.nav.nodeId) {
+      const idx = path.indexOf(z.nav.nodeId);
+      if (idx >= 0) z.nav.cursor = idx;
+    }
+
+    // Advance while our current position is inside the next node.
+    while (z.nav.cursor + 1 < path.length) {
+      const nextId = path[z.nav.cursor + 1]!;
+      const insideNext = nodeContainsWorldXZ(nav, houseByNumber, nextId, z.root.position.x, z.root.position.z);
+      if (!insideNext) break;
+
+      z.nav.nodeId = nextId;
+      z.nav.cursor++;
+    }
+  }
+
+  function moveToward(z: ZombieInstance, targetX: number, targetZ: number, dt: number) {
+    const x0 = z.root.position.x;
+    const z0 = z.root.position.z;
+
+    const dx = targetX - x0;
+    const dz = targetZ - z0;
+    const dist = Math.hypot(dx, dz);
+    if (dist <= 1e-6) return;
+
+    const step = Math.min(dist, ZOMBIE_WALK_SPEED_MPS * dt);
+    const vx = (dx / dist) * step;
+    const vz = (dz / dist) * step;
+
+    const curNode = z.nav.nodeId;
+    const nextNode =
+      z.nav.path.length > 0 && z.nav.cursor + 1 < z.nav.path.length ? z.nav.path[z.nav.cursor + 1]! : null;
+
+    // Try full move, then axis-separated sliding to prevent crossing walls/boundaries without collisions.
+    const moved = tryNavMove(z, nav, houseByNumber, vx, vz, curNode, nextNode);
+
+    if (moved) {
+      // Face travel direction.
+      const mx = z.root.position.x - x0;
+      const mz = z.root.position.z - z0;
+      if (Math.hypot(mx, mz) > 1e-6) {
+        z.root.rotation.y = Math.atan2(mx, mz);
+      }
     }
   }
 
@@ -180,57 +340,128 @@ export function createZombieHouseStreamer(
     if (dt <= 0) return;
 
     const p = getPlayerXZ();
+    const px = p.x;
+    const pz = p.z;
+
+    const playerNode = findNodeForWorldXZ(nav, houseByNumber, px, pz);
 
     for (const z of zombies) {
       // Cooldown tick (always counts down).
       z.hitCooldownS = Math.max(0, z.hitCooldownS - dt);
 
+      // Replan cooldown tick.
+      z.nav.replanCooldownS = Math.max(0, z.nav.replanCooldownS - dt);
+
       const zx = z.root.position.x;
       const zz = z.root.position.z;
 
-      const dx = p.x - zx;
-      const dz = p.z - zz;
-
-      const dist = Math.hypot(dx, dz);
-
-      // Clamp Y so zombies cannot climb stairs.
+      // Clamp Y so zombies cannot climb stairs (and keep consistent everywhere).
       if (z.root.position.y !== FIRST_FLOOR_Y) z.root.position.y = FIRST_FLOOR_Y;
 
-      if (dist <= ZOMBIE_AI_ATTACK_DIST_M) {
-        setZombieState(z, "attack");
+      const dx = px - zx;
+      const dz = pz - zz;
+      const dist = Math.hypot(dx, dz);
 
-        // Damage the player at a fixed cadence while attacking.
-        if (z.hitCooldownS <= 1e-6) {
-          damageCb(ZOMBIE_AI_HIT_DAMAGE);
-          z.hitCooldownS = ZOMBIE_AI_HIT_COOLDOWN_S;
-        }
-
-        // Face the player while attacking.
-        z.root.rotation.y = Math.atan2(dx, dz);
-        continue;
-      }
-
-      if (dist <= ZOMBIE_AI_FOLLOW_DIST_M) {
-        setZombieState(z, "walk");
-
-        // Move toward player (XZ only; no collisions so they can pass through walls).
-        if (dist > 1e-6) {
-          const step = Math.min(dist, ZOMBIE_WALK_SPEED_MPS * dt);
-          z.root.position.x = zx + (dx / dist) * step;
-          z.root.position.z = zz + (dz / dist) * step;
-
-          // Face travel direction (toward player).
-          z.root.rotation.y = Math.atan2(dx, dz);
-
-          // Re-clamp Y after movement.
-          z.root.position.y = FIRST_FLOOR_Y;
-        }
-
-        continue;
+      // Update / repair current node if needed.
+      if (z.nav.nodeId === null || !nodeContainsWorldXZ(nav, houseByNumber, z.nav.nodeId, zx, zz)) {
+        z.nav.nodeId = findNodeForWorldXZ(nav, houseByNumber, zx, zz);
+        z.nav.path = z.nav.nodeId !== null ? [z.nav.nodeId] : [];
+        z.nav.cursor = 0;
+        z.nav.targetNodeId = null;
       }
 
       // Far away: idle, no animation (performance rule).
-      setZombieState(z, "idle");
+      if (dist > ZOMBIE_AI_FOLLOW_DIST_M) {
+        setZombieState(z, "idle");
+        continue;
+      }
+
+      // Close enough to attack (but avoid "through walls" by requiring a portal/adjacency when nodes differ).
+      if (dist <= ZOMBIE_AI_ATTACK_DIST_M) {
+        if (canAttack(z.nav.nodeId, playerNode, zx, zz, px, pz)) {
+          setZombieState(z, "attack");
+
+          // Damage the player at a fixed cadence while attacking.
+          if (z.hitCooldownS <= 1e-6) {
+            damageCb(ZOMBIE_AI_HIT_DAMAGE);
+            z.hitCooldownS = ZOMBIE_AI_HIT_COOLDOWN_S;
+          }
+
+          // Face the player while attacking.
+          z.root.rotation.y = Math.atan2(dx, dz);
+          continue;
+        }
+
+        // Otherwise, keep walking to find an actual path (e.g., door).
+      }
+
+      // Follow/chase state: pathfind toward the player.
+      setZombieState(z, "walk");
+
+      const zNode = z.nav.nodeId;
+      const pNode = playerNode;
+
+      // If we don't know nodes, fallback to naive chase (still clamped to first floor height).
+      if (zNode === null || pNode === null) {
+        moveToward(z, px, pz, dt);
+        continue;
+      }
+
+      // Replan if:
+      // - target node changed
+      // - path empty
+      // - cursor out of bounds
+      // - allowed by cooldown
+      const needsPlan =
+        z.nav.targetNodeId !== pNode ||
+        z.nav.path.length === 0 ||
+        z.nav.cursor < 0 ||
+        z.nav.cursor >= z.nav.path.length ||
+        z.nav.path[z.nav.cursor] !== zNode;
+
+      if (needsPlan && z.nav.replanCooldownS <= 1e-6) {
+        const path = astar(nav, zNode, pNode);
+        z.nav.path = path ?? [zNode];
+        z.nav.cursor = 0;
+        z.nav.nodeId = zNode;
+        z.nav.targetNodeId = pNode;
+        z.nav.replanCooldownS = NAV_REPLAN_COOLDOWN_S;
+      }
+
+      // Ensure cursor/node coherence.
+      maybeAdvancePath(z);
+
+      // Determine the next waypoint.
+      let tx = px;
+      let tz = pz;
+
+      const path = z.nav.path;
+      if (path.length > 0 && z.nav.cursor + 1 < path.length) {
+        const nextId = path[z.nav.cursor + 1]!;
+        const wp = getWaypoint(nav, z.nav.nodeId!, nextId);
+        if (wp) {
+          tx = wp.x;
+          tz = wp.z;
+
+          // If we're basically at the portal, allow the next node to become current as soon as we step through.
+          const dwp = Math.hypot(z.root.position.x - wp.x, z.root.position.z - wp.z);
+          if (dwp <= NAV_ENTER_TOL_M) {
+            // If we've already stepped into next, advance.
+            if (nodeContainsWorldXZ(nav, houseByNumber, nextId, z.root.position.x, z.root.position.z)) {
+              z.nav.nodeId = nextId;
+              z.nav.cursor++;
+            }
+          }
+        }
+      }
+
+      moveToward(z, tx, tz, dt);
+
+      // Post-move: advance path if we ended up inside the next node.
+      maybeAdvancePath(z);
+
+      // Re-clamp Y after movement.
+      z.root.position.y = FIRST_FLOOR_Y;
     }
   });
 
@@ -258,11 +489,632 @@ export function createZombieHouseStreamer(
   return { ensureHouse, dispose };
 }
 
+// ---------------------------
+// Navigation (static graph)
+// ---------------------------
+
+type Seg2 = { ax: number; az: number; bx: number; bz: number };
+
+function buildNavGraph(houses: HouseWithModel[], houseByNumber: Map<number, HouseWithModel>): NavGraph {
+  const nodes: NavNode[] = [];
+  const adj: NavEdge[][] = [];
+
+  const plotNodeIdByHouseRegion = new Map<number, Map<number, number>>();
+  const firstFloorNodeIdByHouseRegion = new Map<number, Map<number, number>>();
+
+  function addNode(n: Omit<NavNode, "id">): number {
+    const id = nodes.length;
+    nodes.push({ ...n, id });
+    adj.push([]);
+    return id;
+  }
+
+  // Road node (world-space rectangle)
+  const roadAabb = { x0: 0, z0: 30, x1: 230, z1: 40 };
+  const roadCenter = { x: (roadAabb.x0 + roadAabb.x1) * 0.5, z: (roadAabb.z0 + roadAabb.z1) * 0.5 };
+  const roadEdges = rectEdgesWorld(roadAabb.x0, roadAabb.z0, roadAabb.x1, roadAabb.z1);
+
+  const roadNodeId = addNode({
+    kind: "road",
+    aabb: roadAabb,
+    center: roadCenter,
+    edges: roadEdges,
+  });
+
+  // House plot + first floor nodes
+  for (const house of houses) {
+    const hn = house.houseNumber;
+
+    // Plot (outdoors): include all plot regions EXCEPT houseregion (the footprint).
+    const plotMap = new Map<number, number>();
+    for (let i = 0; i < house.model.plot.regions.length; i++) {
+      const r = house.model.plot.regions[i]!;
+      if (r.name === "houseregion") continue;
+
+      const aabb = regionWorldAabb(house, r);
+      const center = regionWorldCenter(house, r);
+      const edges = regionEdgesWorld(house, r);
+
+      const id = addNode({
+        kind: "plot",
+        houseNumber: hn,
+        regionIndex: i,
+        region: r,
+        aabb,
+        center,
+        edges,
+      });
+
+      plotMap.set(i, id);
+    }
+    plotNodeIdByHouseRegion.set(hn, plotMap);
+
+    // First floor (indoors): include all non-void regions.
+    const ffMap = new Map<number, number>();
+    for (let i = 0; i < house.model.firstFloor.regions.length; i++) {
+      const r = house.model.firstFloor.regions[i]!;
+      if (r.surface === "void") continue;
+
+      const aabb = regionWorldAabb(house, r);
+      const center = regionWorldCenter(house, r);
+      const edges = regionEdgesWorld(house, r);
+
+      const id = addNode({
+        kind: "firstFloor",
+        houseNumber: hn,
+        regionIndex: i,
+        region: r,
+        aabb,
+        center,
+        edges,
+      });
+
+      ffMap.set(i, id);
+    }
+    firstFloorNodeIdByHouseRegion.set(hn, ffMap);
+  }
+
+  // Open adjacency (plot <-> plot, plot <-> road, road <-> road (none))
+  const openNodeIds: number[] = [];
+  for (const n of nodes) {
+    if (n.kind === "plot" || n.kind === "road") openNodeIds.push(n.id);
+  }
+
+  for (let i = 0; i < openNodeIds.length; i++) {
+    for (let j = i + 1; j < openNodeIds.length; j++) {
+      const aId = openNodeIds[i]!;
+      const bId = openNodeIds[j]!;
+      const a = nodes[aId]!;
+      const b = nodes[bId]!;
+
+      // Quick AABB reject
+      if (!aabbNear(a.aabb, b.aabb, 0.001)) continue;
+
+      const portal = sharedPortalWaypoint(a.edges, b.edges);
+      if (!portal) continue;
+
+      const cost = Math.hypot(a.center.x - b.center.x, a.center.z - b.center.z);
+      addUndirectedEdge(adj, aId, bId, cost, portal);
+    }
+  }
+
+  // Door adjacency (firstFloor <-> firstFloor via interior doors; firstFloor <-> plot via exterior doors)
+  for (const house of houses) {
+    const hn = house.houseNumber;
+
+    const ffNodeMap = firstFloorNodeIdByHouseRegion.get(hn);
+    const plotNodeMap = plotNodeIdByHouseRegion.get(hn);
+    if (!ffNodeMap || !plotNodeMap) continue;
+
+    for (const raw of house.model.firstFloor.construction) {
+      const d = asDoor(raw);
+      if (!d) continue;
+
+      const aNode = ffNodeMap.get(d.aRegion);
+      if (aNode === undefined) continue;
+
+      const midLocal: [number, number] = [
+        (d.hinge[0] + d.end[0]) * 0.5,
+        (d.hinge[1] + d.end[1]) * 0.5,
+      ];
+      const midWorld = lotLocalToWorld(house, midLocal[0], midLocal[1]);
+      const waypoint = { x: midWorld.x, z: midWorld.z };
+
+      if (typeof d.bRegion === "number") {
+        const bNode = ffNodeMap.get(d.bRegion);
+        if (bNode === undefined) continue;
+
+        const cost = Math.hypot(nodes[aNode]!.center.x - nodes[bNode]!.center.x, nodes[aNode]!.center.z - nodes[bNode]!.center.z);
+        addUndirectedEdge(adj, aNode, bNode, cost, waypoint);
+      } else {
+        // Exterior door: connect to the plot region just outside the door.
+        const aRegion = house.model.firstFloor.regions[d.aRegion];
+        if (!aRegion) continue;
+
+        const outsideLocal = pickOutsideOfDoorLocal(aRegion, d);
+        const outsideLocalAlt = pickOutsideOfDoorLocalAlt(d);
+
+        const plotIdx =
+          findPlotRegionIndexContainingLocal(house.model.plot.regions, outsideLocal) ??
+          findPlotRegionIndexContainingLocal(house.model.plot.regions, outsideLocalAlt);
+
+        let plotNode: number | undefined = undefined;
+        if (plotIdx !== null) {
+          plotNode = plotNodeMap.get(plotIdx);
+        }
+
+        // Fallback: choose nearest plot node in this house by world distance to door midpoint.
+        if (plotNode === undefined) {
+          let bestId: number | null = null;
+          let bestD = Infinity;
+
+          for (const id of plotNodeMap.values()) {
+            const c = nodes[id]!.center;
+            const dd = Math.hypot(c.x - waypoint.x, c.z - waypoint.z);
+            if (dd < bestD) {
+              bestD = dd;
+              bestId = id;
+            }
+          }
+
+          if (bestId !== null) plotNode = bestId;
+        }
+
+        if (plotNode !== undefined) {
+          const cost = Math.hypot(nodes[aNode]!.center.x - nodes[plotNode]!.center.x, nodes[aNode]!.center.z - nodes[plotNode]!.center.z);
+          addUndirectedEdge(adj, aNode, plotNode, cost, waypoint);
+        }
+      }
+    }
+  }
+
+  return {
+    nodes,
+    adj,
+    roadNodeId,
+    plotNodeIdByHouseRegion,
+    firstFloorNodeIdByHouseRegion,
+  };
+}
+
+function addUndirectedEdge(adj: NavEdge[][], a: number, b: number, cost: number, waypoint: { x: number; z: number }) {
+  adj[a]!.push({ to: b, cost, waypoint });
+  adj[b]!.push({ to: a, cost, waypoint });
+}
+
+function getWaypoint(nav: NavGraph, from: number, to: number): { x: number; z: number } | null {
+  for (const e of nav.adj[from]!) {
+    if (e.to === to) return e.waypoint;
+  }
+  return null;
+}
+
+function aabbNear(a: { x0: number; z0: number; x1: number; z1: number }, b: { x0: number; z0: number; x1: number; z1: number }, eps: number): boolean {
+  return !(a.x1 < b.x0 - eps || b.x1 < a.x0 - eps || a.z1 < b.z0 - eps || b.z1 < a.z0 - eps);
+}
+
+function rectEdgesWorld(x0: number, z0: number, x1: number, z1: number): Seg2[] {
+  const minX = Math.min(x0, x1);
+  const maxX = Math.max(x0, x1);
+  const minZ = Math.min(z0, z1);
+  const maxZ = Math.max(z0, z1);
+
+  return [
+    { ax: minX, az: minZ, bx: maxX, bz: minZ }, // back
+    { ax: maxX, az: minZ, bx: maxX, bz: maxZ }, // right
+    { ax: maxX, az: maxZ, bx: minX, bz: maxZ }, // front
+    { ax: minX, az: maxZ, bx: minX, bz: minZ }, // left
+  ];
+}
+
+function regionEdgesWorld(house: HouseWithModel, r: Region): Seg2[] {
+  if (r.type === "rectangle") {
+    const [[ax, az], [bx, bz]] = r.points;
+    const minX = Math.min(ax, bx);
+    const maxX = Math.max(ax, bx);
+    const minZ = Math.min(az, bz);
+    const maxZ = Math.max(az, bz);
+
+    // Convert corners to world
+    const p00 = lotLocalToWorld(house, minX, minZ);
+    const p10 = lotLocalToWorld(house, maxX, minZ);
+    const p11 = lotLocalToWorld(house, maxX, maxZ);
+    const p01 = lotLocalToWorld(house, minX, maxZ);
+
+    return [
+      { ax: p00.x, az: p00.z, bx: p10.x, bz: p10.z },
+      { ax: p10.x, az: p10.z, bx: p11.x, bz: p11.z },
+      { ax: p11.x, az: p11.z, bx: p01.x, bz: p01.z },
+      { ax: p01.x, az: p01.z, bx: p00.x, bz: p00.z },
+    ];
+  }
+
+  const out: Seg2[] = [];
+  const pts = r.points;
+
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i]!;
+    const b = pts[(i + 1) % pts.length]!;
+    const wa = lotLocalToWorld(house, a[0], a[1]);
+    const wb = lotLocalToWorld(house, b[0], b[1]);
+    out.push({ ax: wa.x, az: wa.z, bx: wb.x, bz: wb.z });
+  }
+
+  return out;
+}
+
+function sharedPortalWaypoint(aEdges: Seg2[], bEdges: Seg2[]): { x: number; z: number } | null {
+  const EPS = 1e-3;
+  let bestLen = 0;
+  let best: { x: number; z: number } | null = null;
+
+  for (const a of aEdges) {
+    for (const b of bEdges) {
+      const aHoriz = Math.abs(a.az - a.bz) < EPS;
+      const bHoriz = Math.abs(b.az - b.bz) < EPS;
+      const aVert = Math.abs(a.ax - a.bx) < EPS;
+      const bVert = Math.abs(b.ax - b.bx) < EPS;
+
+      if (aHoriz && bHoriz && Math.abs(a.az - b.az) < 0.02) {
+        const ax0 = Math.min(a.ax, a.bx);
+        const ax1 = Math.max(a.ax, a.bx);
+        const bx0 = Math.min(b.ax, b.bx);
+        const bx1 = Math.max(b.ax, b.bx);
+        const lo = Math.max(ax0, bx0);
+        const hi = Math.min(ax1, bx1);
+        const len = hi - lo;
+        if (len >= NAV_PORTAL_MIN_OVERLAP_M && len > bestLen) {
+          bestLen = len;
+          best = { x: (lo + hi) * 0.5, z: a.az };
+        }
+      }
+
+      if (aVert && bVert && Math.abs(a.ax - b.ax) < 0.02) {
+        const az0 = Math.min(a.az, a.bz);
+        const az1 = Math.max(a.az, a.bz);
+        const bz0 = Math.min(b.az, b.bz);
+        const bz1 = Math.max(b.az, b.bz);
+        const lo = Math.max(az0, bz0);
+        const hi = Math.min(az1, bz1);
+        const len = hi - lo;
+        if (len >= NAV_PORTAL_MIN_OVERLAP_M && len > bestLen) {
+          bestLen = len;
+          best = { x: a.ax, z: (lo + hi) * 0.5 };
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+function regionWorldAabb(house: HouseWithModel, r: Region): { x0: number; z0: number; x1: number; z1: number } {
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+
+  const pts = regionWorldPoints(house, r);
+  for (const p of pts) {
+    minX = Math.min(minX, p.x);
+    maxX = Math.max(maxX, p.x);
+    minZ = Math.min(minZ, p.z);
+    maxZ = Math.max(maxZ, p.z);
+  }
+
+  return { x0: minX, z0: minZ, x1: maxX, z1: maxZ };
+}
+
+function regionWorldCenter(house: HouseWithModel, r: Region): { x: number; z: number } {
+  if (r.type === "rectangle") {
+    const [[x0, z0], [x1, z1]] = r.points;
+    const mx = (x0 + x1) * 0.5;
+    const mz = (z0 + z1) * 0.5;
+    const w = lotLocalToWorld(house, mx, mz);
+    return { x: w.x, z: w.z };
+  }
+
+  const pts = r.points;
+  let sx = 0, sz = 0;
+  for (const [x, z] of pts) {
+    sx += x;
+    sz += z;
+  }
+  const mx = sx / Math.max(1, pts.length);
+  const mz = sz / Math.max(1, pts.length);
+  const w = lotLocalToWorld(house, mx, mz);
+  return { x: w.x, z: w.z };
+}
+
+function regionWorldPoints(house: HouseWithModel, r: Region): Array<{ x: number; z: number }> {
+  if (r.type === "rectangle") {
+    const [[ax, az], [bx, bz]] = r.points;
+    const minX = Math.min(ax, bx);
+    const maxX = Math.max(ax, bx);
+    const minZ = Math.min(az, bz);
+    const maxZ = Math.max(az, bz);
+
+    return [
+      lotLocalToWorld(house, minX, minZ),
+      lotLocalToWorld(house, maxX, minZ),
+      lotLocalToWorld(house, maxX, maxZ),
+      lotLocalToWorld(house, minX, maxZ),
+    ];
+  }
+
+  return r.points.map(([x, z]) => lotLocalToWorld(house, x, z));
+}
+
+function worldToLotLocal(house: HouseWithModel, worldX: number, worldZ: number): { x: number; z: number } {
+  const { x, z, xsize, zsize } = house.bounds;
+  const lx = worldX - x;
+
+  if (house.houseNumber % 2 === 0) {
+    return { x: lx, z: worldZ - z };
+  }
+
+  // Odd houses: inverse of lotLocalToWorld mirroring on Z.
+  // worldZ = bounds.z + (zsize - localZ)  => localZ = zsize - (worldZ - bounds.z)
+  return { x: lx, z: zsize - (worldZ - z) };
+}
+
+function nodeContainsWorldXZ(nav: NavGraph, houseByNumber: Map<number, HouseWithModel>, nodeId: number, x: number, z: number): boolean {
+  const n = nav.nodes[nodeId]!;
+  if (x < n.aabb.x0 - 1e-6 || x > n.aabb.x1 + 1e-6 || z < n.aabb.z0 - 1e-6 || z > n.aabb.z1 + 1e-6) {
+    return false;
+  }
+
+  if (n.kind === "road") return true;
+
+  const house = n.houseNumber !== undefined ? houseByNumber.get(n.houseNumber) : null;
+  if (!house || !n.region) return false;
+
+  const loc = worldToLotLocal(house, x, z);
+  return pointInRegionLocal(loc.x, loc.z, n.region);
+}
+
+function findNodeForWorldXZ(nav: NavGraph, houseByNumber: Map<number, HouseWithModel>, x: number, z: number): number | null {
+  // Road first (fast)
+  const road = nav.nodes[nav.roadNodeId]!;
+  if (x >= road.aabb.x0 && x <= road.aabb.x1 && z >= road.aabb.z0 && z <= road.aabb.z1) {
+    return nav.roadNodeId;
+  }
+
+  // Find containing lot (30 houses, cheap)
+  let house: HouseWithModel | null = null;
+  for (const h of houseByNumber.values()) {
+    const bx0 = h.bounds.x;
+    const bx1 = h.bounds.x + h.bounds.xsize;
+    const bz0 = h.bounds.z;
+    const bz1 = h.bounds.z + h.bounds.zsize;
+    if (x >= bx0 && x <= bx1 && z >= bz0 && z <= bz1) {
+      house = h;
+      break;
+    }
+  }
+  if (!house) return null;
+
+  const hn = house.houseNumber;
+  const loc = worldToLotLocal(house, x, z);
+
+  // First floor nodes (indoors) first
+  const ffMap = nav.firstFloorNodeIdByHouseRegion.get(hn);
+  if (ffMap) {
+    for (const [idx, nodeId] of ffMap.entries()) {
+      const r = house.model.firstFloor.regions[idx];
+      if (!r) continue;
+      if (r.surface === "void") continue;
+      if (pointInRegionLocal(loc.x, loc.z, r)) return nodeId;
+    }
+  }
+
+  // Plot nodes (outdoors)
+  const plotMap = nav.plotNodeIdByHouseRegion.get(hn);
+  if (plotMap) {
+    for (const [idx, nodeId] of plotMap.entries()) {
+      const r = house.model.plot.regions[idx];
+      if (!r) continue;
+      if (r.name === "houseregion") continue;
+      if (pointInRegionLocal(loc.x, loc.z, r)) return nodeId;
+    }
+  }
+
+  // Fallback: choose nearest node in this lot (prevents getting "lost" in tiny wall-thickness gaps).
+  let best: number | null = null;
+  let bestD = Infinity;
+
+  if (ffMap) {
+    for (const nodeId of ffMap.values()) {
+      const c = nav.nodes[nodeId]!.center;
+      const d = Math.hypot(c.x - x, c.z - z);
+      if (d < bestD) {
+        bestD = d;
+        best = nodeId;
+      }
+    }
+  }
+
+  if (plotMap) {
+    for (const nodeId of plotMap.values()) {
+      const c = nav.nodes[nodeId]!.center;
+      const d = Math.hypot(c.x - x, c.z - z);
+      if (d < bestD) {
+        bestD = d;
+        best = nodeId;
+      }
+    }
+  }
+
+  return best;
+}
+
+function tryNavMove(
+  z: ZombieInstance,
+  nav: NavGraph,
+  houseByNumber: Map<number, HouseWithModel>,
+  vx: number,
+  vz: number,
+  curNode: number | null,
+  nextNode: number | null
+): boolean {
+  const x0 = z.root.position.x;
+  const z0 = z.root.position.z;
+
+  const tries: Array<[number, number]> = [
+    [vx, vz],
+    [vx, 0],
+    [0, vz],
+  ];
+
+  for (const [tx, tz] of tries) {
+    const nx = x0 + tx;
+    const nz = z0 + tz;
+
+    if (curNode !== null && nodeContainsWorldXZ(nav, houseByNumber, curNode, nx, nz)) {
+      z.root.position.x = nx;
+      z.root.position.z = nz;
+      return true;
+    }
+
+    if (nextNode !== null && nodeContainsWorldXZ(nav, houseByNumber, nextNode, nx, nz)) {
+      z.root.position.x = nx;
+      z.root.position.z = nz;
+      z.nav.nodeId = nextNode;
+
+      // Advance cursor if this is our planned next.
+      if (z.nav.path.length > 0 && z.nav.cursor + 1 < z.nav.path.length && z.nav.path[z.nav.cursor + 1] === nextNode) {
+        z.nav.cursor++;
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function astar(nav: NavGraph, start: number, goal: number): number[] | null {
+  if (start === goal) return [start];
+
+  const n = nav.nodes.length;
+  const g = new Array<number>(n).fill(Infinity);
+  const f = new Array<number>(n).fill(Infinity);
+  const came = new Array<number>(n).fill(-1);
+  const inOpen = new Array<boolean>(n).fill(false);
+  const open: number[] = [];
+
+  g[start] = 0;
+  f[start] = heuristic(nav, start, goal);
+  open.push(start);
+  inOpen[start] = true;
+
+  while (open.length > 0) {
+    // pick lowest f (small N => linear scan is fine)
+    let bestIdx = 0;
+    let bestNode = open[0]!;
+    let bestF = f[bestNode]!;
+
+    for (let i = 1; i < open.length; i++) {
+      const id = open[i]!;
+      const ff = f[id]!;
+      if (ff < bestF) {
+        bestF = ff;
+        bestNode = id;
+        bestIdx = i;
+      }
+    }
+
+    // pop best
+    open.splice(bestIdx, 1);
+    inOpen[bestNode] = false;
+
+    if (bestNode === goal) {
+      return reconstructPath(came, goal);
+    }
+
+    for (const e of nav.adj[bestNode]!) {
+      const tentative = g[bestNode]! + e.cost;
+      if (tentative < g[e.to]!) {
+        came[e.to] = bestNode;
+        g[e.to] = tentative;
+        f[e.to] = tentative + heuristic(nav, e.to, goal);
+
+        if (!inOpen[e.to]) {
+          inOpen[e.to] = true;
+          open.push(e.to);
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function heuristic(nav: NavGraph, a: number, b: number): number {
+  const pa = nav.nodes[a]!.center;
+  const pb = nav.nodes[b]!.center;
+  return Math.hypot(pa.x - pb.x, pa.z - pb.z);
+}
+
+function reconstructPath(came: number[], goal: number): number[] {
+  const out: number[] = [goal];
+  let cur = goal;
+
+  while (came[cur] !== -1) {
+    cur = came[cur]!;
+    out.push(cur);
+  }
+
+  out.reverse();
+  return out;
+}
+
+function pickOutsideOfDoorLocal(aRegion: Region, d: Door): [number, number] {
+  const mx = (d.hinge[0] + d.end[0]) * 0.5;
+  const mz = (d.hinge[1] + d.end[1]) * 0.5;
+
+  const eps = 0.18;
+
+  const vertical = Math.abs(d.hinge[0] - d.end[0]) < 1e-6;
+  const c1: [number, number] = vertical ? [mx + eps, mz] : [mx, mz + eps];
+  const c2: [number, number] = vertical ? [mx - eps, mz] : [mx, mz - eps];
+
+  const in1 = pointInRegionLocal(c1[0], c1[1], aRegion);
+  const in2 = pointInRegionLocal(c2[0], c2[1], aRegion);
+
+  if (in1 && !in2) return c2;
+  if (in2 && !in1) return c1;
+
+  // If ambiguous (numeric boundary), prefer c1, but caller will try an alternate too.
+  return c1;
+}
+
+function pickOutsideOfDoorLocalAlt(d: Door): [number, number] {
+  const mx = (d.hinge[0] + d.end[0]) * 0.5;
+  const mz = (d.hinge[1] + d.end[1]) * 0.5;
+
+  const eps = 0.18;
+  const vertical = Math.abs(d.hinge[0] - d.end[0]) < 1e-6;
+
+  return vertical ? [mx - eps, mz] : [mx, mz - eps];
+}
+
+function findPlotRegionIndexContainingLocal(plotRegions: Region[], p: [number, number]): number | null {
+  const [x, z] = p;
+  for (let i = 0; i < plotRegions.length; i++) {
+    const r = plotRegions[i]!;
+    if (r.name === "houseregion") continue;
+    if (pointInRegionLocal(x, z, r)) return i;
+  }
+  return null;
+}
+
+// ---------------------------
+// Spawn planning helpers
+// ---------------------------
+
 function buildCandidates(houses: HouseWithModel[]): Candidate[] {
   const out: Candidate[] = [];
 
   for (const house of houses) {
     for (const region of house.model.firstFloor.regions) {
+      // Spawn excludes stairs (per existing behavior) so zombies don't pop on stairwell.
       if (region.name === "stairs") continue;
       if (region.surface === "void") continue;
 
@@ -303,6 +1155,10 @@ function planOneZombie(
 
   return null;
 }
+
+// ---------------------------
+// Geometry helpers
+// ---------------------------
 
 function regionArea(region: Region): number {
   if (region.type === "rectangle") {
@@ -362,6 +1218,19 @@ function randomPointInRegion(region: Region): [number, number] {
   }
 
   return pts[0]!;
+}
+
+function pointInRegionLocal(px: number, pz: number, region: Region): boolean {
+  if (region.type === "rectangle") {
+    const [[x0, z0], [x1, z1]] = region.points;
+    const minX = Math.min(x0, x1);
+    const maxX = Math.max(x0, x1);
+    const minZ = Math.min(z0, z1);
+    const maxZ = Math.max(z0, z1);
+    return px >= minX - 1e-6 && px <= maxX + 1e-6 && pz >= minZ - 1e-6 && pz <= maxZ + 1e-6;
+  }
+
+  return pointInPolygon(px, pz, region.points);
 }
 
 function pointInPolygon(px: number, pz: number, pts: Array<[number, number]>): boolean {

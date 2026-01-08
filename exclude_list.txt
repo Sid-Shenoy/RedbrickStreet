@@ -18,4 +18,6 @@ web\src\scene\uvs.ts
 web\src\audio\ambience.ts
 web\src\ui\intro.ts
 web\src\ui\weaponUi.ts
-web\src\world\houseModel\requirements.txt
+web\src\ui\wasted.ts
+web\src\ui\hud.ts
+web\src\ui\requirements.txt
