@@ -38,6 +38,14 @@
 1.4.3) When not sprinting, stamina must replenish gradually.
 1.4.4) Sprinting must increase `camera.speed` while stamina remains above 0.
 
+1.5) Damage flash vignette (hard)
+
+1.5.1) Whenever HUD health decreases (i.e., `setHealth` is called with a value lower than the previous health),
+       the screen must flash with a red vignette effect.
+1.5.2) The vignette must be full-screen, centered clear with red edges, and must not block pointer lock / clicks
+       (`pointer-events: none`).
+1.5.3) The flash must be brief (single pulse) and may restart if damage occurs again before it finishes.
+
 2) Weapon UI module (`weaponUi.ts`)
 
 2.1) Intent

@@ -300,6 +300,22 @@ function ensureHudStyle(): HTMLStyleElement {
   background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.00));
   opacity: 0.35;
 }
+
+#rbsDamageVignette {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 0, 0, 0) 0%,
+    rgba(255, 0, 0, 0) 52%,
+    rgba(255, 0, 0, 0.28) 70%,
+    rgba(255, 0, 0, 0.62) 100%
+  );
+}
 `;
   document.head.appendChild(style);
   return style;
@@ -307,6 +323,10 @@ function ensureHudStyle(): HTMLStyleElement {
 
 export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWithModel[]) {
   ensureHudStyle();
+
+  const damageVignette = document.createElement("div");
+  damageVignette.id = "rbsDamageVignette";
+  document.body.appendChild(damageVignette);
 
   const root = document.createElement("div");
   root.id = "rbsHudRoot";
@@ -392,6 +412,38 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
 
   let health = MAX_HEALTH;
   let stamina = MAX_STAMINA;
+
+  let damageAnim: Animation | null = null;
+
+  function flashDamage(damage01: number) {
+    if (disposed) return;
+
+    const p = Math.max(0, Math.min(1, damage01));
+    const peak = 0.35 + p * 0.45; // 0.35..0.80
+
+    // Prefer WAAPI; fallback if unavailable.
+    const anyEl = damageVignette as unknown as { animate?: HTMLElement["animate"] };
+    if (typeof anyEl.animate !== "function") {
+      damageVignette.style.opacity = String(peak);
+      window.setTimeout(() => {
+        damageVignette.style.opacity = "0";
+      }, 220);
+      return;
+    }
+
+    damageAnim?.cancel();
+    damageVignette.style.opacity = "0";
+
+    damageAnim = damageVignette.animate([{ opacity: 0 }, { opacity: peak }, { opacity: 0 }], {
+      duration: 280,
+      easing: "ease-out",
+    });
+
+    damageAnim.onfinish = () => {
+      damageAnim = null;
+      damageVignette.style.opacity = "0";
+    };
+  }
 
   const baseSpeed = camera.speed;
 
@@ -804,6 +856,10 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     window.removeEventListener("keyup", onKeyUp);
     window.removeEventListener("blur", onBlur);
 
+    damageAnim?.cancel();
+    damageAnim = null;
+
+    damageVignette.remove();
     root.remove();
   }
 
@@ -813,7 +869,13 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
   return {
     dispose,
     setHealth: (v: number) => {
-      health = Math.max(0, Math.min(MAX_HEALTH, v));
+      const prev = health;
+      const next = Math.max(0, Math.min(MAX_HEALTH, v));
+      health = next;
+
+      if (next < prev) {
+        flashDamage((prev - next) / MAX_HEALTH);
+      }
     },
     setStamina: (v: number) => {
       stamina = Math.max(0, Math.min(MAX_STAMINA, v));
