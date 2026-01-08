@@ -1,15 +1,23 @@
-1) Zombie streaming (`spawnZombies.ts`)
+1) Zombie streaming + AI (`spawnZombies.ts`)
 
 1.1) Intent
 
 1.1.1) Preload the zombie model once at boot.
 1.1.2) Plan a fixed total number of zombie spawns, but instantiate zombie meshes lazily per-house,
        when that house's interior is loaded/streamed in.
+1.1.3) Provide lightweight zombie AI:
+1.1.3.1) Zombies are idle (no animation) when far from the player.
+1.1.3.2) Zombies walk toward the player when within a follow distance threshold.
+1.1.3.3) Zombies attack when within an attack distance threshold.
+1.1.3.4) Zombies can pass through walls and do not use collision-based movement.
+1.1.3.5) Zombies cannot climb stairs (they remain on the first-floor height).
 
 1.2) Constants (hard)
 
 1.2.1) `ZOMBIE_COUNT` is a constant and defaults to 50.
 1.2.2) `MIN_ZOMBIE_SPAWN_DIST_M` is a constant and defaults to 30.
+1.2.3) `ZOMBIE_AI_FOLLOW_DIST_M` is a constant and defaults to 20.
+1.2.4) `ZOMBIE_AI_ATTACK_DIST_M` is a constant and defaults to 1.
 
 1.3) Preloading (hard)
 
@@ -20,12 +28,36 @@
 
 1.4) Streaming spawner API (hard)
 
-1.4.1) Export: `createZombieHouseStreamer(scene, houses, playerStartXZ, zombieAssets) -> ZombieHouseStreamer`
+1.4.1) Export:
+       `createZombieHouseStreamer(scene, houses, playerStartXZ, zombieAssets, getPlayerXZ) -> ZombieHouseStreamer`
 1.4.2) `houses` must be `HouseWithModel[]`.
 1.4.3) `playerStartXZ` is the player's XZ at game start and is used ONLY for the minimum spawn distance rule (1.6.3).
-1.4.4) `ZombieHouseStreamer` must provide:
-1.4.4.1) `ensureHouse(houseNumber: number) -> void`
-1.4.4.2) `dispose() -> void`
+1.4.4) `getPlayerXZ` must be a callback returning the player's current world XZ:
+1.4.4.1) `getPlayerXZ() -> { x: number; z: number }`
+1.4.5) `ZombieHouseStreamer` must provide:
+1.4.5.1) `ensureHouse(houseNumber: number) -> void`
+1.4.5.2) `dispose() -> void`
+
+Example usage:
+```
+const zombieAssets = await preloadZombieAssets(scene);
+
+const streamer = createZombieHouseStreamer(
+  scene,
+  housesWithModel, {
+	x: camera.position.x,
+	z: camera.position.z
+  },
+  zombieAssets,
+  () => ({
+	x: camera.position.x,
+	z: camera.position.z
+  })
+);
+// later, when an interior loads:
+streamer.ensureHouse(12);
+```
+
 
 1.5) When `ensureHouse` is called (hard)
 
@@ -37,7 +69,7 @@
 1.5.3.3) Exclude the first-floor `stairs` region (zombies cannot climb stairs).
 1.5.3.4) Exclude any region with `surface === "void"`.
 
-1.6) Placement rules (hard)
+1.6) Spawn placement rules (hard)
 
 1.6.1) Total zombies planned across the street must equal `ZOMBIE_COUNT`.
 1.6.2) Spawn positions must be chosen randomly from valid first-floor regions, weighted by region area.
@@ -45,13 +77,32 @@
 1.6.4) Spawn height is `FIRST_FLOOR_Y`.
 1.6.5) Zombie model path is `/assets/models/zombie.glb`.
 
-1.7) Mesh flags (hard)
+1.7) AI behavior rules (hard)
 
-1.7.1) Collisions must be disabled for all zombie meshes:
-1.7.1.1) `checkCollisions = false`
-1.7.1.2) `isPickable = false`
+1.7.1) Distance metric:
+1.7.1.1) All AI distance checks must use XZ distance in world space (ignore Y).
+1.7.2) Idle state (performance rule):
+1.7.2.1) If a zombie's XZ distance to the player is > `ZOMBIE_AI_FOLLOW_DIST_M`,
+         the zombie must not be animated (no walk/attack animation playing).
+1.7.2.2) While idle, the zombie must not move toward the player.
+1.7.3) Walk/chase state:
+1.7.3.1) If a zombie's XZ distance to the player is <= `ZOMBIE_AI_FOLLOW_DIST_M` and > `ZOMBIE_AI_ATTACK_DIST_M`,
+         the zombie must play a walking/jogging animation and move toward the player.
+1.7.4) Attack state:
+1.7.4.1) If a zombie's XZ distance to the player is <= `ZOMBIE_AI_ATTACK_DIST_M`,
+         the zombie must play an attack animation.
+1.7.4.2) While attacking, the zombie must not move toward the player.
+1.7.5) Walls and stairs:
+1.7.5.1) Zombies can pass through walls: movement must NOT use collision-based movement.
+1.7.5.2) Zombies cannot climb stairs: zombie world Y must be clamped to `FIRST_FLOOR_Y` during AI updates.
 
-1.8) Failure behavior
+1.8) Mesh flags (hard)
 
-1.8.1) If planning cannot place all `ZOMBIE_COUNT` zombies while respecting min distance,
+1.8.1) Collisions must be disabled for all zombie meshes:
+1.8.1.1) `checkCollisions = false`
+1.8.1.2) `isPickable = false`
+
+1.9) Failure behavior
+
+1.9.1) If planning cannot place all `ZOMBIE_COUNT` zombies while respecting min distance,
        `createZombieHouseStreamer` must throw an Error.

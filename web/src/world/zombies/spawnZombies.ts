@@ -1,6 +1,13 @@
 import "@babylonjs/loaders/glTF";
 
-import { AssetContainer, Scene, SceneLoader, TransformNode } from "@babylonjs/core";
+import {
+  AssetContainer,
+  Scene,
+  SceneLoader,
+  TransformNode,
+  type AnimationGroup,
+  type Observer,
+} from "@babylonjs/core";
 
 import type { HouseWithModel, Region } from "../houseModel/types";
 import { lotLocalToWorld } from "../houseModel/lotTransform";
@@ -9,6 +16,13 @@ import { FIRST_FLOOR_Y } from "../../scene/constants";
 // Tweakable constants (per requirements)
 export const ZOMBIE_COUNT = 50;
 export const MIN_ZOMBIE_SPAWN_DIST_M = 30;
+
+// Zombie AI distance thresholds (per requirements)
+export const ZOMBIE_AI_FOLLOW_DIST_M = 20;
+export const ZOMBIE_AI_ATTACK_DIST_M = 1;
+
+// Internal tuning (not part of config yet)
+const ZOMBIE_WALK_SPEED_MPS = 1.0;
 
 type Candidate = {
   house: HouseWithModel;
@@ -23,6 +37,15 @@ type ZombiePlan = {
   rotY: number;
 };
 
+type ZombieState = "idle" | "walk" | "attack";
+
+type ZombieInstance = {
+  root: TransformNode;
+  walkAnim: AnimationGroup | null;
+  attackAnim: AnimationGroup | null;
+  state: ZombieState;
+};
+
 export interface ZombieHouseStreamer {
   ensureHouse(houseNumber: number): void;
   dispose(): void;
@@ -35,12 +58,21 @@ export async function preloadZombieAssets(scene: Scene): Promise<AssetContainer>
 /**
  * Plans ZOMBIE_COUNT spawns across all houses (area-weighted), but only instantiates zombies for a house
  * when ensureHouse(houseNumber) is called (typically when that house interior is streamed in).
+ *
+ * Also runs lightweight AI:
+ * - if XZ dist > ZOMBIE_AI_FOLLOW_DIST_M => idle, no animation, no movement
+ * - if ZOMBIE_AI_ATTACK_DIST_M < dist <= ZOMBIE_AI_FOLLOW_DIST_M => walk toward player + walk anim
+ * - if dist <= ZOMBIE_AI_ATTACK_DIST_M => attack anim, no movement
+ *
+ * Zombies do not use collision-based movement (can pass through walls),
+ * and are clamped to FIRST_FLOOR_Y (cannot climb stairs).
  */
 export function createZombieHouseStreamer(
   scene: Scene,
   houses: HouseWithModel[],
   playerStartXZ: { x: number; z: number },
-  zombieAssets: AssetContainer
+  zombieAssets: AssetContainer,
+  getPlayerXZ: () => { x: number; z: number }
 ): ZombieHouseStreamer {
   const candidates = buildCandidates(houses);
   if (candidates.length === 0) {
@@ -73,6 +105,23 @@ export function createZombieHouseStreamer(
 
   const spawnedHouses = new Set<number>();
   const roots: TransformNode[] = [];
+  const zombies: ZombieInstance[] = [];
+
+  function setZombieState(z: ZombieInstance, next: ZombieState) {
+    if (z.state === next) return;
+
+    // Stop all animations first to enforce the "far = no animation" rule.
+    z.walkAnim?.stop();
+    z.attackAnim?.stop();
+
+    if (next === "walk") {
+      z.walkAnim?.start(true, 1.0);
+    } else if (next === "attack") {
+      z.attackAnim?.start(true, 1.0);
+    }
+
+    z.state = next;
+  }
 
   function ensureHouse(houseNumber: number) {
     if (spawnedHouses.has(houseNumber)) return;
@@ -101,13 +150,85 @@ export function createZombieHouseStreamer(
         m.isPickable = false;
       }
 
+      // Animation mapping based on `/public/assets/models/requirements.txt`:
+      // 0: Attack, 1: Reel back, 2: Die, 3: Jog forward
+      const attackAnim = inst.animationGroups?.[0] ?? null;
+      const walkAnim = inst.animationGroups?.[3] ?? null;
+
+      // Start in idle (no animation playing).
+      attackAnim?.stop();
+      walkAnim?.stop();
+
+      zombies.push({ root, walkAnim, attackAnim, state: "idle" });
       roots.push(root);
     }
   }
 
+  const aiObserver: Observer<Scene> = scene.onBeforeRenderObservable.add(() => {
+    const dt = scene.getEngine().getDeltaTime() / 1000;
+    if (dt <= 0) return;
+
+    const p = getPlayerXZ();
+
+    for (const z of zombies) {
+      const zx = z.root.position.x;
+      const zz = z.root.position.z;
+
+      const dx = p.x - zx;
+      const dz = p.z - zz;
+
+      const dist = Math.hypot(dx, dz);
+
+      // Clamp Y so zombies cannot climb stairs.
+      if (z.root.position.y !== FIRST_FLOOR_Y) z.root.position.y = FIRST_FLOOR_Y;
+
+      if (dist <= ZOMBIE_AI_ATTACK_DIST_M) {
+        setZombieState(z, "attack");
+
+        // Face the player while attacking.
+        z.root.rotation.y = Math.atan2(dx, dz);
+        continue;
+      }
+
+      if (dist <= ZOMBIE_AI_FOLLOW_DIST_M) {
+        setZombieState(z, "walk");
+
+        // Move toward player (XZ only; no collisions so they can pass through walls).
+        if (dist > 1e-6) {
+          const step = Math.min(dist, ZOMBIE_WALK_SPEED_MPS * dt);
+          z.root.position.x = zx + (dx / dist) * step;
+          z.root.position.z = zz + (dz / dist) * step;
+
+          // Face travel direction (toward player).
+          z.root.rotation.y = Math.atan2(dx, dz);
+
+          // Re-clamp Y after movement.
+          z.root.position.y = FIRST_FLOOR_Y;
+        }
+
+        continue;
+      }
+
+      // Far away: idle, no animation (performance rule).
+      setZombieState(z, "idle");
+    }
+  });
+
   function dispose() {
+    scene.onBeforeRenderObservable.remove(aiObserver);
+
+    // Stop + dispose all zombie animation groups we created via instantiation.
+    for (const z of zombies) {
+      z.walkAnim?.stop();
+      z.attackAnim?.stop();
+      z.walkAnim?.dispose();
+      z.attackAnim?.dispose();
+    }
+    zombies.length = 0;
+
     for (const r of roots) r.dispose();
     roots.length = 0;
+
     spawnedHouses.clear();
     planByHouse.clear();
   }

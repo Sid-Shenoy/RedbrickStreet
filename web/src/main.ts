@@ -95,7 +95,8 @@ async function boot() {
     scene,
     housesWithModel,
     { x: camera.position.x, z: camera.position.z },
-    zombieAssets
+    zombieAssets,
+    () => ({ x: camera.position.x, z: camera.position.z })
   );
 
   // Spawn zombies for any interiors that were already loaded while the intro was up.
