@@ -16,39 +16,105 @@ type Candidate = {
   area: number;
 };
 
+type ZombiePlan = {
+  houseNumber: number;
+  localX: number;
+  localZ: number;
+  rotY: number;
+};
+
+export interface ZombieHouseStreamer {
+  ensureHouse(houseNumber: number): void;
+  dispose(): void;
+}
+
 export async function preloadZombieAssets(scene: Scene): Promise<AssetContainer> {
   return SceneLoader.LoadAssetContainerAsync("/assets/models/", "zombie.glb", scene);
 }
 
-export async function spawnZombiesAtGameStart(
+/**
+ * Plans ZOMBIE_COUNT spawns across all houses (area-weighted), but only instantiates zombies for a house
+ * when ensureHouse(houseNumber) is called (typically when that house interior is streamed in).
+ */
+export function createZombieHouseStreamer(
   scene: Scene,
   houses: HouseWithModel[],
-  playerXZ: { x: number; z: number },
+  playerStartXZ: { x: number; z: number },
   zombieAssets: AssetContainer
-): Promise<TransformNode[]> {
+): ZombieHouseStreamer {
   const candidates = buildCandidates(houses);
   if (candidates.length === 0) {
-    throw new Error("spawnZombiesAtGameStart: no first-floor spawn regions found");
+    throw new Error("createZombieHouseStreamer: no first-floor spawn regions found");
   }
 
   const totalArea = candidates.reduce((sum, c) => sum + c.area, 0);
   if (totalArea <= 0) {
-    throw new Error("spawnZombiesAtGameStart: spawn regions have zero total area");
+    throw new Error("createZombieHouseStreamer: spawn regions have zero total area");
   }
 
-  const zombies: TransformNode[] = [];
+  const houseByNumber = new Map<number, HouseWithModel>();
+  for (const h of houses) houseByNumber.set(h.houseNumber, h);
+
+  // Plan spawns up-front, but group them per house.
+  const planByHouse = new Map<number, ZombiePlan[]>();
 
   for (let i = 0; i < ZOMBIE_COUNT; i++) {
-    const z = placeOneZombie(scene, zombieAssets, candidates, totalArea, playerXZ, i);
-    if (!z) {
+    const plan = planOneZombie(candidates, totalArea, playerStartXZ);
+    if (!plan) {
       throw new Error(
-        `spawnZombiesAtGameStart: failed to place zombie ${i} with minDist=${MIN_ZOMBIE_SPAWN_DIST_M}m`
+        `createZombieHouseStreamer: failed to plan zombie ${i} with minDist=${MIN_ZOMBIE_SPAWN_DIST_M}m`
       );
     }
-    zombies.push(z);
+
+    const arr = planByHouse.get(plan.houseNumber) ?? [];
+    arr.push(plan);
+    planByHouse.set(plan.houseNumber, arr);
   }
 
-  return zombies;
+  const spawnedHouses = new Set<number>();
+  const roots: TransformNode[] = [];
+
+  function ensureHouse(houseNumber: number) {
+    if (spawnedHouses.has(houseNumber)) return;
+    spawnedHouses.add(houseNumber);
+
+    const plans = planByHouse.get(houseNumber);
+    if (!plans || plans.length === 0) return;
+
+    const house = houseByNumber.get(houseNumber);
+    if (!house) return;
+
+    for (let i = 0; i < plans.length; i++) {
+      const p = plans[i]!;
+      const inst = zombieAssets.instantiateModelsToScene();
+
+      const root = new TransformNode(`rbs_zombie_h${houseNumber}_${i}`, scene);
+      for (const n of inst.rootNodes) n.parent = root;
+
+      const world = lotLocalToWorld(house, p.localX, p.localZ);
+      root.position.set(world.x, FIRST_FLOOR_Y, world.z);
+      root.rotation.y = p.rotY;
+
+      // Disable collisions + picking for all meshes in this instance.
+      for (const m of root.getChildMeshes(false)) {
+        m.checkCollisions = false;
+        m.isPickable = false;
+      }
+
+      roots.push(root);
+    }
+  }
+
+  function dispose() {
+    for (const r of roots) r.dispose();
+    roots.length = 0;
+    spawnedHouses.clear();
+    planByHouse.clear();
+  }
+
+  scene.onDisposeObservable.add(() => dispose());
+
+  return { ensureHouse, dispose };
 }
 
 function buildCandidates(houses: HouseWithModel[]): Candidate[] {
@@ -69,14 +135,11 @@ function buildCandidates(houses: HouseWithModel[]): Candidate[] {
   return out;
 }
 
-function placeOneZombie(
-  scene: Scene,
-  zombieAssets: AssetContainer,
+function planOneZombie(
   candidates: Candidate[],
   totalArea: number,
-  playerXZ: { x: number; z: number },
-  index: number
-): TransformNode | null {
+  playerStartXZ: { x: number; z: number }
+): ZombiePlan | null {
   const MAX_ATTEMPTS = 800;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -85,25 +148,16 @@ function placeOneZombie(
 
     const world = lotLocalToWorld(cand.house, lx, lz);
 
-    const dx = world.x - playerXZ.x;
-    const dz = world.z - playerXZ.z;
+    const dx = world.x - playerStartXZ.x;
+    const dz = world.z - playerStartXZ.z;
     if (Math.hypot(dx, dz) < MIN_ZOMBIE_SPAWN_DIST_M) continue;
 
-    const inst = zombieAssets.instantiateModelsToScene();
-
-    const root = new TransformNode(`rbs_zombie_${index}`, scene);
-    for (const n of inst.rootNodes) n.parent = root;
-
-    root.position.set(world.x, FIRST_FLOOR_Y, world.z);
-    root.rotation.y = Math.random() * Math.PI * 2;
-
-    // Disable collisions + picking for all meshes in this instance.
-    for (const m of root.getChildMeshes(false)) {
-      m.checkCollisions = false;
-      m.isPickable = false;
-    }
-
-    return root;
+    return {
+      houseNumber: cand.house.houseNumber,
+      localX: lx,
+      localZ: lz,
+      rotY: Math.random() * Math.PI * 2,
+    };
   }
 
   return null;

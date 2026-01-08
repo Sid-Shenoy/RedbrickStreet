@@ -1,6 +1,6 @@
 import { Engine, Scene, UniversalCamera, HemisphericLight, DirectionalLight, Vector3, Color3, MeshBuilder } from "@babylonjs/core";
 import { UniversalCameraXZKeyboardInput } from "./scene/universalCameraXZKeyboardInput";
-import { preloadZombieAssets, spawnZombiesAtGameStart } from "./world/zombies/spawnZombies";
+import { preloadZombieAssets, createZombieHouseStreamer, type ZombieHouseStreamer } from "./world/zombies/spawnZombies";
 
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
@@ -68,7 +68,16 @@ async function boot() {
   const { weapons } = await loadWeaponsConfig();
   const housesWithModel = houses.map((h) => attachHouseModel(h, STREET_SEED));
 
-  renderStreet(scene, camera, housesWithModel);
+  const interiorsLoaded = new Set<number>();
+  let zombieStreamer: ZombieHouseStreamer | null = null;
+
+  renderStreet(scene, camera, housesWithModel, {
+    onInteriorLoaded: (houseNumber) => {
+      interiorsLoaded.add(houseNumber);
+      zombieStreamer?.ensureHouse(houseNumber);
+    },
+  });
+
   spawnPlayerAtHouse7Walkway(scene, camera, housesWithModel);
 
   // Start rendering immediately so the world is visible behind the intro.
@@ -79,9 +88,20 @@ async function boot() {
   const intro = createIntroOverlay(scene);
   await intro.waitForStart();
 
-  // Spawn zombies at start (player hasn't moved yet).
+  // Create a per-house zombie streamer AFTER the intro starts, so we don't hitch during boot.
+  // Player hasn't moved yet here, so camera.position is the game-start origin for MIN_ZOMBIE_SPAWN_DIST_M.
   const zombieAssets = await zombieAssetsPromise;
-  await spawnZombiesAtGameStart(scene, housesWithModel, { x: camera.position.x, z: camera.position.z }, zombieAssets);
+  zombieStreamer = createZombieHouseStreamer(
+    scene,
+    housesWithModel,
+    { x: camera.position.x, z: camera.position.z },
+    zombieAssets
+  );
+
+  // Spawn zombies for any interiors that were already loaded while the intro was up.
+  for (const houseNumber of interiorsLoaded) {
+    zombieStreamer.ensureHouse(houseNumber);
+  }
 
   // Click-to-pointer-lock (better mouse look)
   scene.onPointerDown = () => {

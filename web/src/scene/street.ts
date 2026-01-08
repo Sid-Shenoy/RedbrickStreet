@@ -162,7 +162,16 @@ function createWallBox(
   return m;
 }
 
-export function renderStreet(scene: Scene, camera: UniversalCamera, houses: HouseWithModel[]) {
+export interface RenderStreetOptions {
+  onInteriorLoaded?: (houseNumber: number) => void;
+}
+
+export function renderStreet(
+  scene: Scene,
+  camera: UniversalCamera,
+  houses: HouseWithModel[],
+  opts: RenderStreetOptions = {}
+) {
   const mats = surfaceMaterial(scene);
   const matsDouble = surfaceMaterial(scene, { doubleSided: true });
 
@@ -311,6 +320,10 @@ export function renderStreet(scene: Scene, camera: UniversalCamera, houses: Hous
   const exteriorDone = new Set<number>();
   const entryDone = new Set<number>();
   const interiorDone = new Set<number>();
+
+  function notifyInteriorLoaded(houseNumber: number) {
+    opts.onInteriorLoaded?.(houseNumber);
+  }
 
   const plotQueued = new Set<number>();
   const exteriorQueued = new Set<number>();
@@ -721,6 +734,7 @@ export function renderStreet(scene: Scene, camera: UniversalCamera, houses: Hous
       }
       renderHouseSecondFloorFull(house);
       interiorDone.add(n);
+      notifyInteriorLoaded(n);
       interiorQueued.delete(n);
     };
 
@@ -756,6 +770,7 @@ export function renderStreet(scene: Scene, camera: UniversalCamera, houses: Hous
     renderHouseSecondFloorFull(spawnHouse);
 
     interiorDone.add(SPAWN_HOUSE);
+    notifyInteriorLoaded(SPAWN_HOUSE);
 
     // Now reveal the real house meshes (safe: interior already exists)
     disablePlaceholderHouse(SPAWN_HOUSE);
