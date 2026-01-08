@@ -36,6 +36,10 @@ function ensureWastedStyle(): HTMLStyleElement {
   transform: translate(-50%, -50%);
   opacity: 0;
   transition: opacity 2.4s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   image-rendering: auto;
 }
 
@@ -43,6 +47,15 @@ function ensureWastedStyle(): HTMLStyleElement {
   display: block;
   width: min(640px, 92vw);
   height: auto;
+}
+
+#rbsWastedCaption {
+  width: min(760px, 92vw);
+  text-align: center;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: clamp(16px, 2.2vw, 22px);
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
 }
 `;
   document.head.appendChild(style);
@@ -62,10 +75,17 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
 
   const gifWrap = document.createElement("div");
   gifWrap.id = "rbsWastedGif";
+
   const img = document.createElement("img");
   img.src = "/assets/wasted-text.gif";
   img.alt = "WASTED";
   gifWrap.appendChild(img);
+
+  const caption = document.createElement("div");
+  caption.id = "rbsWastedCaption";
+  caption.textContent = "Officer Steve was killed by a zombie.";
+  gifWrap.appendChild(caption);
+
   root.appendChild(gifWrap);
 
   document.body.appendChild(root);
