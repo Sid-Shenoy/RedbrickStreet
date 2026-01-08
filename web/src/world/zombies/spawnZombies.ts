@@ -14,7 +14,7 @@ import { lotLocalToWorld } from "../houseModel/lotTransform";
 import { FIRST_FLOOR_Y } from "../../scene/constants";
 
 // Tweakable constants (per requirements)
-export const ZOMBIE_COUNT = 50;
+export const ZOMBIE_COUNT = 25;
 export const MIN_ZOMBIE_SPAWN_DIST_M = 30;
 
 // Zombie AI distance thresholds (per requirements)
@@ -22,7 +22,7 @@ export const ZOMBIE_AI_FOLLOW_DIST_M = 20;
 export const ZOMBIE_AI_ATTACK_DIST_M = 1;
 
 // Internal tuning (not part of config yet)
-const ZOMBIE_WALK_SPEED_MPS = 1.0;
+const ZOMBIE_WALK_SPEED_MPS = 1.6;
 
 type Candidate = {
   house: HouseWithModel;
