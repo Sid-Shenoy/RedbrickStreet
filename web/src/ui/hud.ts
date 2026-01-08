@@ -405,6 +405,10 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
   // Zombie minimap tracking (transform nodes spawned by zombie streamer).
   // (spawnZombies.ts names zombie roots like: rbs_zombie_h<houseNumber>_<i>)
   const ZOMBIE_NODE_PREFIX = "rbs_zombie_h";
+  // spawnZombies.ts names hitboxes like: rbs_zombie_hitbox_h<houseNumber>_<i>
+  // and disables them on death via hitbox.setEnabled(false). We'll use that to hide dead zombies on the HUD.
+  const ZOMBIE_HITBOX_PREFIX = "rbs_zombie_hitbox_";
+
   let zombieNodes: TransformNode[] = [];
   let zombieScanTimer = 0;
 
@@ -838,7 +842,16 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
     zombieScanTimer += dt;
     if (zombieScanTimer >= 0.5) {
       zombieScanTimer = 0;
-      zombieNodes = scene.transformNodes.filter((n) => n.name.startsWith(ZOMBIE_NODE_PREFIX));
+
+      zombieNodes = scene.transformNodes.filter((n) => {
+        if (!n.name.startsWith(ZOMBIE_NODE_PREFIX)) return false;
+
+        // Zombie root has a hitbox mesh parented to it.
+        // When dead, spawnZombies.ts does: hitbox.setEnabled(false).
+        const hitbox = n.getChildMeshes(false).find((m) => m.name.startsWith(ZOMBIE_HITBOX_PREFIX));
+        if (!hitbox) return true; // fail-open if something changes
+        return hitbox.isEnabled();
+      });
     }
 
     // Minimap
