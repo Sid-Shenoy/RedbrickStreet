@@ -17,7 +17,9 @@ function ensureWastedStyle(): HTMLStyleElement {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  pointer-events: none;
+
+  /* IMPORTANT: block all gameplay clicks/keys once visible */
+  pointer-events: auto;
   user-select: none;
 }
 
@@ -98,10 +100,64 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
   audio.preload = "auto";
   audio.volume = 1.0;
 
+  // Hard input block: capture-phase listeners that prevent the weapon UI from seeing clicks/keys.
+  let inputBlocked = false;
+
+  const blockEvent = (ev: Event) => {
+    // Prevent any gameplay input after death.
+    ev.preventDefault();
+    ev.stopPropagation();
+    // Stop other listeners on the same target too (important if weapon UI listens on window).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (ev as any).stopImmediatePropagation?.();
+    return false;
+  };
+
+  function installInputBlockers() {
+    if (inputBlocked) return;
+    inputBlocked = true;
+
+    // Mouse / pointer
+    window.addEventListener("pointerdown", blockEvent, true);
+    window.addEventListener("pointerup", blockEvent, true);
+    window.addEventListener("mousedown", blockEvent, true);
+    window.addEventListener("mouseup", blockEvent, true);
+    window.addEventListener("click", blockEvent, true);
+
+    // Keys (prevents Tab weapon wheel, 1-4 switching, etc.)
+    window.addEventListener("keydown", blockEvent, true);
+    window.addEventListener("keyup", blockEvent, true);
+
+    // Wheel (some browsers require passive:false to prevent default)
+    window.addEventListener("wheel", blockEvent, { capture: true, passive: false });
+  }
+
+  function removeInputBlockers() {
+    if (!inputBlocked) return;
+    inputBlocked = false;
+
+    window.removeEventListener("pointerdown", blockEvent, true);
+    window.removeEventListener("pointerup", blockEvent, true);
+    window.removeEventListener("mousedown", blockEvent, true);
+    window.removeEventListener("mouseup", blockEvent, true);
+    window.removeEventListener("click", blockEvent, true);
+
+    window.removeEventListener("keydown", blockEvent, true);
+    window.removeEventListener("keyup", blockEvent, true);
+
+    window.removeEventListener("wheel", blockEvent, true);
+  }
+
   function trigger() {
     if (disposed) return;
     if (active) return;
     active = true;
+
+    // Drop pointer lock so the cursor can reappear / no more FPS-look.
+    document.exitPointerLock?.();
+
+    // Block all gameplay input immediately (prevents gunshot + weapon UI actions).
+    installInputBlockers();
 
     root.style.display = "block";
 
@@ -109,7 +165,6 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
     fade.style.opacity = "0";
     gifWrap.style.opacity = "0";
 
-    // Ensure transitions kick in.
     requestAnimationFrame(() => {
       fade.style.opacity = "1";
       gifWrap.style.opacity = "1";
@@ -122,6 +177,8 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
   function dispose() {
     if (disposed) return;
     disposed = true;
+
+    removeInputBlockers();
 
     audio.pause();
     audio.currentTime = 0;
