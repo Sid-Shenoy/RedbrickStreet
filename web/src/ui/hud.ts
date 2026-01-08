@@ -1,4 +1,4 @@
-import { Scene, UniversalCamera } from "@babylonjs/core";
+import { Scene, TransformNode, UniversalCamera } from "@babylonjs/core";
 import type { HouseWithModel, Region, Surface } from "../world/houseModel/types";
 import { lotLocalToWorld } from "../world/houseModel/lotTransform";
 
@@ -382,6 +382,12 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
   const spawnX = camera.position.x;
   const spawnZ = camera.position.z;
 
+  // Zombie minimap tracking (transform nodes spawned by zombie streamer).
+  // (spawnZombies.ts names zombie roots like: rbs_zombie_h<houseNumber>_<i>)
+  const ZOMBIE_NODE_PREFIX = "rbs_zombie_h";
+  let zombieNodes: TransformNode[] = [];
+  let zombieScanTimer = 0;
+
   let disposed = false;
 
   let health = MAX_HEALTH;
@@ -606,6 +612,96 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
 
     ctx.restore();
 
+    // Zombie dots (screen space; clamped to edge when offscreen)
+    ctx.save();
+
+    const dotR = 2.6 * HUD_SCALE * dpr;
+    const edgePad = dotR + 2.0 * HUD_SCALE * dpr;
+
+    // Reuse c/s from the "home" transform above (same yaw-space mapping).
+    for (const zn of zombieNodes) {
+      const p = zn.getAbsolutePosition();
+      const dxZ = p.x - playerX;
+      const dzZ = p.z - playerZ;
+
+      const rxZ = dxZ * c - dzZ * s;
+      const rzZ = dxZ * s + dzZ * c;
+
+      let sxZ = w / 2 + rxZ * scale;
+      let syZ = h / 2 - rzZ * scale;
+
+      const minX = edgePad;
+      const maxX = w - edgePad;
+      const minY = edgePad;
+      const maxY = h - edgePad;
+
+      const offscreenZ = sxZ < minX || sxZ > maxX || syZ < minY || syZ > maxY;
+
+      if (offscreenZ) {
+        const cx = w / 2;
+        const cy = h / 2;
+        const vx = sxZ - cx;
+        const vy = syZ - cy;
+
+        let bestU = Infinity;
+        let bestX = sxZ;
+        let bestY = syZ;
+
+        const eps = 1e-6;
+
+        // Intersect ray (cx,cy) + u*(vx,vy) with the inset rectangle.
+        if (Math.abs(vx) > eps) {
+          const uL = (minX - cx) / vx;
+          const yL = cy + vy * uL;
+          if (uL > 0 && yL >= minY - eps && yL <= maxY + eps && uL < bestU) {
+            bestU = uL;
+            bestX = minX;
+            bestY = yL;
+          }
+
+          const uR = (maxX - cx) / vx;
+          const yR = cy + vy * uR;
+          if (uR > 0 && yR >= minY - eps && yR <= maxY + eps && uR < bestU) {
+            bestU = uR;
+            bestX = maxX;
+            bestY = yR;
+          }
+        }
+
+        if (Math.abs(vy) > eps) {
+          const uT = (minY - cy) / vy;
+          const xT = cx + vx * uT;
+          if (uT > 0 && xT >= minX - eps && xT <= maxX + eps && uT < bestU) {
+            bestU = uT;
+            bestX = xT;
+            bestY = minY;
+          }
+
+          const uB = (maxY - cy) / vy;
+          const xB = cx + vx * uB;
+          if (uB > 0 && xB >= minX - eps && xB <= maxX + eps && uB < bestU) {
+            bestU = uB;
+            bestX = xB;
+            bestY = maxY;
+          }
+        }
+
+        sxZ = bestX;
+        syZ = bestY;
+      }
+
+      ctx.beginPath();
+      ctx.arc(sxZ, syZ, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = offscreenZ ? "rgb(156 38 38)" : "rgb(255 64 64)";
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(0,0,0,0.60)";
+      ctx.lineWidth = Math.max(1, Math.round(1.6 * HUD_SCALE * dpr));
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
     // Player arrow (pixel space, centered, always "forward"/up)
     ctx.save();
     ctx.translate(w / 2, h / 2);
@@ -685,6 +781,13 @@ export function createHud(scene: Scene, camera: UniversalCamera, houses: HouseWi
 
     setBar(healthUi.fill, healthUi.value, health, MAX_HEALTH, healthColor);
     setBar(staminaUi.fill, staminaUi.value, stamina, MAX_STAMINA, staminaColor);
+
+    // Refresh zombie node list occasionally (cheap; avoids scanning every frame).
+    zombieScanTimer += dt;
+    if (zombieScanTimer >= 0.5) {
+      zombieScanTimer = 0;
+      zombieNodes = scene.transformNodes.filter((n) => n.name.startsWith(ZOMBIE_NODE_PREFIX));
+    }
 
     // Minimap
     const yaw = camera.rotation.y; // UniversalCamera uses Euler rotation; yaw is rotation.y
