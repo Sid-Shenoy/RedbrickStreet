@@ -793,19 +793,60 @@ function buildNavGraph(houses: HouseWithModel[], houseByNumber: Map<number, Hous
         const aRegion = house.model.firstFloor.regions[d.aRegion];
         if (!aRegion) continue;
 
+        // Door midpoint in lot-local space.
+        const mx = (d.hinge[0] + d.end[0]) * 0.5;
+        const mz = (d.hinge[1] + d.end[1]) * 0.5;
+
+        // Candidate points just outside the door (try several depths to avoid "midpoint inside wall" cases).
         const outsideLocal = pickOutsideOfDoorLocal(aRegion, d);
         const outsideLocalAlt = pickOutsideOfDoorLocalAlt(d);
 
-        const plotIdx =
-          findPlotRegionIndexContainingLocal(house.model.plot.regions, outsideLocal) ??
-          findPlotRegionIndexContainingLocal(house.model.plot.regions, outsideLocalAlt);
+        const candidatesLocal: Array<[number, number]> = [];
 
-        let plotNode: number | undefined = undefined;
-        if (plotIdx !== null) {
-          plotNode = plotNodeMap.get(plotIdx);
+        function pushRay(base: [number, number]) {
+          const dx = base[0] - mx;
+          const dz = base[1] - mz;
+          const len = Math.hypot(dx, dz) || 1;
+          const ux = dx / len;
+          const uz = dz / len;
+
+          // base (near), then progressively farther outside.
+          candidatesLocal.push(
+            base,
+            [mx + ux * 0.45, mz + uz * 0.45],
+            [mx + ux * 0.9, mz + uz * 0.9],
+            [mx + ux * 1.35, mz + uz * 1.35]
+          );
         }
 
-        // Fallback: choose nearest plot node in this house by world distance to door midpoint.
+        pushRay(outsideLocal);
+        pushRay(outsideLocalAlt);
+
+        let chosenPlotIdx: number | null = null;
+        let chosenOutsideLocal: [number, number] | null = null;
+
+        for (const c of candidatesLocal) {
+          const idx = findPlotRegionIndexContainingLocal(house.model.plot.regions, c);
+          if (idx !== null) {
+            chosenPlotIdx = idx;
+            chosenOutsideLocal = c;
+            break;
+          }
+        }
+
+        let plotNode: number | undefined = undefined;
+        if (chosenPlotIdx !== null) {
+          plotNode = plotNodeMap.get(chosenPlotIdx);
+        }
+
+        // Prefer a waypoint that is actually OUTSIDE (inside the plot region) so zombies can step through the door.
+        let edgeWaypoint = waypoint;
+        if (plotNode !== undefined && chosenOutsideLocal) {
+          const wOut = lotLocalToWorld(house, chosenOutsideLocal[0], chosenOutsideLocal[1]);
+          edgeWaypoint = { x: wOut.x, z: wOut.z };
+        }
+
+        // Fallback: choose nearest plot node in this house by world distance to the door midpoint.
         if (plotNode === undefined) {
           let bestId: number | null = null;
           let bestD = Infinity;
@@ -823,8 +864,11 @@ function buildNavGraph(houses: HouseWithModel[], houseByNumber: Map<number, Hous
         }
 
         if (plotNode !== undefined) {
-          const cost = Math.hypot(nodes[aNode]!.center.x - nodes[plotNode]!.center.x, nodes[aNode]!.center.z - nodes[plotNode]!.center.z);
-          addUndirectedEdge(adj, aNode, plotNode, cost, waypoint);
+          const cost = Math.hypot(
+            nodes[aNode]!.center.x - nodes[plotNode]!.center.x,
+            nodes[aNode]!.center.z - nodes[plotNode]!.center.z
+          );
+          addUndirectedEdge(adj, aNode, plotNode, cost, edgeWaypoint);
         }
       }
     }
