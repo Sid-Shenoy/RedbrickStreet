@@ -1,6 +1,7 @@
 import type { Scene } from "@babylonjs/core";
 
 const START_CONVO_SRC = "/assets/audio/dialogue/conversations/start.mp3";
+const ADVICE_CONVO_SRC = "/assets/audio/dialogue/conversations/advice.mp3";
 
 export interface IntroUiApi {
   waitForStart(): Promise<void>;
@@ -194,11 +195,20 @@ function keyLabel(text: string): HTMLSpanElement {
 export function createIntroOverlay(scene: Scene): IntroUiApi {
   ensureIntroStyle();
 
-  // Preload the start-of-game radio conversation (playable via user gesture).
+  // Preload the radio conversations.
+  // (Start convo is playable via the user gesture; follow-up should be allowed once audio playback is unlocked.)
   const startConvo = new Audio(START_CONVO_SRC);
   startConvo.preload = "auto";
   try {
     startConvo.load();
+  } catch {
+    // no-op
+  }
+
+  const adviceConvo = new Audio(ADVICE_CONVO_SRC);
+  adviceConvo.preload = "auto";
+  try {
+    adviceConvo.load();
   } catch {
     // no-op
   }
@@ -296,6 +306,7 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
   startBtn.appendChild(keyLabel("Space"));
 
   let started = false;
+  let adviceTimeout: number | null = null;
 
   function triggerStart() {
     if (disposed) return;
@@ -311,6 +322,25 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
     void startConvo.play().catch(() => {
       // no-op (browser may still block in edge cases)
     });
+
+    // Start convo is 32s long. After it ends, wait a random 8..16s, then play advice.mp3.
+    const delayAfterEndS = 8 + Math.random() * 8; // 8..16
+    if (adviceTimeout !== null) {
+      window.clearTimeout(adviceTimeout);
+      adviceTimeout = null;
+    }
+    adviceTimeout = window.setTimeout(() => {
+      adviceTimeout = null;
+
+      try {
+        adviceConvo.currentTime = 0;
+      } catch {
+        // no-op
+      }
+      void adviceConvo.play().catch(() => {
+        // no-op
+      });
+    }, Math.round((32 + delayAfterEndS) * 1000));
 
     resolveStart?.();
   }
@@ -359,7 +389,26 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
     root.remove();
   }
 
-  scene.onDisposeObservable.add(() => dispose());
+  scene.onDisposeObservable.add(() => {
+    if (adviceTimeout !== null) {
+      window.clearTimeout(adviceTimeout);
+      adviceTimeout = null;
+    }
+
+    try {
+      startConvo.pause();
+    } catch {
+      // no-op
+    }
+
+    try {
+      adviceConvo.pause();
+    } catch {
+      // no-op
+    }
+
+    dispose();
+  });
 
   return {
     waitForStart: async () => {
