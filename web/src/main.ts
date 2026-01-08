@@ -15,6 +15,8 @@ import { createIntroOverlay } from "./ui/intro";
 import { createWastedOverlay } from "./ui/wasted";
 import { SECOND_FLOOR_Y } from "./scene/constants";
 
+import type { WeaponConfig } from "./types/config";
+
 const STREET_SEED = "redbrick-street/v0";
 
 async function boot() {
@@ -92,13 +94,30 @@ async function boot() {
 
   // HUD + weapon UI + death overlay (created after start so they don't clutter the intro)
   const hud = createHud(scene, camera, housesWithModel);
-  createWeaponUi(scene, canvas, weapons);
-  const wasted = createWastedOverlay(scene);
 
   // Player health state (driven by zombie attacks)
   let dead = false;
   let health = 100;
   hud.setHealth(health);
+
+  function onShotFired(weapon: WeaponConfig) {
+    if (dead) return;
+    if (!zombieStreamer) return;
+
+    const SHOOT_RANGE_M = 250;
+
+    // Shoot straight out of the camera, but ONLY consider zombie hitboxes.
+    // This ignores walls/objects in between (intentional design).
+    const ray = camera.getForwardRay(SHOOT_RANGE_M);
+
+    const pick = scene.pickWithRay(ray, (mesh) => zombieStreamer?.isZombieHitbox(mesh) ?? false);
+    if (!pick?.hit || !pick.pickedMesh) return;
+
+    zombieStreamer.damageZombieHitbox(pick.pickedMesh, weapon.damage);
+  }
+
+  createWeaponUi(scene, canvas, weapons, onShotFired);
+  const wasted = createWastedOverlay(scene);
 
   // If the camera (eye) is above this Y, the player is considered "upstairs" and cannot be damaged.
   // This prevents first-floor zombies from damaging the player through ceilings/floors.

@@ -252,7 +252,12 @@ function makeGunshotPool(size: number): HTMLAudioElement[] {
   return pool;
 }
 
-export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons: WeaponConfig[]): WeaponUiApi {
+export function createWeaponUi(
+  scene: Scene,
+  canvas: HTMLCanvasElement,
+  weapons: WeaponConfig[],
+  onShot?: (weapon: WeaponConfig) => void
+): WeaponUiApi {
   ensureWeaponUiStyle();
   ensureAmbience();
 
@@ -750,6 +755,13 @@ export function createWeaponUi(scene: Scene, canvas: HTMLCanvasElement, weapons:
 
           triggerRecoil(nowMs);
           playGunshot(Math.max(0, Math.min(1, wpn.shotVolume / 100)));
+
+          // Notify game logic that a shot was fired (e.g., for hit detection).
+          try {
+            onShot?.(wpn);
+          } catch {
+            // ignore
+          }
         }
       } else if (shotPhase === 3) setHandFrame("pull");
       else setHandFrame("grip");

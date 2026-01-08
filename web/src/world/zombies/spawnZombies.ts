@@ -1,7 +1,9 @@
 import "@babylonjs/loaders/glTF";
 
 import {
+  AbstractMesh,
   AssetContainer,
+  MeshBuilder,
   Scene,
   SceneLoader,
   TransformNode,
@@ -16,6 +18,9 @@ import { FIRST_FLOOR_Y } from "../../scene/constants";
 // Tweakable constants (per requirements)
 export const ZOMBIE_COUNT = 25;
 export const MIN_ZOMBIE_SPAWN_DIST_M = 30;
+
+// Combat (per new requirements)
+export const ZOMBIE_MAX_HEALTH = 100;
 
 // Zombie AI distance thresholds (per requirements)
 export const ZOMBIE_AI_FOLLOW_DIST_M = 20;
@@ -116,6 +121,18 @@ type ZombieInstance = {
   root: TransformNode;
   walkAnim: AnimationGroup | null;
   attackAnim: AnimationGroup | null;
+  reelAnim: AnimationGroup | null;
+  dieAnim: AnimationGroup | null;
+
+  // Simple pickable hitbox used for shooting (walls are ignored by picking predicate).
+  hitbox: AbstractMesh;
+
+  health: number;
+  dead: boolean;
+
+  // Time remaining for the "reel back" reaction (during this, zombie AI is paused).
+  reelS: number;
+
   state: ZombieState;
   hitCooldownS: number;
   nav: ZombieNavState;
@@ -124,6 +141,10 @@ type ZombieInstance = {
 export interface ZombieHouseStreamer {
   ensureHouse(houseNumber: number): void;
   dispose(): void;
+
+  // Shooting helpers (used by the player gun logic)
+  isZombieHitbox(mesh: AbstractMesh): boolean;
+  damageZombieHitbox(mesh: AbstractMesh, damage: number): boolean;
 }
 
 export async function preloadZombieAssets(scene: Scene): Promise<AssetContainer> {
@@ -191,12 +212,22 @@ export function createZombieHouseStreamer(
   const roots: TransformNode[] = [];
   const zombies: ZombieInstance[] = [];
 
+  // Map pickable hitboxes -> zombie instances (for fast shooting lookups).
+  const zombieByHitbox = new Map<AbstractMesh, ZombieInstance>();
+
+  // Reaction tuning (not part of config yet)
+  const ZOMBIE_REEL_DURATION_S = 0.55;
+
   function setZombieState(z: ZombieInstance, next: ZombieState) {
     if (z.state === next) return;
 
     // Stop all animations first to enforce the "far = no animation" rule.
     z.walkAnim?.stop();
     z.attackAnim?.stop();
+    z.reelAnim?.stop();
+
+    // Death animation is only started explicitly on kill.
+    if (!z.dead) z.dieAnim?.stop();
 
     if (next === "walk") {
       z.walkAnim?.start(true, 1.0);
@@ -205,6 +236,66 @@ export function createZombieHouseStreamer(
     }
 
     z.state = next;
+  }
+
+  function playReel(z: ZombieInstance) {
+    if (z.dead) return;
+    if (!z.reelAnim) return;
+
+    z.reelS = ZOMBIE_REEL_DURATION_S;
+
+    // Interrupt other animations and play reel once.
+    z.walkAnim?.stop();
+    z.attackAnim?.stop();
+    z.reelAnim.stop();
+    z.reelAnim.start(false, 1.0);
+
+    z.state = "idle";
+  }
+
+  function killZombie(z: ZombieInstance) {
+    if (z.dead) return;
+
+    z.dead = true;
+    z.health = 0;
+
+    // Make it unshootable.
+    z.hitbox.isPickable = false;
+    z.hitbox.setEnabled(false);
+    zombieByHitbox.delete(z.hitbox);
+
+    // Stop any non-death animation and play die once.
+    z.walkAnim?.stop();
+    z.attackAnim?.stop();
+    z.reelAnim?.stop();
+    z.dieAnim?.stop();
+    z.dieAnim?.start(false, 1.0);
+
+    z.state = "idle";
+  }
+
+  function damageZombie(z: ZombieInstance, damage: number) {
+    if (z.dead) return;
+    if (!Number.isFinite(damage) || damage <= 0) return;
+
+    z.health = Math.max(0, z.health - damage);
+
+    if (z.health <= 0) {
+      killZombie(z);
+    } else {
+      playReel(z);
+    }
+  }
+
+  function isZombieHitbox(mesh: AbstractMesh): boolean {
+    return zombieByHitbox.has(mesh);
+  }
+
+  function damageZombieHitbox(mesh: AbstractMesh, damage: number): boolean {
+    const z = zombieByHitbox.get(mesh);
+    if (!z) return false;
+    damageZombie(z, damage);
+    return true;
   }
 
   function ensureHouse(houseNumber: number) {
@@ -237,18 +328,41 @@ export function createZombieHouseStreamer(
       // Animation mapping based on `/public/assets/models/requirements.txt`:
       // 0: Attack, 1: Reel back, 2: Die, 3: Jog forward
       const attackAnim = inst.animationGroups?.[0] ?? null;
+      const reelAnim = inst.animationGroups?.[1] ?? null;
+      const dieAnim = inst.animationGroups?.[2] ?? null;
       const walkAnim = inst.animationGroups?.[3] ?? null;
 
       // Start in idle (no animation playing).
       attackAnim?.stop();
+      reelAnim?.stop();
+      dieAnim?.stop();
       walkAnim?.stop();
+
+      // Simple shoot hitbox (cylinder). This is what the player raycast targets.
+      // It is NOT part of the zombie meshes so we can keep meshes non-pickable.
+      const hitbox = MeshBuilder.CreateCylinder(
+        `rbs_zombie_hitbox_h${houseNumber}_${i}`,
+        { height: 1.7, diameter: 0.8, tessellation: 12 },
+        scene
+      );
+      hitbox.isVisible = false;
+      hitbox.isPickable = true;
+      hitbox.checkCollisions = false;
+      hitbox.parent = root;
+      hitbox.position.y = 0.85;
 
       const startNode = findNodeForWorldXZ(nav, houseByNumber, root.position.x, root.position.z);
 
-      zombies.push({
+      const zi: ZombieInstance = {
         root,
         walkAnim,
         attackAnim,
+        reelAnim,
+        dieAnim,
+        hitbox,
+        health: ZOMBIE_MAX_HEALTH,
+        dead: false,
+        reelS: 0,
         state: "idle",
         hitCooldownS: 0,
         nav: {
@@ -258,7 +372,10 @@ export function createZombieHouseStreamer(
           cursor: 0,
           replanCooldownS: 0,
         },
-      });
+      };
+
+      zombieByHitbox.set(hitbox, zi);
+      zombies.push(zi);
 
       roots.push(root);
     }
@@ -358,11 +475,25 @@ export function createZombieHouseStreamer(
     const playerNode = findNodeForWorldXZ(nav, houseByNumber, px, pz);
 
     for (const z of zombies) {
+
+      if (z.dead) continue;
+
       // Cooldown tick (always counts down).
       z.hitCooldownS = Math.max(0, z.hitCooldownS - dt);
 
       // Replan cooldown tick.
       z.nav.replanCooldownS = Math.max(0, z.nav.replanCooldownS - dt);
+
+      // Reel reaction tick (pauses AI while playing the "reel back" animation).
+      z.reelS = Math.max(0, z.reelS - dt);
+
+      if (z.reelS > 1e-6) {
+        // While reacting to being shot, zombies pause AI and do not attack.
+        z.walkAnim?.stop();
+        z.attackAnim?.stop();
+        z.state = "idle";
+        continue;
+      }
 
       const zx = z.root.position.x;
       const zz = z.root.position.z;
@@ -497,21 +628,27 @@ export function createZombieHouseStreamer(
     for (const z of zombies) {
       z.walkAnim?.stop();
       z.attackAnim?.stop();
+      z.reelAnim?.stop();
+      z.dieAnim?.stop();
+
       z.walkAnim?.dispose();
       z.attackAnim?.dispose();
+      z.reelAnim?.dispose();
+      z.dieAnim?.dispose();
     }
     zombies.length = 0;
 
     for (const r of roots) r.dispose();
     roots.length = 0;
 
+    zombieByHitbox.clear();
     spawnedHouses.clear();
     planByHouse.clear();
   }
 
   scene.onDisposeObservable.add(() => dispose());
 
-  return { ensureHouse, dispose };
+  return { ensureHouse, dispose, isZombieHitbox, damageZombieHitbox };
 }
 
 // ---------------------------

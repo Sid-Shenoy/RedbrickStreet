@@ -21,6 +21,7 @@
 1.2.4) `ZOMBIE_AI_ATTACK_DIST_M` is a constant and defaults to 1.
 1.2.5) `ZOMBIE_AI_HIT_DAMAGE` is a constant and defaults to 8.
 1.2.6) `ZOMBIE_AI_HIT_COOLDOWN_S` is a constant and defaults to 0.9.
+1.2.7) `ZOMBIE_MAX_HEALTH` is a constant and defaults to 100.
 
 1.3) Preloading (hard)
 
@@ -43,6 +44,8 @@
 1.4.6) `ZombieHouseStreamer` must provide:
 1.4.6.1) `ensureHouse(houseNumber: number) -> void`
 1.4.6.2) `dispose() -> void`
+1.4.6.3) `isZombieHitbox(mesh: AbstractMesh) -> boolean`
+1.4.6.4) `damageZombieHitbox(mesh: AbstractMesh, damage: number) -> boolean`
 
 Example usage:
 ```
@@ -118,3 +121,24 @@ streamer.ensureHouse(12);
 
 1.9.1) If planning cannot place all `ZOMBIE_COUNT` zombies while respecting min distance,
        `createZombieHouseStreamer` must throw an Error.
+
+1.10) Zombie health + being shot
+
+1.10.1) Each zombie must start with `ZOMBIE_MAX_HEALTH` health.
+1.10.2) A zombie can be damaged by the player via `damageZombieHitbox(mesh, damage)`.
+1.10.2.1) If `mesh` is not a zombie hitbox, the function must return false and do nothing.
+1.10.2.2) If the zombie is already dead, the function must return false and do nothing.
+1.10.2.3) Otherwise, the function must return true and apply damage.
+
+1.10.3) Hit reaction animation
+1.10.3.1) When a zombie takes damage but remains alive, the zombie must play the "Reel back" animation.
+1.10.3.2) While this hit reaction is playing, zombie AI must be paused (no movement, no attacks).
+
+1.10.4) Death animation
+1.10.4.1) When a zombie's health reaches 0, the zombie must play the "Collapse and die" animation.
+1.10.4.2) After death, the zombie must no longer move, attack, or damage the player.
+1.10.4.3) After death, the zombie must no longer be shootable (its hitbox must not be pickable/active).
+
+1.10.5) Hitboxes and occlusion
+1.10.5.1) Each zombie must have a simple primitive hitbox (e.g. a cylinder or box) that is pickable.
+1.10.5.2) Shooting may ignore walls/objects between the player and the zombie (no occlusion test required).
