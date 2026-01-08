@@ -212,6 +212,240 @@ export function createZombieHouseStreamer(
   const roots: TransformNode[] = [];
   const zombies: ZombieInstance[] = [];
 
+  // --- Zombie sound effects (distance-attenuated) ---
+  const ZOMBIE_SFX_MASTER = 0.9;
+
+  const ZOMBIE_SFX_ATTACK_SRC = "/assets/audio/sfx/zombie/attack.mp3";
+  const ZOMBIE_SFX_DEATH_SRC = "/assets/audio/sfx/zombie/death.mp3";
+  const ZOMBIE_SFX_GETHIT_SRC = "/assets/audio/sfx/zombie/gethit.mp3";
+  const ZOMBIE_SFX_WALK_SRC = "/assets/audio/sfx/zombie/walk.mp3";
+
+  // Base volumes (before distance attenuation), 0..1.
+  const ZOMBIE_SFX_ATTACK_BASE = 0.85;
+  const ZOMBIE_SFX_GETHIT_BASE = 0.75;
+  const ZOMBIE_SFX_DEATH_BASE = 0.9;
+  const ZOMBIE_SFX_WALK_BASE = 0.55;
+
+  // Max distances (meters) where volume fades to 0.
+  const ZOMBIE_SFX_ATTACK_MAX_DIST_M = 14;
+  const ZOMBIE_SFX_GETHIT_MAX_DIST_M = 18;
+  const ZOMBIE_SFX_DEATH_MAX_DIST_M = 22;
+  const ZOMBIE_SFX_WALK_MAX_DIST_M = 18;
+
+  // Rolloff distances (meters) controlling inverse-square-like attenuation.
+  const ZOMBIE_SFX_ATTACK_ROLLOFF_M = 3.5;
+  const ZOMBIE_SFX_GETHIT_ROLLOFF_M = 4.5;
+  const ZOMBIE_SFX_DEATH_ROLLOFF_M = 5.5;
+  const ZOMBIE_SFX_WALK_ROLLOFF_M = 5.0;
+
+  // Limit simultaneous looping "walk" groans for performance.
+  const ZOMBIE_WALK_LOOP_SLOTS = 6;
+
+  type OneShotPool = { pool: HTMLAudioElement[]; idx: number };
+
+  function clamp01(v: number) {
+    return Math.max(0, Math.min(1, v));
+  }
+
+  // Realistic-ish attenuation: inverse-square-like rolloff + a smooth fade to 0 at maxDist.
+  function distanceGain(d: number, maxDist: number, rolloffDist: number): number {
+    if (!Number.isFinite(d)) return 0;
+    if (d <= 0) return 1;
+    if (d >= maxDist) return 0;
+
+    const r = Math.max(0.001, rolloffDist);
+    const inv = 1 / (1 + (d / r) * (d / r));
+    const t = d / maxDist;
+    const fade = 1 - t * t * t * t;
+    return clamp01(inv * fade);
+  }
+
+  function makeOneShotPool(src: string, size: number): OneShotPool {
+    const pool: HTMLAudioElement[] = [];
+    for (let i = 0; i < size; i++) {
+      const a = new Audio(src);
+      a.preload = "auto";
+      try {
+        a.load();
+      } catch {
+        // no-op
+      }
+      pool.push(a);
+    }
+    return { pool, idx: 0 };
+  }
+
+  function playOneShot(p: OneShotPool, volume01: number) {
+    if (p.pool.length === 0) return;
+
+    const a = p.pool[p.idx]!;
+    p.idx = (p.idx + 1) % p.pool.length;
+
+    const v = clamp01(volume01);
+
+    try {
+      a.pause();
+    } catch {
+      // no-op
+    }
+
+    try {
+      a.currentTime = 0;
+    } catch {
+      // no-op
+    }
+
+    try {
+      a.volume = v;
+    } catch {
+      // no-op
+    }
+
+    const pr = a.play();
+    if (pr) pr.catch(() => {});
+  }
+
+  function makeLoopAudio(src: string): HTMLAudioElement {
+    const a = new Audio(src);
+    a.preload = "auto";
+    a.loop = true;
+    a.volume = 0;
+    try {
+      a.load();
+    } catch {
+      // no-op
+    }
+    return a;
+  }
+
+  const zombieAttackPool = makeOneShotPool(ZOMBIE_SFX_ATTACK_SRC, 8);
+  const zombieGetHitPool = makeOneShotPool(ZOMBIE_SFX_GETHIT_SRC, 8);
+  const zombieDeathPool = makeOneShotPool(ZOMBIE_SFX_DEATH_SRC, 8);
+
+  type WalkSlot = { audio: HTMLAudioElement; zombie: ZombieInstance | null };
+  const walkSlots: WalkSlot[] = [];
+  for (let i = 0; i < ZOMBIE_WALK_LOOP_SLOTS; i++) {
+    walkSlots.push({ audio: makeLoopAudio(ZOMBIE_SFX_WALK_SRC), zombie: null });
+  }
+
+  function playZombieAttackSfx(zx: number, zz: number) {
+    const p = getPlayerXZ();
+    const d = Math.hypot(p.x - zx, p.z - zz);
+    const g = distanceGain(d, ZOMBIE_SFX_ATTACK_MAX_DIST_M, ZOMBIE_SFX_ATTACK_ROLLOFF_M);
+    playOneShot(zombieAttackPool, ZOMBIE_SFX_MASTER * ZOMBIE_SFX_ATTACK_BASE * g);
+  }
+
+  function playZombieGetHitSfx(zx: number, zz: number) {
+    const p = getPlayerXZ();
+    const d = Math.hypot(p.x - zx, p.z - zz);
+    const g = distanceGain(d, ZOMBIE_SFX_GETHIT_MAX_DIST_M, ZOMBIE_SFX_GETHIT_ROLLOFF_M);
+    playOneShot(zombieGetHitPool, ZOMBIE_SFX_MASTER * ZOMBIE_SFX_GETHIT_BASE * g);
+  }
+
+  function playZombieDeathSfx(zx: number, zz: number) {
+    const p = getPlayerXZ();
+    const d = Math.hypot(p.x - zx, p.z - zz);
+    const g = distanceGain(d, ZOMBIE_SFX_DEATH_MAX_DIST_M, ZOMBIE_SFX_DEATH_ROLLOFF_M);
+    playOneShot(zombieDeathPool, ZOMBIE_SFX_MASTER * ZOMBIE_SFX_DEATH_BASE * g);
+  }
+
+  function updateZombieWalkLoops(px: number, pz: number) {
+    // Find the closest walking zombies (within max distance).
+    const candidates = zombies
+      .filter((z) => !z.dead && z.state === "walk")
+      .map((z) => ({ z, d: Math.hypot(z.root.position.x - px, z.root.position.z - pz) }))
+      .filter((c) => c.d < ZOMBIE_SFX_WALK_MAX_DIST_M)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, ZOMBIE_WALK_LOOP_SLOTS);
+
+    const desired = new Set<ZombieInstance>();
+    for (const c of candidates) desired.add(c.z);
+
+    // Unassign slots whose zombies are no longer desired.
+    for (const s of walkSlots) {
+      if (s.zombie && !desired.has(s.zombie)) s.zombie = null;
+    }
+
+    // Mark already-assigned desired zombies.
+    const used = new Set<ZombieInstance>();
+    for (const s of walkSlots) {
+      if (s.zombie) used.add(s.zombie);
+    }
+
+    // Fill empty slots with remaining desired zombies.
+    let ci = 0;
+    for (const s of walkSlots) {
+      if (s.zombie) continue;
+
+      while (ci < candidates.length && used.has(candidates[ci]!.z)) ci++;
+      if (ci >= candidates.length) break;
+
+      s.zombie = candidates[ci]!.z;
+      used.add(s.zombie);
+      ci++;
+    }
+
+    // Apply volumes + playback state.
+    for (const s of walkSlots) {
+      const a = s.audio;
+
+      if (!s.zombie) {
+        try {
+          a.volume = 0;
+        } catch {
+          // no-op
+        }
+        if (!a.paused) {
+          try {
+            a.pause();
+          } catch {
+            // no-op
+          }
+        }
+        continue;
+      }
+
+      const zx = s.zombie.root.position.x;
+      const zz = s.zombie.root.position.z;
+      const d = Math.hypot(zx - px, zz - pz);
+      const g = distanceGain(d, ZOMBIE_SFX_WALK_MAX_DIST_M, ZOMBIE_SFX_WALK_ROLLOFF_M);
+      const v = ZOMBIE_SFX_MASTER * ZOMBIE_SFX_WALK_BASE * g;
+
+      try {
+        a.volume = clamp01(v);
+      } catch {
+        // no-op
+      }
+
+      if (a.paused) {
+        const pr = a.play();
+        if (pr) pr.catch(() => {});
+      }
+    }
+  }
+
+  function disposeZombieSfx() {
+    for (const s of walkSlots) {
+      try {
+        s.audio.pause();
+      } catch {
+        // no-op
+      }
+      s.zombie = null;
+    }
+
+    const pools = [zombieAttackPool, zombieGetHitPool, zombieDeathPool];
+    for (const p of pools) {
+      for (const a of p.pool) {
+        try {
+          a.pause();
+        } catch {
+          // no-op
+        }
+      }
+    }
+  }
+
   // Map pickable hitboxes -> zombie instances (for fast shooting lookups).
   const zombieByHitbox = new Map<AbstractMesh, ZombieInstance>();
 
@@ -259,6 +493,14 @@ export function createZombieHouseStreamer(
     z.dead = true;
     z.health = 0;
 
+    // Death SFX (distance-attenuated).
+    playZombieDeathSfx(z.root.position.x, z.root.position.z);
+
+    // If this zombie was occupying a walk-loop slot, drop it immediately.
+    for (const s of walkSlots) {
+      if (s.zombie === z) s.zombie = null;
+    }
+
     // Make it unshootable.
     z.hitbox.isPickable = false;
     z.hitbox.setEnabled(false);
@@ -283,6 +525,8 @@ export function createZombieHouseStreamer(
     if (z.health <= 0) {
       killZombie(z);
     } else {
+      // "gethit.mp3": when a zombie gets shot but survives.
+      playZombieGetHitSfx(z.root.position.x, z.root.position.z);
       playReel(z);
     }
   }
@@ -526,6 +770,8 @@ export function createZombieHouseStreamer(
 
           // Damage the player at a fixed cadence while attacking.
           if (z.hitCooldownS <= 1e-6) {
+            // "attack.mp3": when a zombie attacks the player (i.e., when it applies damage).
+            playZombieAttackSfx(zx, zz);
             damageCb(ZOMBIE_AI_HIT_DAMAGE);
             z.hitCooldownS = ZOMBIE_AI_HIT_COOLDOWN_S;
           }
@@ -626,6 +872,8 @@ export function createZombieHouseStreamer(
       // Re-clamp Y after movement.
       z.root.position.y = FIRST_FLOOR_Y;
     }
+
+    updateZombieWalkLoops(px, pz);
   });
 
   function dispose() {
@@ -647,6 +895,8 @@ export function createZombieHouseStreamer(
 
     for (const r of roots) r.dispose();
     roots.length = 0;
+
+    disposeZombieSfx();
 
     zombieByHitbox.clear();
     spawnedHouses.clear();

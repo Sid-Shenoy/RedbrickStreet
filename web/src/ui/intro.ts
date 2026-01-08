@@ -251,7 +251,7 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
   const storyLines = [
     "You are Officer Steve, first on scene and last one still moving.",
     "You start outside your house. It is your safe point on Redbrick Street.",
-    "Zombies have flooded the road and poured into the yards.",
+    "Zombies have flooded the street and are pouring into the yards.",
     "They cannot climb stairs, so upstairs buys you time when things get ugly.",
     "Clear the street of zombies. No shortcuts, no evac.",
     "Return to your house to reload all weapons when ammo runs dry.",
