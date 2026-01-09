@@ -239,6 +239,41 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
     ${1 * WEAPON_UI_SCALE}px ${-1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6),
     ${-1 * WEAPON_UI_SCALE}px ${-1 * WEAPON_UI_SCALE}px 0 rgba(210,210,210,0.6);
 }
+
+#rbsEquippedWeaponWrap {
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;   /* keep the box left-aligned */
+  gap: ${6 * WEAPON_UI_SCALE}px;
+
+  /* Force left alignment even if the HUD root centers children (flex/grid). */
+  align-self: flex-start;
+  justify-self: start;
+  margin-right: auto;
+}
+
+#rbsWeaponTabHint {
+  font-family: "Russo One", sans-serif;
+  font-size: ${10 * WEAPON_UI_SCALE}px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  color: rgba(240,245,255,0.88);
+  text-shadow: 0 ${2 * WEAPON_UI_SCALE}px ${10 * WEAPON_UI_SCALE}px rgba(0,0,0,0.55);
+
+  background: rgba(8,10,14,0.46);
+  border: ${1 * WEAPON_UI_SCALE}px solid rgba(255,255,255,0.12);
+  border-radius: ${999 * WEAPON_UI_SCALE}px;
+  padding: ${6 * WEAPON_UI_SCALE}px ${10 * WEAPON_UI_SCALE}px;
+  box-shadow: 0 ${10 * WEAPON_UI_SCALE}px ${24 * WEAPON_UI_SCALE}px rgba(0,0,0,0.28);
+
+  /* Center the pill above the box without centering the whole group. */
+  margin-left: auto;
+  margin-right: auto;
+}
 `;
   document.head.appendChild(style);
   return style;
@@ -457,17 +492,28 @@ export function createWeaponUi(
 
   iconWrap.appendChild(iconFallback);
 
+  // Wrapper so we can show "TAB" above the equipped weapon box.
+  const equippedWrap = document.createElement("div");
+  equippedWrap.id = "rbsEquippedWeaponWrap";
+
+  const tabHint = document.createElement("div");
+  tabHint.id = "rbsWeaponTabHint";
+  tabHint.textContent = "TAB";
+
+  equippedWrap.appendChild(tabHint);
+  equippedWrap.appendChild(iconWrap);
+
   // Attach above HUD if it exists, otherwise pin bottom-left.
   const hudRoot = document.getElementById("rbsHudRoot");
   if (hudRoot) {
     // Insert as first child so it's ABOVE the existing HUD panel.
-    hudRoot.insertBefore(iconWrap, hudRoot.firstChild);
+    hudRoot.insertBefore(equippedWrap, hudRoot.firstChild);
   } else {
-    iconWrap.style.position = "fixed";
-    iconWrap.style.left = `${14 * WEAPON_UI_SCALE}px`;
-    iconWrap.style.bottom = `${260 * WEAPON_UI_SCALE}px`;
-    iconWrap.style.zIndex = "10";
-    document.body.appendChild(iconWrap);
+    equippedWrap.style.position = "fixed";
+    equippedWrap.style.left = `${14 * WEAPON_UI_SCALE}px`;
+    equippedWrap.style.bottom = `${260 * WEAPON_UI_SCALE}px`;
+    equippedWrap.style.zIndex = "10";
+    document.body.appendChild(equippedWrap);
   }
 
   // --- DOM: weapon wheel overlay (Tab) ---
@@ -1526,8 +1572,8 @@ export function createWeaponUi(
     crosshairImg.remove();
     wheelRoot.remove();
 
-    // Remove icon only if it's still attached where we put it.
-    iconWrap.remove();
+    // Remove equipped-weapon UI (TAB label + icon box).
+    equippedWrap.remove();
   }
 
   scene.onDisposeObservable.add(() => dispose());
