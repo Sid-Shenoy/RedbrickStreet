@@ -1045,7 +1045,7 @@ export function createWeaponUi(
   // When the player first leaves the home radius, show a short gameplay tip for ~8s.
   // Also: the FIRST time the player fully runs out of ammo, show a one-time hint.
   const HOME_TIP_TEXT =
-    "Tip:\nWalk along the entire sidewalk.\nAs you approach a house, zombies will start pouring out.";
+    "Tip:\nSlowly walk along the entire sidewalk.\nAs you approach a house, zombies will start pouring out.";
   const HOME_TIP_SHOW_MS = 8000;
 
   const AMMO_EMPTY_TIP_TEXT = "Switch weapon, or go home to reload.";
