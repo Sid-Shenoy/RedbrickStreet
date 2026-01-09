@@ -1,6 +1,5 @@
 web\public\config\houses.json
 web\public\config\weapons.json
-web\public\config\requirements.txt
 web\src\world\houseModel\generation\doors.ts
 web\src\world\houseModel\generation\plot.ts
 web\src\world\houseModel\generation\firstFloor.ts
@@ -29,15 +28,9 @@ web\src\ui\wasted.ts
 web\src\ui\success.ts
 web\src\ui\hud.ts
 web\src\ui\weaponUi.ts
-web\src\ui\requirements.txt
-web\src\world\houseModel\requirements.txt
-web\public\assets\textures\surfaces\requirements.txt
 web\src\config\loadJson.ts
 web\src\config\loadStreetConfig.ts
 web\src\config\loadWeaponsConfig.ts
 web\src\utils\seededRng.ts
 exclude_list.txt
-web\public\assets\audio\sfx\zombie\requirements.txt
-web\public\assets\models\requirements.txt
-web\src\world\zombies\requirements.txt
 web\src\world\zombies\spawnZombies.ts
