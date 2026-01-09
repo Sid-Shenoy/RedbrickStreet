@@ -85,7 +85,7 @@ export function createSuccessOverlay(scene: Scene): SuccessOverlayApi {
 
   const caption = document.createElement("div");
   caption.id = "rbsSuccessCaption";
-  caption.textContent = "Officer Smith cleared Redbrick Street.";
+  caption.textContent = "Officer Steve cleared Redbrick Street.";
   gifWrap.appendChild(caption);
 
   root.appendChild(gifWrap);
