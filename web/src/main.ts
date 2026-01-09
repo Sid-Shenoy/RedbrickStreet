@@ -13,6 +13,7 @@ import { loadWeaponsConfig } from "./config/loadWeaponsConfig";
 import { createWeaponUi } from "./ui/weaponUi";
 import { createIntroOverlay } from "./ui/intro";
 import { createWastedOverlay } from "./ui/wasted";
+import { createSuccessOverlay } from "./ui/success";
 import { SECOND_FLOOR_Y } from "./scene/constants";
 
 import type { WeaponConfig } from "./types/config";
@@ -97,11 +98,13 @@ async function boot() {
 
   // Player health state (driven by zombie attacks)
   let dead = false;
+  let won = false;
   let health = 100;
   hud.setHealth(health);
 
   function onShotFired(weapon: WeaponConfig) {
     if (dead) return;
+    if (won) return;
     if (!zombieStreamer) return;
 
     const SHOOT_RANGE_M = 250;
@@ -118,6 +121,80 @@ async function boot() {
 
   const weaponUi = createWeaponUi(scene, canvas, weapons, onShotFired);
 
+  const wasted = createWastedOverlay(scene);
+  const success = createSuccessOverlay(scene);
+
+  let victoryPending = false;
+  let victoryFinalized = false;
+  let victoryTimeout: number | null = null;
+  let endAudio: HTMLAudioElement | null = null;
+  let endAudioEndedHandler: (() => void) | null = null;
+
+  function finalizeVictory() {
+    if (victoryFinalized) return;
+    if (dead) return;
+
+    victoryFinalized = true;
+    won = true;
+
+    // Stop player input + pointer lock attempts.
+    scene.onPointerDown = null;
+    try {
+      camera.detachControl();
+    } catch {
+      // ignore
+    }
+    document.exitPointerLock?.();
+
+    // Stop zombie updates/spawns (no more damage work).
+    zombieStreamer?.dispose();
+    zombieStreamer = null;
+
+    // Trigger success overlay (fade + gif + audio)
+    success.trigger();
+  }
+
+  function beginVictorySequence() {
+    if (victoryPending) return;
+    if (victoryFinalized) return;
+    if (dead) return;
+
+    victoryPending = true;
+
+    const showSuccess = () => {
+      if (victoryTimeout !== null) return;
+      victoryTimeout = window.setTimeout(() => {
+        finalizeVictory();
+      }, 1000);
+    };
+
+    // Play end dialogue first; success overlay appears 1s after it finishes.
+    endAudio = new Audio("/assets/audio/dialogue/conversations/end.mp3");
+    endAudio.preload = "auto";
+    endAudio.volume = 1.0;
+
+    endAudioEndedHandler = () => showSuccess();
+    endAudio.addEventListener("ended", endAudioEndedHandler);
+
+    void endAudio.play().catch(() => {
+      // Fallback if playback is blocked: end.mp3 is ~19s, then +1s.
+      window.setTimeout(() => showSuccess(), 19000);
+    });
+
+    scene.onDisposeObservable.add(() => {
+      if (victoryTimeout !== null) {
+        window.clearTimeout(victoryTimeout);
+      }
+      if (endAudio && endAudioEndedHandler) {
+        endAudio.removeEventListener("ended", endAudioEndedHandler);
+      }
+      if (endAudio) {
+        endAudio.pause();
+        endAudio.currentTime = 0;
+      }
+    });
+  }
+
   // Always-visible zombie counter (top-right).
   weaponUi.setZombieCount(ZOMBIE_COUNT, ZOMBIE_COUNT);
 
@@ -128,13 +205,23 @@ async function boot() {
   const zombieCountObs = scene.onBeforeRenderObservable.add(() => {
     if (!zombieStreamer) return;
     const c = zombieStreamer.getZombieCounts();
-    if (c.alive === lastZombieAlive && c.total === lastZombieTotal) return;
+
+    const prevAlive = lastZombieAlive;
+    const prevTotal = lastZombieTotal;
+
+    if (c.alive === prevAlive && c.total === prevTotal) return;
+
     lastZombieAlive = c.alive;
     lastZombieTotal = c.total;
+
     weaponUi.setZombieCount(c.alive, c.total);
+
+    // Last zombie killed: play end.mp3, then show success overlay 1s after it finishes.
+    if (prevAlive > 0 && c.alive <= 0) {
+      beginVictorySequence();
+    }
   });
   scene.onDisposeObservable.add(() => scene.onBeforeRenderObservable.remove(zombieCountObs));
-  const wasted = createWastedOverlay(scene);
 
   // If the camera (eye) is above this Y, the player is considered "upstairs" and cannot be damaged.
   // This prevents first-floor zombies from damaging the player through ceilings/floors.
@@ -142,6 +229,7 @@ async function boot() {
 
   function killPlayer() {
     if (dead) return;
+    if (won) return;
     dead = true;
 
     hud.setHealth(0);
@@ -170,6 +258,7 @@ async function boot() {
 
   function applyDamage(dmg: number) {
     if (dead) return;
+    if (won) return;
     if (!isFinite(dmg) || dmg <= 0) return;
 
     // Upstairs invulnerability: prevents first-floor zombies from damaging the player through floors.
