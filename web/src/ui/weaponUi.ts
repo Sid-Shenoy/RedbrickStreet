@@ -13,6 +13,9 @@ export interface WeaponUiApi {
   dispose(): void;
   getEquipped(): WeaponConfig | null;
   setEquippedByKey(key: number): void; // 1=unarmed, otherwise matches weapons.json toEquip
+
+  // Always-visible UI (top-right): remaining zombies out of the initial total.
+  setZombieCount(alive: number, total: number): void;
 }
 
 const GUNSHOT_SRC = "/assets/audio/sfx/gunshot.mp3";
@@ -72,6 +75,30 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
 #rbsAmmoReadout.rbsEmpty {
   color: rgba(255,80,80,0.92);
   border-color: rgba(255,80,80,0.26);
+}
+
+#rbsZombieCount {
+  position: fixed;
+  top: ${14 * WEAPON_UI_SCALE}px;
+  right: ${14 * WEAPON_UI_SCALE}px;
+  z-index: 14;
+  pointer-events: none;
+  user-select: none;
+
+  font-family: "Russo One", sans-serif;
+  font-size: ${12 * WEAPON_UI_SCALE}px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  color: rgba(240,245,255,0.92);
+  text-shadow: 0 ${2 * WEAPON_UI_SCALE}px ${12 * WEAPON_UI_SCALE}px rgba(0,0,0,0.55);
+
+  background: rgba(8,10,14,0.46);
+  border: ${1 * WEAPON_UI_SCALE}px solid rgba(255,255,255,0.12);
+  border-radius: ${12 * WEAPON_UI_SCALE}px;
+  padding: ${8 * WEAPON_UI_SCALE}px ${10 * WEAPON_UI_SCALE}px;
+  box-shadow: 0 ${10 * WEAPON_UI_SCALE}px ${24 * WEAPON_UI_SCALE}px rgba(0,0,0,0.32);
 }
 
 #rbsHomeReloadNote {
@@ -369,6 +396,18 @@ export function createWeaponUi(
   homeReloadNote.style.display = "none";
   homeReloadNote.textContent = "All weapons were reloaded";
   document.body.appendChild(homeReloadNote);
+
+  // --- DOM: zombie count (top-right, always visible) ---
+  const zombieCount = document.createElement("div");
+  zombieCount.id = "rbsZombieCount";
+  zombieCount.textContent = "ZOMBIES 0/0";
+  document.body.appendChild(zombieCount);
+
+  function setZombieCount(alive: number, total: number) {
+    const t = Math.max(0, Math.floor(total));
+    const a = Math.max(0, Math.min(t, Math.floor(alive)));
+    zombieCount.textContent = `ZOMBIES ${a}/${t}`;
+  }
 
   function setAmmoReadoutVisible(v: boolean) {
     ammoReadout.style.display = v ? "block" : "none";
@@ -1483,6 +1522,7 @@ export function createWeaponUi(
     handImg.remove();
     ammoReadout.remove();
     homeReloadNote.remove();
+    zombieCount.remove();
     crosshairImg.remove();
     wheelRoot.remove();
 
@@ -1507,5 +1547,6 @@ export function createWeaponUi(
         closeWheel();
       }
     },
+    setZombieCount,
   };
 }

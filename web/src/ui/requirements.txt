@@ -170,6 +170,16 @@ Example format (one line):
 2.10.2) Ammo readout red state (hard)
 2.10.2.1) Only when the equipped weapon has no ammo at all (clip=0 AND reserve=0), the ammo readout text must be red.
 
+2.11) Zombie counter (hard)
+
+2.11.1) The weapon UI must show a top-right, always-visible zombie counter.
+2.11.2) It must show remaining zombies out of the initial total.
+2.11.3) Format (one line):
+`ZOMBIES 17/25`
+
+2.11.4) The `weaponUiApi` must provide:
+2.11.4.1) `setZombieCount(alive: number, total: number) -> void`
+
 3) Intro module (`intro.ts`)
 
 3.1) Intent

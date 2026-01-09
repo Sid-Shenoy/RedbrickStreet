@@ -145,6 +145,9 @@ export interface ZombieHouseStreamer {
   // Shooting helpers (used by the player gun logic)
   isZombieHitbox(mesh: AbstractMesh): boolean;
   damageZombieHitbox(mesh: AbstractMesh, damage: number): boolean;
+
+  // UI helper: remaining zombies out of the initial total (ZOMBIE_COUNT).
+  getZombieCounts(): { alive: number; total: number };
 }
 
 export async function preloadZombieAssets(scene: Scene): Promise<AssetContainer> {
@@ -211,6 +214,8 @@ export function createZombieHouseStreamer(
   const spawnedHouses = new Set<number>();
   const roots: TransformNode[] = [];
   const zombies: ZombieInstance[] = [];
+
+  let deadCount = 0;
 
   // --- Zombie sound effects (distance-attenuated) ---
   const ZOMBIE_SFX_MASTER = 0.9;
@@ -492,6 +497,7 @@ export function createZombieHouseStreamer(
 
     z.dead = true;
     z.health = 0;
+    deadCount = Math.min(ZOMBIE_COUNT, deadCount + 1);
 
     // Death SFX (distance-attenuated).
     playZombieDeathSfx(z.root.position.x, z.root.position.z);
@@ -540,6 +546,12 @@ export function createZombieHouseStreamer(
     if (!z) return false;
     damageZombie(z, damage);
     return true;
+  }
+
+  function getZombieCounts(): { alive: number; total: number } {
+    const total = ZOMBIE_COUNT;
+    const dead = Math.max(0, Math.min(total, deadCount));
+    return { alive: Math.max(0, total - dead), total };
   }
 
   function ensureHouse(houseNumber: number) {
@@ -905,7 +917,7 @@ export function createZombieHouseStreamer(
 
   scene.onDisposeObservable.add(() => dispose());
 
-  return { ensureHouse, dispose, isZombieHitbox, damageZombieHitbox };
+  return { ensureHouse, dispose, isZombieHitbox, damageZombieHitbox, getZombieCounts };
 }
 
 // ---------------------------

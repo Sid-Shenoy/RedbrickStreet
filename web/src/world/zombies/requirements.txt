@@ -46,6 +46,9 @@
 1.4.6.2) `dispose() -> void`
 1.4.6.3) `isZombieHitbox(mesh: AbstractMesh) -> boolean`
 1.4.6.4) `damageZombieHitbox(mesh: AbstractMesh, damage: number) -> boolean`
+1.4.6.5) `getZombieCounts() -> { alive: number; total: number }`
+1.4.6.5.1) `total` must be the initial total zombies planned (i.e., `ZOMBIE_COUNT`)
+1.4.6.5.2) `alive` must be the number of remaining (not yet dead) zombies out of `total`
 
 Example usage:
 ```

@@ -1,6 +1,6 @@
 import { Engine, Scene, UniversalCamera, HemisphericLight, DirectionalLight, Vector3, Color3, MeshBuilder } from "@babylonjs/core";
 import { UniversalCameraXZKeyboardInput } from "./scene/universalCameraXZKeyboardInput";
-import { preloadZombieAssets, createZombieHouseStreamer, type ZombieHouseStreamer } from "./world/zombies/spawnZombies";
+import { preloadZombieAssets, createZombieHouseStreamer, type ZombieHouseStreamer, ZOMBIE_COUNT } from "./world/zombies/spawnZombies";
 
 import { loadStreetConfig } from "./config/loadStreetConfig";
 import { attachHouseModel } from "./world/houseModel/attachHouseModel";
@@ -116,7 +116,24 @@ async function boot() {
     zombieStreamer.damageZombieHitbox(pick.pickedMesh, weapon.damage);
   }
 
-  createWeaponUi(scene, canvas, weapons, onShotFired);
+  const weaponUi = createWeaponUi(scene, canvas, weapons, onShotFired);
+
+  // Always-visible zombie counter (top-right).
+  weaponUi.setZombieCount(ZOMBIE_COUNT, ZOMBIE_COUNT);
+
+  // Update when zombies die (or if streamer appears later).
+  let lastZombieAlive = ZOMBIE_COUNT;
+  let lastZombieTotal = ZOMBIE_COUNT;
+
+  const zombieCountObs = scene.onBeforeRenderObservable.add(() => {
+    if (!zombieStreamer) return;
+    const c = zombieStreamer.getZombieCounts();
+    if (c.alive === lastZombieAlive && c.total === lastZombieTotal) return;
+    lastZombieAlive = c.alive;
+    lastZombieTotal = c.total;
+    weaponUi.setZombieCount(c.alive, c.total);
+  });
+  scene.onDisposeObservable.add(() => scene.onBeforeRenderObservable.remove(zombieCountObs));
   const wasted = createWastedOverlay(scene);
 
   // If the camera (eye) is above this Y, the player is considered "upstairs" and cannot be damaged.
