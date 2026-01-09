@@ -20,7 +20,7 @@ You win when the zombie counter hits zero. You lose when your health reaches zer
 
 The biggest part of the project is the procedural street/house generation. Each house has a two-floor layout with regions for things like rooms, hallways, stairs, and outdoor plot zones. The output is deterministic, so the same house number always generates the same layout for a given seed, which makes debugging and iteration much easier.
 
-The zombie system was the other main focus. Zombies are spawned across the street based on a pseudorandom deterministic layout, and then instantiated lazily when interiors are loaded. Their movement is intentionally simple and performance-friendly, but the AI is still Advanced enough to put real pressure on the player. They will chase you when you are close enough and attack when they get within range, and that damage actually matters because the game can end quickly if you ignore them.
+The zombie system was the other main focus. Zombies are spawned across the street based on a pseudorandom deterministic layout, and then instantiated lazily when interiors are loaded. Their movement is intentionally simple and performance-friendly, but the AI is still advanced enough to put real pressure on the player. They will chase you when you are close enough and attack when they get within range, and that damage actually matters because the game can end quickly if you ignore them.
 
 Finally, the combat loop is where everything meets. Weapons have different fire rates and damage, there is an actual ammo model with clip and reserve rounds, and the UI tries to communicate what you need in a simple and user-friendly manner.
 
