@@ -6,6 +6,6 @@ export interface StreetConfig {
 }
 
 export async function loadStreetConfig(): Promise<StreetConfig> {
-  const houses = await loadJson<HouseConfig[]>("/config/houses.json");
+  const houses = await loadJson<HouseConfig[]>("config/houses.json");
   return { houses };
 }

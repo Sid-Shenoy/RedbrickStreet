@@ -1,7 +1,7 @@
 type TrackKey = "outdoor" | "weapon-wheel";
 
-const OUTDOOR_SRC = "/assets/audio/ambience/outdoor.mp3";
-const WEAPON_WHEEL_SRC = "/assets/audio/ambience/weapon-wheel.mp3";
+const OUTDOOR_SRC = "assets//audio/ambience/outdoor.mp3";
+const WEAPON_WHEEL_SRC = "assets//audio/ambience/weapon-wheel.mp3";
 
 const TRACK_URL: Record<TrackKey, string> = {
   outdoor: OUTDOOR_SRC,

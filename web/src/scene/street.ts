@@ -188,7 +188,7 @@ export function renderStreet(
 
   // Street boundary walls (brick_dark.jpg)
   const streetBrickDarkMat = new StandardMaterial("street_brick_dark", scene);
-  streetBrickDarkMat.diffuseTexture = new Texture("/assets/textures/surfaces/brick_dark.jpg", scene);
+  streetBrickDarkMat.diffuseTexture = new Texture("assets//textures/surfaces/brick_dark.jpg", scene);
   streetBrickDarkMat.specularColor = new Color3(0.08, 0.08, 0.08);
 
   const wallH = 10;

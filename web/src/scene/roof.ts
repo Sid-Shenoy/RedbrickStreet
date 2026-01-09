@@ -197,7 +197,7 @@ export function renderRoofs(scene: Scene, houses: HouseWithModel[], roofMat?: St
   const mat = roofMat ?? new StandardMaterial("roofing_mat", scene);
 
   if (!roofMat) {
-    const tex = new Texture("/assets/textures/surfaces/roofing.jpg", scene);
+    const tex = new Texture("assets//textures/surfaces/roofing.jpg", scene);
     tex.wrapU = Texture.WRAP_ADDRESSMODE;
     tex.wrapV = Texture.WRAP_ADDRESSMODE;
 

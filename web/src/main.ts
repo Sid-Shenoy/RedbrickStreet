@@ -169,7 +169,7 @@ async function boot() {
     };
 
     // Play end dialogue first; success overlay appears 1s after it finishes.
-    endAudio = new Audio("/assets/audio/dialogue/conversations/end.mp3");
+    endAudio = new Audio("assets//audio/dialogue/conversations/end.mp3");
     endAudio.preload = "auto";
     endAudio.volume = 1.0;
 

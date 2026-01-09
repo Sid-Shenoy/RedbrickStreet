@@ -1,7 +1,7 @@
 import type { Scene } from "@babylonjs/core";
 
-const START_CONVO_SRC = "/assets/audio/dialogue/conversations/start.mp3";
-const ADVICE_CONVO_SRC = "/assets/audio/dialogue/conversations/advice.mp3";
+const START_CONVO_SRC = "assets//audio/dialogue/conversations/start.mp3";
+const ADVICE_CONVO_SRC = "assets//audio/dialogue/conversations/advice.mp3";
 
 export interface IntroUiApi {
   waitForStart(): Promise<void>;

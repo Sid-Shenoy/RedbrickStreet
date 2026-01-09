@@ -18,8 +18,8 @@ export interface WeaponUiApi {
   setZombieCount(alive: number, total: number): void;
 }
 
-const GUNSHOT_SRC = "/assets/audio/sfx/gunshot.mp3";
-const RELOAD_SRC = "/assets/audio/sfx/reload.mp3";
+const GUNSHOT_SRC = "assets//audio/sfx/gunshot.mp3";
+const RELOAD_SRC = "assets//audio/sfx/reload.mp3";
 
 const HOME_REFILL_DIST_M = 3.0;
 
@@ -294,7 +294,7 @@ function weaponIconSrc(w: WeaponConfig) {
   return `/assets/weapons/${w.name}/icon.png`;
 }
 function crosshairSrc(w: WeaponConfig) {
-  return w.crosshair === "large" ? "/assets/weapons/crosshairs/large.svg" : "/assets/weapons/crosshairs/small.svg";
+  return w.crosshair === "large" ? "assets//weapons/crosshairs/large.svg" : "assets//weapons/crosshairs/small.svg";
 }
 
 function makeGunshotPool(size: number): HTMLAudioElement[] {
@@ -404,8 +404,8 @@ export function createWeaponUi(
   }
 
   // Preload both crosshairs (used by different weapons).
-  const crosshairSmallImg = preloadImage("/assets/weapons/crosshairs/small.svg");
-  const crosshairLargeImg = preloadImage("/assets/weapons/crosshairs/large.svg");
+  const crosshairSmallImg = preloadImage("assets//weapons/crosshairs/small.svg");
+  const crosshairLargeImg = preloadImage("assets//weapons/crosshairs/large.svg");
 
   // Wheel icons reuse the preloaded icon images.
   for (const opt of wheelOptions) {

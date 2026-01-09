@@ -6,6 +6,6 @@ export interface WeaponsConfig {
 }
 
 export async function loadWeaponsConfig(): Promise<WeaponsConfig> {
-  const weapons = await loadJson<WeaponConfig[]>("/config/weapons.json");
+  const weapons = await loadJson<WeaponConfig[]>("config/weapons.json");
   return { weapons };
 }

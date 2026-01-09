@@ -151,7 +151,7 @@ export interface ZombieHouseStreamer {
 }
 
 export async function preloadZombieAssets(scene: Scene): Promise<AssetContainer> {
-  return SceneLoader.LoadAssetContainerAsync("/assets/models/", "zombie.glb", scene);
+  return SceneLoader.LoadAssetContainerAsync("assets//models/", "zombie.glb", scene);
 }
 
 /**
@@ -220,10 +220,10 @@ export function createZombieHouseStreamer(
   // --- Zombie sound effects (distance-attenuated) ---
   const ZOMBIE_SFX_MASTER = 0.9;
 
-  const ZOMBIE_SFX_ATTACK_SRC = "/assets/audio/sfx/zombie/attack.mp3";
-  const ZOMBIE_SFX_DEATH_SRC = "/assets/audio/sfx/zombie/death.mp3";
-  const ZOMBIE_SFX_GETHIT_SRC = "/assets/audio/sfx/zombie/gethit.mp3";
-  const ZOMBIE_SFX_WALK_SRC = "/assets/audio/sfx/zombie/walk.mp3";
+  const ZOMBIE_SFX_ATTACK_SRC = "assets//audio/sfx/zombie/attack.mp3";
+  const ZOMBIE_SFX_DEATH_SRC = "assets//audio/sfx/zombie/death.mp3";
+  const ZOMBIE_SFX_GETHIT_SRC = "assets//audio/sfx/zombie/gethit.mp3";
+  const ZOMBIE_SFX_WALK_SRC = "assets//audio/sfx/zombie/walk.mp3";
 
   // Base volumes (before distance attenuation), 0..1.
   const ZOMBIE_SFX_ATTACK_BASE = 0.85;

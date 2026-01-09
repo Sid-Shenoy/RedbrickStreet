@@ -79,7 +79,7 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
   gifWrap.id = "rbsWastedGif";
 
   const img = document.createElement("img");
-  img.src = "/assets/wasted-text.gif";
+  img.src = "assets//wasted-text.gif";
   img.alt = "WASTED";
   gifWrap.appendChild(img);
 
@@ -96,7 +96,7 @@ export function createWastedOverlay(scene: Scene): WastedOverlayApi {
   let disposed = false;
 
   // Preload audio; play only on trigger.
-  const audio = new Audio("/assets/audio/sfx/wasted.mp3");
+  const audio = new Audio("assets//audio/sfx/wasted.mp3");
   audio.preload = "auto";
   audio.volume = 1.0;
 

@@ -79,7 +79,7 @@ export function createSuccessOverlay(scene: Scene): SuccessOverlayApi {
   gifWrap.id = "rbsSuccessGif";
 
   const img = document.createElement("img");
-  img.src = "/assets/success-text.gif";
+  img.src = "assets//success-text.gif";
   img.alt = "SUCCESS";
   gifWrap.appendChild(img);
 
@@ -96,7 +96,7 @@ export function createSuccessOverlay(scene: Scene): SuccessOverlayApi {
   let disposed = false;
 
   // Preload audio; play only on trigger.
-  const audio = new Audio("/assets/audio/sfx/success.mp3");
+  const audio = new Audio("assets//audio/sfx/success.mp3");
   audio.preload = "auto";
   audio.volume = 1.0;
 
