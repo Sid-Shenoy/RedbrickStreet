@@ -109,6 +109,8 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
   z-index: 14;
   pointer-events: none;
   user-select: none;
+  white-space: pre-line;
+  text-align: center;
 
   font-family: "Russo One", sans-serif;
   font-size: ${12 * WEAPON_UI_SCALE}px;
@@ -1034,6 +1036,15 @@ export function createWeaponUi(
   applyEquipImmediate(null);
 
   // Auto-refill ammo at home (within 3m in XZ) for ALL weapons.
+  // When the player first leaves the home radius, show a short gameplay tip for ~8s.
+  const HOME_TIP_TEXT =
+    "Tip:\nWalk along the entire sidewalk on both sides.\nAs you approach a house, zombies will start pouring out.";
+  const HOME_TIP_SHOW_MS = 8000;
+
+  let lastAtHome: boolean | null = null;
+  let homeTipUntilMs = 0;
+  let homeTipTriggered = false;
+
   const homeAmmoObs = scene.onBeforeRenderObservable.add(() => {
     if (disposed) return;
 
@@ -1044,7 +1055,33 @@ export function createWeaponUi(
     const dz = cam.position.z - homeZ;
 
     const atHome = Math.hypot(dx, dz) <= HOME_REFILL_DIST_M;
-    homeReloadNote.style.display = atHome ? "block" : "none";
+
+    // Detect the first transition from "at home" -> "not at home".
+    if (lastAtHome === null) {
+      lastAtHome = atHome;
+    } else if (lastAtHome && !atHome && !homeTipTriggered) {
+      homeTipTriggered = true;
+      homeTipUntilMs = performance.now() + HOME_TIP_SHOW_MS;
+      lastAtHome = atHome;
+    } else {
+      lastAtHome = atHome;
+    }
+
+    const nowMs = performance.now();
+
+    // Note display:
+    // - At home: always show reload note.
+    // - After first leave: show tip for ~8s.
+    if (atHome) {
+      homeReloadNote.textContent = "All weapons were reloaded";
+      homeReloadNote.style.display = "block";
+    } else if (nowMs < homeTipUntilMs) {
+      homeReloadNote.textContent = HOME_TIP_TEXT;
+      homeReloadNote.style.display = "block";
+    } else {
+      homeReloadNote.style.display = "none";
+    }
+
     if (!atHome) return;
 
     // Only do work if any weapon is not already full.
