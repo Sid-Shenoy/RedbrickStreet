@@ -518,7 +518,7 @@ export function renderExteriorBrickPrisms(
     if (hit) return hit;
 
     const mat = new StandardMaterial(`house_brick_${texFile.replace(".jpg", "")}`, scene);
-    const tex = new Texture(`/assets/textures/surfaces/${texFile}`, scene);
+    const tex = new Texture(`assets/textures/surfaces/${texFile}`, scene);
     tex.wrapU = Texture.WRAP_ADDRESSMODE;
     tex.wrapV = Texture.WRAP_ADDRESSMODE;
 

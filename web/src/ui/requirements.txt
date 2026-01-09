@@ -86,7 +86,7 @@
 2.4.3) Number-key equipping must work whether or not the wheel is visible.
 
 2.4.4) Reload sound on weapon equip (hard)
-2.4.4.1) When switching to a weapon (SmokeShot / SprayShot / BlastShot), play `/assets/audio/sfx/reload.mp3` once.
+2.4.4.1) When switching to a weapon (SmokeShot / SprayShot / BlastShot), play `assets/audio/sfx/reload.mp3` once.
 2.4.4.2) This must trigger whether the switch happens via number keys or via weapon wheel.
 2.4.4.3) This must NOT play when switching to Unarmed.
 
@@ -111,8 +111,8 @@
 2.5.2.3) show the weapon `icon.png` above the HUD
 2.5.2.3.1) icons must be displayed with `object-fit: contain` to handle varying aspect ratios
 2.5.2.4) show the correct crosshair from:
-2.5.2.4.1) `/assets/weapons/crosshairs/small.svg`
-2.5.2.4.2) `/assets/weapons/crosshairs/large.svg`
+2.5.2.4.1) `assets/weapons/crosshairs/small.svg`
+2.5.2.4.2) `assets/weapons/crosshairs/large.svg`
 2.5.2.4.3) chosen by `weapon.crosshair`
 
 2.6) Shooting (hard)
@@ -120,7 +120,7 @@
 2.6.1) When a weapon is equipped, holding left mouse must fire repeatedly at `weapon.fireRate` shots/second.
 2.6.2) Each shot must animate frames in this exact order:
 2.6.2.1) grip -> pull -> fire -> pull -> grip
-2.6.3) Each shot must play `/assets/audio/sfx/gunshot.mp3`.
+2.6.3) Each shot must play `assets/audio/sfx/gunshot.mp3`.
 2.6.4) Playback volume must be `weapon.shotVolume / 100` (clamped to [0,1]).
 
 2.7) Ammunition display (hard)
@@ -148,7 +148,7 @@ Example format (one line):
 2.8.3.1) Reload must use the exact same transition animation as weapon switching (down off-screen, then back up),
 2.8.3.2) but re-equipping the currently equipped weapon (same weapon).
 2.8.3.3) After the weapon-in-hand image has moved fully off-screen, it must remain hidden for 0.8 seconds before returning.
-2.8.3.4) During reload, `/assets/audio/sfx/reload.mp3` must play once 0.4 seconds after the weapon-in-hand image has moved fully off-screen (i.e. halfway through the 0.8s hidden delay).
+2.8.3.4) During reload, `assets/audio/sfx/reload.mp3` must play once 0.4 seconds after the weapon-in-hand image has moved fully off-screen (i.e. halfway through the 0.8s hidden delay).
 2.8.4) While reloading:
 2.8.4.1) shooting must be disabled
 2.8.4.2) the ammo readout must update after reload completes.
@@ -213,7 +213,7 @@ Example format (one line):
 3.5) Start briefing audio (hard)
 
 3.5.1) When the intro overlay is started (via Space key or Start mission button), play:
-3.5.1.1) `/assets/audio/dialogue/conversations/start.mp3`
+3.5.1.1) `assets/audio/dialogue/conversations/start.mp3`
 3.5.2) The audio must play exactly once per intro start.
 3.5.3) The audio must begin immediately when the intro closes/starts.
 
@@ -230,8 +230,8 @@ await intro.waitForStart();
 
 4.1.1) When the player dies (health reaches 0), provide a full-screen death overlay:
 4.1.1.1) the screen must gradually fade to black
-4.1.1.2) `/assets/wasted-text.gif` must appear along with the fade
-4.1.1.3) `/assets/audio/sfx/wasted.mp3` must play when the overlay triggers
+4.1.1.2) `assets/wasted-text.gif` must appear along with the fade
+4.1.1.3) `assets/audio/sfx/wasted.mp3` must play when the overlay triggers
 
 4.2) Exported function
 
@@ -245,7 +245,7 @@ await intro.waitForStart();
 4.3.1.1) show the overlay
 4.3.1.2) start a gradual fade to black
 4.3.1.3) fade in the wasted gif along with the screen fade
-4.3.1.4) play `/assets/audio/sfx/wasted.mp3` exactly once
+4.3.1.4) play `assets/audio/sfx/wasted.mp3` exactly once
 4.3.2) `wastedApi.trigger()` must be idempotent (calling it multiple times must not re-trigger audio or restart the fade).
 
 4.4) Lifecycle and cleanup (hard)

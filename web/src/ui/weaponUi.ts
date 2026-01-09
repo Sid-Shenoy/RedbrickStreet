@@ -282,16 +282,16 @@ function ensureWeaponUiStyle(): HTMLStyleElement {
 }
 
 function weaponGripSrc(w: WeaponConfig) {
-  return `/assets/weapons/${w.name}/grip.png`;
+  return `assets/weapons/${w.name}/grip.png`;
 }
 function weaponPullSrc(w: WeaponConfig) {
-  return `/assets/weapons/${w.name}/pull.png`;
+  return `assets/weapons/${w.name}/pull.png`;
 }
 function weaponFireSrc(w: WeaponConfig) {
-  return `/assets/weapons/${w.name}/fire.png`;
+  return `assets/weapons/${w.name}/fire.png`;
 }
 function weaponIconSrc(w: WeaponConfig) {
-  return `/assets/weapons/${w.name}/icon.png`;
+  return `assets/weapons/${w.name}/icon.png`;
 }
 function crosshairSrc(w: WeaponConfig) {
   return w.crosshair === "large" ? "assets//weapons/crosshairs/large.svg" : "assets//weapons/crosshairs/small.svg";

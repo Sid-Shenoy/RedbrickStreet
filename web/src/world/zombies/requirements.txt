@@ -27,7 +27,7 @@
 
 1.3.1) Export: `preloadZombieAssets(scene) -> Promise<AssetContainer>`
 1.3.2) Must load zombie model:
-1.3.2.1) base path: `/assets/models/`
+1.3.2.1) base path: `assets/models/`
 1.3.2.2) file: `zombie.glb`
 
 1.4) Streaming spawner API (hard)
@@ -89,7 +89,7 @@ streamer.ensureHouse(12);
 1.6.2) Spawn positions must be chosen randomly from valid first-floor regions, weighted by region area.
 1.6.3) No zombie may spawn within `MIN_ZOMBIE_SPAWN_DIST_M` meters (XZ distance) of `playerStartXZ`.
 1.6.4) Spawn height is `FIRST_FLOOR_Y`.
-1.6.5) Zombie model path is `/assets/models/zombie.glb`.
+1.6.5) Zombie model path is `assets/models/zombie.glb`.
 
 1.7) AI behavior rules (hard)
 
@@ -148,7 +148,7 @@ streamer.ensureHouse(12);
 
 1.11) Zombie sound effects (hard)
 
-1.11.1) Zombies must produce the following sound effects (all under `/assets/audio/sfx/zombie/`):
+1.11.1) Zombies must produce the following sound effects (all under `assets/audio/sfx/zombie/`):
 1.11.1.1) `walk.mp3`: While a zombie is walking toward the player from nearby.
 1.11.1.2) `attack.mp3`: When a zombie attacks (i.e., when it applies damage to the player).
 1.11.1.3) `gethit.mp3`: When a zombie is shot but survives.
