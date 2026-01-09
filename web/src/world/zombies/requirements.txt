@@ -17,7 +17,7 @@
 
 1.2.1) `ZOMBIE_COUNT` is a constant and defaults to 25.
 1.2.2) `MIN_ZOMBIE_SPAWN_DIST_M` is a constant and defaults to 30.
-1.2.3) `ZOMBIE_AI_FOLLOW_DIST_M` is a constant and defaults to 20.
+1.2.3) `ZOMBIE_AI_FOLLOW_DIST_M` is a constant and defaults to 30.
 1.2.4) `ZOMBIE_AI_ATTACK_DIST_M` is a constant and defaults to 1.
 1.2.5) `ZOMBIE_AI_HIT_DAMAGE` is a constant and defaults to 8.
 1.2.6) `ZOMBIE_AI_HIT_COOLDOWN_S` is a constant and defaults to 0.9.

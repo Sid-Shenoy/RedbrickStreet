@@ -23,7 +23,7 @@ export const MIN_ZOMBIE_SPAWN_DIST_M = 30;
 export const ZOMBIE_MAX_HEALTH = 100;
 
 // Zombie AI distance thresholds (per requirements)
-export const ZOMBIE_AI_FOLLOW_DIST_M = 20;
+export const ZOMBIE_AI_FOLLOW_DIST_M = 30;
 export const ZOMBIE_AI_ATTACK_DIST_M = 1;
 
 // Player damage while being attacked (new)
@@ -31,7 +31,7 @@ export const ZOMBIE_AI_HIT_DAMAGE = 8;          // health per hit
 export const ZOMBIE_AI_HIT_COOLDOWN_S = 0.9;    // seconds between hits per zombie while attacking
 
 // Internal tuning (not part of config yet)
-const ZOMBIE_WALK_SPEED_MPS = 1.6;
+const ZOMBIE_WALK_SPEED_MPS = 2.0;          // meters per second
 
 // Nav tuning (simple, static)
 const NAV_PORTAL_MIN_OVERLAP_M = 0.25;  // minimum shared edge overlap to be considered connected (outdoors/road)
