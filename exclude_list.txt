@@ -1,4 +1,6 @@
 web\public\config\houses.json
+web\public\config\weapons.json
+web\public\config\requirements.txt
 web\src\world\houseModel\generation\doors.ts
 web\src\world\houseModel\generation\plot.ts
 web\src\world\houseModel\generation\firstFloor.ts
@@ -9,6 +11,7 @@ web\src\world\houseModel\generateHouseModel.ts
 web\src\world\houseModel\lotTransform.ts
 web\src\scene\autoStep.ts
 web\src\scene\boundaryWalls.ts
+web\src\scene\constants.ts
 web\src\scene\curb.ts
 web\src\scene\exteriorBrick.ts
 web\src\scene\floorPick.ts
@@ -23,14 +26,18 @@ web\src\scene\uvs.ts
 web\src\audio\ambience.ts
 web\src\ui\intro.ts
 web\src\ui\wasted.ts
+web\src\ui\success.ts
 web\src\ui\hud.ts
+web\src\ui\weaponUi.ts
+web\src\ui\requirements.txt
 web\src\world\houseModel\requirements.txt
 web\public\assets\textures\surfaces\requirements.txt
-web\index.html
-web\package.json
 web\src\config\loadJson.ts
 web\src\config\loadStreetConfig.ts
 web\src\config\loadWeaponsConfig.ts
-web\src\vite-env.d.ts
 web\src\utils\seededRng.ts
 exclude_list.txt
+web\public\assets\audio\sfx\zombie\requirements.txt
+web\public\assets\models\requirements.txt
+web\src\world\zombies\requirements.txt
+web\src\world\zombies\spawnZombies.ts
