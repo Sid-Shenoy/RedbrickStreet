@@ -283,6 +283,7 @@ export function createIntroOverlay(scene: Scene): IntroUiApi {
     controlsList.appendChild(li);
   }
 
+  addControl("Mouse", "Look around");
   addControl("W/A/S/D", "Move");
   addControl("Shift", "Sprint");
   addControl("Space", "Jump (after you start)");
