@@ -1045,8 +1045,12 @@ export function createWeaponUi(
   // When the player first leaves the home radius, show a short gameplay tip for ~8s.
   // Also: the FIRST time the player fully runs out of ammo, show a one-time hint.
   const HOME_TIP_TEXT =
-    "Tip:\nSlowly walk along the entire sidewalk.\nAs you approach a house, zombies will start pouring out.";
+    "Tip:\nSlowly walk along the entire sidewalk.\nAs you approach houses, zombies will start pouring out.";
   const HOME_TIP_SHOW_MS = 8000;
+
+  const SECOND_TIP_TEXT =
+    "Note:\nIf you cannot shoot while moving,\nstand still and try again.";
+  const SECOND_TIP_SHOW_MS = 7000;
 
   const AMMO_EMPTY_TIP_TEXT = "Switch weapon, or go home to reload.";
   const AMMO_EMPTY_TIP_SHOW_MS = 8000;
@@ -1054,6 +1058,9 @@ export function createWeaponUi(
   let lastAtHome: boolean | null = null;
   let homeTipUntilMs = 0;
   let homeTipTriggered = false;
+
+  let secondTipUntilMs = 0;
+  let secondTipTriggered = false;
 
   let ammoEmptyTipUntilMs = 0;
   let ammoEmptyTipShown = false;
@@ -1082,6 +1089,12 @@ export function createWeaponUi(
 
     const nowMs = performance.now();
 
+    // After the sidewalk tip finishes, show a second tip once.
+    if (homeTipTriggered && !secondTipTriggered && homeTipUntilMs > 0 && nowMs >= homeTipUntilMs) {
+      secondTipTriggered = true;
+      secondTipUntilMs = nowMs + SECOND_TIP_SHOW_MS;
+    }
+
     // If the player makes it back home, stop showing the out-of-ammo tip (but keep it "used").
     if (atHome) {
       ammoEmptyTipUntilMs = 0;
@@ -1091,6 +1104,7 @@ export function createWeaponUi(
     // 1) At home: reload note
     // 2) First-time out-of-ammo tip (one-time, timed)
     // 3) First-time "leave home" sidewalk tip (timed)
+    // 4) Second tip after the sidewalk tip (timed)
     if (atHome) {
       homeReloadNote.textContent = "All weapons were reloaded";
       homeReloadNote.style.display = "block";
@@ -1099,6 +1113,9 @@ export function createWeaponUi(
       homeReloadNote.style.display = "block";
     } else if (nowMs < homeTipUntilMs) {
       homeReloadNote.textContent = HOME_TIP_TEXT;
+      homeReloadNote.style.display = "block";
+    } else if (nowMs < secondTipUntilMs) {
+      homeReloadNote.textContent = SECOND_TIP_TEXT;
       homeReloadNote.style.display = "block";
     } else {
       homeReloadNote.style.display = "none";
