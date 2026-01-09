@@ -838,6 +838,12 @@ export function createWeaponUi(
             if (st.clip === 0 && st.reserve > 0) {
               reloadQueued = true;
             }
+
+            // FIRST time the player fully runs out (clip AND reserve both empty), show a one-time hint.
+            if (st.clip === 0 && st.reserve === 0 && !ammoEmptyTipShown) {
+              ammoEmptyTipShown = true;
+              ammoEmptyTipUntilMs = nowMs + AMMO_EMPTY_TIP_SHOW_MS;
+            }
           }
 
           triggerRecoil(nowMs);
@@ -1037,13 +1043,20 @@ export function createWeaponUi(
 
   // Auto-refill ammo at home (within 3m in XZ) for ALL weapons.
   // When the player first leaves the home radius, show a short gameplay tip for ~8s.
+  // Also: the FIRST time the player fully runs out of ammo, show a one-time hint.
   const HOME_TIP_TEXT =
-    "Tip:\nWalk along the entire sidewalk on both sides.\nAs you approach a house, zombies will start pouring out.";
+    "Tip:\nWalk along the entire sidewalk.\nAs you approach a house, zombies will start pouring out.";
   const HOME_TIP_SHOW_MS = 8000;
+
+  const AMMO_EMPTY_TIP_TEXT = "Switch weapon, or go home to reload.";
+  const AMMO_EMPTY_TIP_SHOW_MS = 8000;
 
   let lastAtHome: boolean | null = null;
   let homeTipUntilMs = 0;
   let homeTipTriggered = false;
+
+  let ammoEmptyTipUntilMs = 0;
+  let ammoEmptyTipShown = false;
 
   const homeAmmoObs = scene.onBeforeRenderObservable.add(() => {
     if (disposed) return;
@@ -1069,11 +1082,20 @@ export function createWeaponUi(
 
     const nowMs = performance.now();
 
-    // Note display:
-    // - At home: always show reload note.
-    // - After first leave: show tip for ~8s.
+    // If the player makes it back home, stop showing the out-of-ammo tip (but keep it "used").
+    if (atHome) {
+      ammoEmptyTipUntilMs = 0;
+    }
+
+    // Note display priority:
+    // 1) At home: reload note
+    // 2) First-time out-of-ammo tip (one-time, timed)
+    // 3) First-time "leave home" sidewalk tip (timed)
     if (atHome) {
       homeReloadNote.textContent = "All weapons were reloaded";
+      homeReloadNote.style.display = "block";
+    } else if (nowMs < ammoEmptyTipUntilMs) {
+      homeReloadNote.textContent = AMMO_EMPTY_TIP_TEXT;
       homeReloadNote.style.display = "block";
     } else if (nowMs < homeTipUntilMs) {
       homeReloadNote.textContent = HOME_TIP_TEXT;
