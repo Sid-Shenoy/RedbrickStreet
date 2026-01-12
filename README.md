@@ -4,6 +4,8 @@ Redbrick Street is a first-person zombie shooter that runs straight in the brows
 
 Play it here: https://sid-shenoy.github.io/RedbrickStreet/
 
+<img width="1919" height="922" alt="image" src="https://github.com/user-attachments/assets/b6395251-d050-4a3f-a236-4ca9639e1f6b" />
+
 ## What this project is about
 
 I built this because I wanted one project that forced me to use a bunch of different tech-related skills at the same time. I wanted computer graphics, procedural generation, and gameplay systems all in the same codebase. I also wanted the project to be big enough that it actually feels like working in a real codebase, where you have to keep your own conventions straight or things get messy fast.
