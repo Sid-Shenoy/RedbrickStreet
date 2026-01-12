@@ -5,8 +5,14 @@ Redbrick Street is a first-person zombie shooter that runs straight in the brows
 Play it here: https://sid-shenoy.github.io/RedbrickStreet/
 
 ## Screenshots
-<img width="1919" height="922" alt="image" src="https://github.com/user-attachments/assets/b6395251-d050-4a3f-a236-4ca9639e1f6b" />
-<img width="1919" height="923" alt="image" src="https://github.com/user-attachments/assets/76e4c63c-810d-4eff-9839-97d15b41bd4b" />
+
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/b6395251-d050-4a3f-a236-4ca9639e1f6b" alt="Screenshot 1" width="100%"></td>
+    <td><img src="https://github.com/user-attachments/assets/76e4c63c-810d-4eff-9839-97d15b41bd4b" alt="Screenshot 2" width="100%"></td>
+    <td><img src="https://github.com/user-attachments/assets/3b2ab036-22d0-4360-9a29-7509cab0969f" alt="Screenshot 3" width="100%"></td>
+  </tr>
+</table>
 
 ## What this project is about
 
