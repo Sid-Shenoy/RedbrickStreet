@@ -4,11 +4,13 @@ Redbrick Street is a first-person zombie shooter that runs straight in the brows
 
 Play it here: https://sid-shenoy.github.io/RedbrickStreet/
 
+## Screenshots
 <img width="1919" height="922" alt="image" src="https://github.com/user-attachments/assets/b6395251-d050-4a3f-a236-4ca9639e1f6b" />
+<img width="1919" height="923" alt="image" src="https://github.com/user-attachments/assets/76e4c63c-810d-4eff-9839-97d15b41bd4b" />
 
 ## What this project is about
 
-I built this because I wanted one project that forced me to use a bunch of different tech-related skills at the same time. I wanted computer graphics, procedural generation, and gameplay systems all in the same codebase. I also wanted the project to be big enough that it actually feels like working in a real codebase, where you have to keep your own conventions straight or things get messy fast.
+I built this because I wanted one project that forced me to use a bunch of different tech-related skills at the same time. I wanted computer graphics, procedural generation, character animation, and gameplay systems all in the same codebase. I also wanted the project to be big enough that it actually feels like working in a real codebase, where you have to keep your own conventions straight or things get messy fast.
 
 Under the hood, the street is not just a static scene. Each house has a layout that is generated procedurally in a deterministic way. The zombie system also uses AI and pathfinding, which enables zombies to chase the player indoors through a network of rooms and doorways. Zombies stream in as interiors load, they switch between idle, chase, and attack states based on distance, and they drive the player’s health state through actual gameplay callbacks. On top of that, the weapon system is meant to challenge the player while remaining intuitive to use. There is a weapon wheel, number-key switching, fire rates, ammo tracking, reload behavior, and a win sequence when you finally clear the street.
 
